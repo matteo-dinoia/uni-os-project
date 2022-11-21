@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <sys/types.h>
 
 /* Macros */
 #define SHIP_EXEC "./ship"
