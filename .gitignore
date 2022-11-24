@@ -1,4 +1,4 @@
-#Ignore all
+# Ignore all
 *
 # Unignore all with extensions
 !*.*
@@ -19,3 +19,6 @@
 
 # Executables
 *.out
+
+# VS Code file
+.vscode
