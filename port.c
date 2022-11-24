@@ -42,7 +42,6 @@ void signal_handler(int signal)
 		supply_demand_update();
 		break;
 	case SIGUSR2: /* Seastorm */
-		supply_demand_update();
 		break;
 	}
 }
