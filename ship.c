@@ -7,7 +7,11 @@
 #include <signal.h>
 #include <math.h>
 #include <string.h>
+#include <sys/sem.h>
+#include "base.h"
 
+/* Global Variables */
+struct simulation_constant *_constants;
 
 /* Prototypes */
 int find_destiation_port(double, double);
@@ -20,7 +24,20 @@ int main(int argc, char *argv[])
 	/* Variables */
 	double x, y; /*  Coordinates */
 	int dest_port;
+	int id_sem, id_shm;
 	struct sigaction sa;
+	struct sembuf sem_operation;
+
+	/* Wait for father */
+	id_sem=semget(KEY_SHARED, 1, 0600);
+	sem_operation.sem_num=0;
+	sem_operation.sem_op=0;
+	sem_operation.sem_flg=0;
+	semop(id_sem, &sem_operation, 1);
+
+	/* Gain data struct */
+	id_shm=shmget(KEY_SHARED, sizeof(*_constants), 0600);
+	_constants=shmat(id_shm, NULL, 0);
 
 	/* Set signal handler */
 	bzero(&sa, sizeof(sa));
