@@ -22,7 +22,7 @@ struct simulation_constant *_constants;
 /* Prototypes */
 pid_t create_proc();
 void custom_handler(int);
-void close_all(const char *message, int exit_status);
+void close_all(const char *, int);
 void create_children();
 void read_constants_from_file();
 void create_shared_structures();
@@ -35,36 +35,48 @@ int main()
 	create_children();
 }
 
-void create_shared_structures(){
+void create_shared_structures()
+{
 	int id;
-	id=shmget(KEY_SHARED, sizeof(*_constants), 0600);
-	_constants=shmat(id, NULL, 0);
+	id = shmget(KEY_SHARED, sizeof(*_constants), 0600);
+	_constants = shmat(id, NULL, 0);
 }
 
-void read_constants_from_file(){
+void read_constants_from_file()
+{
 	FILE *file;
 	file = fopen("constants.txt", "r");
 
-	scanf(file, "%d", &(_constants->so_merci));
-	scanf(file, "%d", &(_constants->so_fill));
-	scanf(file, "%d", &(_constants->so_days));
-	scanf(file, "%d", &(_constants->so_navi));
-	scanf(file, "%d", &(_constants->so_porti));
-	scanf(file, "%d", &(_constants->so_merci));
-	scanf(file, "%d", &(_constants->so_size));
-	scanf(file, "%d", &(_constants->so_min_vita));
-	scanf(file, "%d", &(_constants->so_max_vita));
-	scanf(file, "%d", &(_constants->so_lato));
-	scanf(file, "%d", &(_constants->so_speed));
-	scanf(file, "%d", &(_constants->so_capacity));
-	scanf(file, "%d", &(_constants->so_banchine));
-	scanf(file, "%d", &(_constants->so_loadspeed));
-	scanf(file, "%d", &(_constants->so_storm_duration));
-	scanf(file, "%d", &(_constants->so_swell_duration));
-	scanf(file, "%d", &(_constants->so_maelestorm));
+	/* Reding generic simulation specifications */
+	scanf(file, "%d", &_constants->so_lato);
+	scanf(file, "%d", &_constants->so_days);
+	scanf(file, "%d", &_constants->so_navi);
+	scanf(file, "%d", &_constants->so_porti);
+	scanf(file, "%d", &_constants->so_merci);
+
+	/* Reading weather events max duration */
+	scanf(file, "%d", &_constants->so_storm_duration);
+	scanf(file, "%d", &_constants->so_swell_duration);
+	scanf(file, "%d", &_constants->so_maelestorm);
+
+	/* Reading ports specifications */
+	scanf(file, "%d", &_constants->so_fill);
+	scanf(file, "%d", &_constants->so_banchine);
+	scanf(file, "%d", &_constants->so_loadspeed);
+
+	/* Reading ships specifications */
+	scanf(file, "%d", &_constants->so_size);
+	scanf(file, "%d", &_constants->so_speed);
+	scanf(file, "%d", &_constants->so_capacity);
+
+	/* Reading cargo specifications */
+	scanf(file, "%d", &_constants->so_min_vita);
+	scanf(file, "%d", &_constants->so_max_vita);
+
 }
 
-void create_children(){
+void create_children()
+{
 	int i;
 
 	_port_pid_list = calloc(_constants->so_porti, sizeof(*_port_pid_list));
@@ -73,7 +85,7 @@ void create_children(){
 
 
 	_ship_pid_list = calloc(_constants->so_navi, sizeof(*_ship_pid_list));
-	for(i = 0;i<_constants->so_navi; i++)
+	for(i = 0; i<_constants->so_navi; i++)
 		_ship_pid_list[i] = create_proc("ship");
 }
 

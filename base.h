@@ -8,9 +8,11 @@ typedef int id_t;
 
 struct simulation_constant {
 	/* Intergers */
-	int so_merci, so_fill, so_days, so_navi, so_porti, so_merci;
-	int so_size, so_min_vita, so_max_vita, so_lato, so_speed, so_capacity, so_banchine, so_loadspeed;
-	int so_storm_duration, so_swell_duration, so_maelestorm;
+	int so_lato, so_days, so_navi, so_porti, so_merci; /* Generic simulation specifications */
+	int so_storm_duration, so_swell_duration, so_maelestorm; /* Weather events max duration */
+	int so_fill, so_banchine, so_loadspeed; /* Ports specifications */
+	int so_size, so_speed, so_capacity; /* Ships specifications */
+	int so_min_vita, so_max_vita; /* Cargo specifications */
 	id_t shared_bump;
 	id_t shared_port;
 	id_t shared_ship; /* May not be necessary */
