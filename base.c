@@ -2,6 +2,8 @@
 /* Libraries */
 #include <stdlib.h>
 #include <string.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
 #include "base.h"
 
 /* Macros */
@@ -10,16 +12,36 @@
 
 /* Prototypes */
 
-void initialize_shared(struct shared_pointer *pointers, struct simulation_constant *gen_const)
+/*
+ * clean_pointers()
+ * create?()
+ * attach(int value) using switch
+ * deattach_all()
+ */
+
+void detach(void *pointer)
 {
-	int id;
+	if (pointer != NULL)
+		shmdt(pointer);
+}
 
-	id = shmget(KEY_SHARED, sizeof(*pointers->general_constants), 0600);
-	pointers->general_constants = shmat(id, NULL, 0);
-	memcpy(pointers->general_constants, gen_const, sizeof(*gen_const));
-	gen_const = pointers->general_constants;
+id_t create_shared(key_t key, size_t size)
+{
+	return shmget(key, size, 0600);
+}
 
-	id = shmget(IPC_PRIVATE, sizeof(*gen_const->ports_constant) * gen_const->so_porti, 0600);
-	gen_const->shared_port = id;
-	gen_const->ports_constant = shmat(id, NULL, 0);
+void *attach_shared(id_t id)
+{
+	return shmat(id, NULL, 0);
+}
+
+struct sembuf create_sembuf(int index, int value)
+{
+	struct sembuf res;
+
+	res.sem_num = index;
+	res.sem_op = value;
+	res.sem_flg = 0;
+
+	return res;
 }

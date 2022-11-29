@@ -7,35 +7,29 @@ typedef int bool_t; /* Will likely use bool.h */
 typedef int id_t;
 
 /* Prototype */
-void initialize_shared(struct shared_pointer *, struct simulation_constant *);
+struct sembuf create_sembuf(int, int);
 
-/* Struct for pointer */
-struct shared_pointer
+/* CONST */
+
+struct const_general
 {
-	struct simulation_constant *general_constants;
-	struct port_constant *ports_constants;
-	struct ship_constant *ports_constants;
-	/*...*/
+	/* Constants*/
+	int SO_LATO, SO_DAYS, SO_NAVI, SO_PORTI, SO_MERCI;	/* Generic simulation specifications */
+	int SO_STORM_DURATION, SO_SWELL_DURATION, SO_MAELSTORM; /* Weather events max duration */
+	int SO_FILL, SO_BANCHINE, SO_LOADSPEED;			/* Ports specifications */
+	int SO_SIZE, SO_SPEED, SO_CAPACITY;			/* Ships specifications */
+	int SO_MIN_VITA, SO_MAX_VITA;				/* Cargo specifications */
+
+	/* Shared memory id */
+	id_t id_const_port;
+	id_t id_const_ship;
+	id_t id_bump_general;
+	id_t id_bump_port;
+	id_t id_bump_ship; /* Maybe not necessary */
+	id_t id_bump_cargo;
 };
 
-/* Struct for shared memory*/
-struct simulation_constant
-{
-	/* Intergers */
-	int so_lato, so_days, so_navi, so_porti, so_merci; /* Generic simulation specifications */
-	int so_storm_duration, so_swell_duration, so_maelestorm; /* Weather events max duration */
-	int so_fill, so_banchine, so_loadspeed; /* Ports specifications */
-	int so_size, so_speed, so_capacity; /* Ships specifications */
-	int so_min_vita, so_max_vita; /* Cargo specifications */
-	id_t shared_bump;
-	id_t shared_port;
-	id_t shared_ship; /* May not be necessary */
-
-	/* Pointers */
-	int *ports_constant;
-};
-
-struct port_constant
+struct const_port
 {
 	/* Coordinates */
 	int x;
@@ -44,7 +38,18 @@ struct port_constant
 	int daily_restock_capacity;
 };
 
-struct simulation_bumps
+struct const_ship
+{
+	/* Coordinates */
+	int x;
+	int y;
+
+	bool_t is_moving;
+};
+
+/* BUMP */
+
+struct bump_general
 {
 	int n_travelling_cargo;
 	int n_travelling_empty;
@@ -55,12 +60,12 @@ struct simulation_bumps
 	int *cargo_bumps;
 };
 
-struct ship_bump
+struct bump_ship
 {
 	bool_t affected_by_storm;
 };
 
-struct port_bump
+struct bump_port
 {
 	int n_cargo_received;
 	int n_cargo_shipped;
@@ -69,8 +74,7 @@ struct port_bump
 	bool_t affected_by_seastorm;
 };
 
-/* May not be necessary */
-struct cargo_bump
+struct bump_cargo /* May not be necessary */
 {
 	int n_cargo_port;
 	int n_cargo_ship;
