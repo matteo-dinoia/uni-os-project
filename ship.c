@@ -11,7 +11,9 @@
 #include "base.h"
 
 /* Global Variables */
-struct simulation_constant *_constants;
+int this_id;
+/* shared memory */
+struct const_general *_data;
 
 /* Prototypes */
 int find_destiation_port(double, double);
@@ -29,15 +31,15 @@ int main(int argc, char *argv[])
 	struct sembuf sem_operation;
 
 	/* Wait for father */
-	id_sem=semget(KEY_SHARED, 1, 0600);
-	sem_operation.sem_num=0;
-	sem_operation.sem_op=0;
-	sem_operation.sem_flg=0;
+	id_sem = semget(KEY_SHARED, 1, 0600);
+	sem_operation.sem_num = 0;
+	sem_operation.sem_op = 0;
+	sem_operation.sem_flg = 0;
 	semop(id_sem, &sem_operation, 1);
 
 	/* Gain data struct */
-	id_shm=shmget(KEY_SHARED, sizeof(*_constants), 0600);
-	_constants=shmat(id_shm, NULL, 0);
+	id_shm = shmget(KEY_SHARED, sizeof(*_data), 0600);
+	_data = shmat(id_shm, NULL, 0);
 
 	/* Set signal handler */
 	bzero(&sa, sizeof(sa));
@@ -45,21 +47,23 @@ int main(int argc, char *argv[])
 	sigaction(SIGUSR1, &sa, NULL);
 	sigaction(SIGUSR2, &sa, NULL);
 
-
 	/* TODO check for invalid arguments */
+	srand(time(NULL) * getpid());
+	this_id = atoi(argv[1]); /* Still needed*/
 	x = atof(argv[1]);
 	y = atof(argv[2]);
-	while (1) {
+	while (1)
+	{
 		dest_port = find_destiation_port(x, y);
-		move_to_port(dest_port, x , y);
+		move_to_port(dest_port, x, y);
 		exchange_goods(dest_port);
 	}
 }
 
 int find_destiation_port(double x, double y)
 {
-
-	return -1;
+	/* TODO ACTUALLY CHOOSE */
+	return rand() % _data->SO_NAVI;
 }
 
 void move_to_port(int port_id, double x, double y)
@@ -67,22 +71,23 @@ void move_to_port(int port_id, double x, double y)
 	struct timespec rem_time;
 	struct timespec travel_time;
 	double x_port = 0, y_port = 0; /* TODO need to get from data structure */
-	travel_time.tv_nsec = sqrt(pow((x-x_port), 2) + pow((y-y_port), 2));
+	travel_time.tv_nsec = sqrt(pow((x - x_port), 2) + pow((y - y_port), 2));
 
-	do {
+	do
+	{
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
-	} while(errno == EINTR);
+	} while (errno == EINTR);
 }
 
 void exchange_goods(int port_id)
 {
-
 }
 
 void signal_handler(int signal)
 {
-	switch (signal) {
+	switch (signal)
+	{
 	case SIGUSR1: /* Storm -> stops the ship for STORM_DURATION time */
 		break;
 	case SIGUSR2: /* Maeltrom -> sinks all ships in a given range */
