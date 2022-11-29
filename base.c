@@ -25,7 +25,7 @@ void detach(void *pointer)
 		shmdt(pointer);
 }
 
-id_t create_shared(key_t key, size_t size)
+id_t get_shared(key_t key, size_t size)
 {
 	return shmget(key, size, 0600);
 }
