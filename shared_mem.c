@@ -1,4 +1,3 @@
-/* MAY RENAME TO DATA*/
 /* Libraries */
 #include <stdlib.h>
 #include <string.h>
