@@ -23,35 +23,41 @@ void move_to_port(double, double);
 void exchange_goods(int);
 void signal_handler(int);
 void loop();
+void close();
 
 int main(int argc, char *argv[])
 {
 	/* Variables */
 	int id_sem, id_shm, this_id;
 	struct sigaction sa;
+	sigset_t set_masked;
 	struct sembuf sem_oper;
 
-	/* Wait for father */
+	/* FIRST: Wait for father */
 	id_sem = semget(KEY_SHARED, 1, 0600);
 	sem_oper = create_sembuf(0, 0);
 	semop(id_sem, &sem_oper, 1);
 
-	/* Gain data struct */
+	/* FIRST: Gain data struct */
 	id_shm = get_shared(KEY_SHARED, sizeof(*_data));
 	_data = attach_shared(id_shm);
 	_data_port = attach_shared(_data->id_const_port);
 	_data_ship = attach_shared(_data->id_const_ship);
 
-	/* Setting signal handler */
-	bzero(&sa, sizeof(sa));
-	sa.sa_handler = signal_handler;
-	sigaction(SIGUSR1, &sa, NULL);
-	sigaction(SIGUSR2, &sa, NULL);
-
 	/* this */
 	this_id = *(int *)argv[1];
 	_this_ship = &_data_ship[this_id];
 
+	/* LAST: Setting signal handler */
+	bzero(&sa, sizeof(sa));
+	sa.sa_handler = &signal_handler;
+	sigaction(SIGUSR1, &sa, NULL);
+	sigaction(SIGUSR2, &sa, NULL);
+	sigfillset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGTERM, &sa, NULL);
+
+	/* LAST: Start running*/
 	loop();
 }
 
@@ -107,9 +113,21 @@ void exchange_goods(int port_id)
 void signal_handler(int signal)
 {
 	switch (signal){
+	case SIGTERM:
+		close();
 	case SIGUSR1: /* Storm -> stops the ship for STORM_DURATION time */
 		break;
 	case SIGUSR2: /* Maeltrom -> sinks all ships in a given range */
 		break;
 	}
+}
+
+void close()
+{
+	/* Detach shared memory */
+	detach(_data);
+	detach(_data_port);
+	detach(_data_ship);
+
+	exit(0);
 }

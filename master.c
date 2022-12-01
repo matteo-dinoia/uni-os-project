@@ -35,6 +35,8 @@ void loop();
 int main()
 {
 	int id;
+	struct sigaction sa;
+	sigset_t set_masked;
 	struct sembuf sem_oper;
 
 	srand(time(NULL) * getpid());
@@ -54,15 +56,23 @@ int main()
 	_data_ship = shmat(id, NULL, 0);
 	_data->id_const_ship = id;
 
+  /* TODO Initializing message queue for ports*/
+
 	create_children();
 
-	/* TODO Initializing message queue for ports*/
-
-	/* Start child */
+	/* LAST: Start child */
 	id = semget(KEY_SHARED, 1, 0600);
 	sem_oper = create_sembuf(0, 0);
 	semop(id, &sem_oper, 1);
 
+	/* LAST: Setting signal handler */
+	bzero(&sa, sizeof(sa));
+	sa.sa_handler = &custom_handler;
+	sigfillset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGINT, &sa, NULL);
+
+	/* LAST: Start running*/
 	loop();
 }
 
@@ -170,12 +180,27 @@ void custom_handler(int signal)
 
 void close_all(const char *message, int exit_status)
 {
+	int i;
+
+	/* Killing and wait child */
+	for (i = 0; _data->SO_PORTI; i++)
+		kill(_data_port[i], SIGTERM);
+	for (i = 0; i < _data->SO_NAVI; i++)
+		kill(_data_ship[i], SIGTERM);
+	while(wait(NULL) != -1 || errno == EINTR);
+
+	/* Detach and mark for removal IPC structures */
+	detach(_data);
+	detach(_data_port);
+	detach(_data_ship);
+	shmctl(_data, IPC_RMID, NULL);
+	shmctl(_data_port, IPC_RMID, NULL);
+	shmctl(_data_ship, IPC_RMID, NULL);
+
+	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)
 		dprintf(1, "%s\n", message);
 	else
 		dprintf(2, "%s\n", message);
-
-	/* TODO deallocate everywhere */
-
 	exit(exit_status);
 }
