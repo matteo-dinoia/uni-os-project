@@ -5,7 +5,7 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/sem.h>
-#include "base.h"
+#include "shared_mem.h"
 
 /* Global variables */
 /* shared memory */

@@ -1,10 +1,9 @@
-/* MAY RENAME TO DATA*/
 /* Libraries */
 #include <stdlib.h>
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include "base.h"
+#include "shared_mem.h"
 
 /* Macros */
 

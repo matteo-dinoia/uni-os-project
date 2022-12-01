@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include "base.h"
+#include "shared_mem.h"
 
 /* Macros */
 #define SHIP_EXEC "./ship"
@@ -55,6 +55,8 @@ int main()
 	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
 	_data_ship = shmat(id, NULL, 0);
 	_data->id_const_ship = id;
+
+  /* TODO Initializing message queue for ports*/
 
 	create_children();
 
