@@ -1,10 +1,22 @@
 CC = gcc
-CFLAGS= -std=c89 -pedantic
+CFLAGS = -g -O0 -std=c89 -pedantic
 #
-TARGET= master
+REQUIRED =  shared_mem.o
+PROCESSES = ship port
+TARGET = master
 
+
+ship: $(REQUIRED)
+	$(CC) $(CFLAGS) $(REQUIRED) ship.c -o ship -lm
+
+port: $(REQUIRED)
+	$(CC) $(CFLAGS) $(REQUIRED) port.c -o port
+
+$(TARGET): $(PROCESSES) $(REQUIRED)
+	$(CC) $(CFLAGS) $(REQUIRED) $(TARGET).c -o $(TARGET)
 
 #GENERAL USE
+recompile: clear all
 all: $(TARGET)
 clear:
-	rm -f *.o $(TARGET) *~
+	rm -f *.o $(TARGET) $(PROCESSES) *~

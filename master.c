@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 
 /* Libraries */
 #include <signal.h>
@@ -10,6 +11,9 @@
 #include <fcntl.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
+#include <time.h>
+#include <string.h>
+#include <sys/wait.h>
 #include "shared_mem.h"
 
 /* Macros */
@@ -21,7 +25,8 @@
 /* Shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
-struct const_port *_data_ship;
+struct const_ship *_data_ship;
+int id_data;
 
 /* Prototypes */
 pid_t create_proc(char *, int);
@@ -30,6 +35,7 @@ void close_all(const char *, int);
 void create_children();
 void read_constants_from_file();
 void create_shared_structures();
+double get_random_coord();
 void loop();
 
 int main()
@@ -42,21 +48,25 @@ int main()
 	srand(time(NULL) * getpid());
 
 	/* General */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT);
+	id_data = id;
 	_data = shmat(id, NULL, 0);
+	shmctl(id_data, IPC_RMID, NULL);
 	read_constants_from_file();
 
 	/* Port */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
 	_data_port = shmat(id, NULL, 0);
 	_data->id_const_port = id;
+	shmctl(_data->id_const_port, IPC_RMID, NULL);
 
 	/* Ship */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
 	_data_ship = shmat(id, NULL, 0);
 	_data->id_const_ship = id;
+	shmctl(_data->id_const_ship, IPC_RMID, NULL);
 
-  /* TODO Initializing message queue for ports*/
+	/* TODO Initializing message queue for ports*/
 
 	create_children();
 
@@ -70,6 +80,7 @@ int main()
 	sa.sa_handler = &custom_handler;
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
+	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 
 	/* LAST: Start running*/
@@ -79,7 +90,8 @@ int main()
 void loop()
 {
 	while (1){
-		pause(); // TODO get data
+		dprintf(1, "[Parent] Wait\n");
+		pause(); /* TODO get data */
 	}
 }
 
@@ -90,11 +102,11 @@ void create_children()
 	struct const_ship *current_ship;
 
 	daily = _data->SO_FILL / (_data->SO_DAYS * _data->SO_PORTI);
-	for (i = 0; _data->SO_PORTI; i++){
+	for (i = 0; i < _data->SO_PORTI; i++){
 		current_port = &_data_port[i];
-		current_port->pid = create_proc("port", i);
+		current_port->pid = create_proc("./port", i);
 
-		to_add= i < _data->SO_FILL % (_data->SO_DAYS * _data->SO_PORTI) ? 1 : 0;
+		to_add = (i < (_data->SO_FILL % (_data->SO_DAYS * _data->SO_PORTI))) ? 1 : 0;
 		current_port->daily_restock_capacity = daily + to_add;
 
 		if (i<4){
@@ -110,7 +122,7 @@ void create_children()
 
 	for (i = 0; i < _data->SO_NAVI; i++){
 		current_ship = &_data_ship[i];
-		current_ship->pid = create_proc("ship", i);
+		current_ship->pid = create_proc("./ship", i);
 
 		current_ship->x = get_random_coord();
 		current_ship->y = get_random_coord();
@@ -128,40 +140,51 @@ void read_constants_from_file()
 	file = fopen("constants.txt", "r");
 
 	/* Reding generic simulation specifications */
-	scanf(file, "%d", &_data->SO_LATO);
-	scanf(file, "%d", &_data->SO_DAYS);
-	scanf(file, "%d", &_data->SO_NAVI);
-	scanf(file, "%d", &_data->SO_PORTI);
-	scanf(file, "%d", &_data->SO_MERCI);
+	fscanf(file, "%d", &_data->SO_LATO);
+	fscanf(file, "%d", &_data->SO_DAYS);
+	fscanf(file, "%d", &_data->SO_NAVI);
+	fscanf(file, "%d", &_data->SO_PORTI);
+	fscanf(file, "%d", &_data->SO_MERCI);
 
 	/* Reading weather events max duration */
-	scanf(file, "%d", &_data->SO_STORM_DURATION);
-	scanf(file, "%d", &_data->SO_SWELL_DURATION);
-	scanf(file, "%d", &_data->SO_MAELSTORM);
+	fscanf(file, "%d", &_data->SO_STORM_DURATION);
+	fscanf(file, "%d", &_data->SO_SWELL_DURATION);
+	fscanf(file, "%d", &_data->SO_MAELSTORM);
 
 	/* Reading ports specifications */
-	scanf(file, "%d", &_data->SO_FILL);
-	scanf(file, "%d", &_data->SO_BANCHINE);
-	scanf(file, "%d", &_data->SO_LOADSPEED);
+	fscanf(file, "%d", &_data->SO_FILL);
+	fscanf(file, "%d", &_data->SO_BANCHINE);
+	fscanf(file, "%d", &_data->SO_LOADSPEED);
 
 	/* Reading ships specifications */
-	scanf(file, "%d", &_data->SO_SIZE);
-	scanf(file, "%d", &_data->SO_SPEED);
-	scanf(file, "%d", &_data->SO_CAPACITY);
+	fscanf(file, "%d", &_data->SO_SIZE);
+	fscanf(file, "%d", &_data->SO_SPEED);
+	fscanf(file, "%d", &_data->SO_CAPACITY);
 
 	/* Reading cargo specifications */
-	scanf(file, "%d", &_data->SO_MIN_VITA);
-	scanf(file, "%d", &_data->SO_MAX_VITA);
+	fscanf(file, "%d", &_data->SO_MIN_VITA);
+	fscanf(file, "%d", &_data->SO_MAX_VITA);
 }
 
 pid_t create_proc(char *name, int index)
 {
-	pid_t proc_pid;
+	pid_t proc_pid, ppid;
+	char *arg[3], *env[]={NULL};
+	ppid=getpid();
+
 	if ((proc_pid = fork()) == -1){
 		close_all("[FATAL] Couldn't fork", EXIT_FAILURE);
 	} else if (proc_pid == 0){
-		execve(name, (char **){name, index, NULL}, (char **){NULL});
-		close_all("[FATAL] Failed to run executable", EXIT_FAILURE);
+		/* NOT WORKING */
+		arg[0] = name;
+		arg[1] = calloc(sizeof(index), 1);
+		memcpy(arg+1, &index, sizeof(index));
+		arg[2] = NULL;
+		dprintf(1, "[Child %d] Starting %s with ...\n", getpid(), name);
+
+		execve(name, arg, env);
+		dprintf(1, "%s\n", strerror(errno));
+		exit(EXIT_FAILURE);
 	}
 
 	return proc_pid;
@@ -170,6 +193,7 @@ pid_t create_proc(char *name, int index)
 void custom_handler(int signal)
 {
 	switch (signal){
+	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
 		break;
@@ -183,24 +207,27 @@ void close_all(const char *message, int exit_status)
 	int i;
 
 	/* Killing and wait child */
-	for (i = 0; _data->SO_PORTI; i++)
-		kill(_data_port[i], SIGTERM);
-	for (i = 0; i < _data->SO_NAVI; i++)
-		kill(_data_ship[i], SIGTERM);
+	for (i = 0; i<_data->SO_PORTI; i++){
+		if(_data_port[i].pid > 0)
+			kill(_data_port[i].pid, SIGTERM);
+	}
+	for (i = 0; i < _data->SO_NAVI; i++){
+		if(_data_ship[i].pid > 0)
+			kill(_data_ship[i].pid, SIGTERM);
+	}
+
 	while(wait(NULL) != -1 || errno == EINTR);
 
 	/* Detach and mark for removal IPC structures */
 	detach(_data);
 	detach(_data_port);
 	detach(_data_ship);
-	shmctl(_data, IPC_RMID, NULL);
-	shmctl(_data_port, IPC_RMID, NULL);
-	shmctl(_data_ship, IPC_RMID, NULL);
+
 
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)
-		dprintf(1, "%s\n", message);
+		dprintf(1, "\n%s\n", message);
 	else
-		dprintf(2, "%s\n", message);
+		dprintf(2, "\n%s\n", message);
 	exit(exit_status);
 }

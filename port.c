@@ -17,7 +17,8 @@ struct const_port *_this_port;
 void supply_demand_update();
 void signal_handler(int);
 void loop();
-void close();
+void close_all();
+
 
 int main(int argc, char *argv[])
 {
@@ -37,8 +38,13 @@ int main(int argc, char *argv[])
 	_data = attach_shared(id_shm);
 	_data_port = attach_shared(_data->id_const_port);
 
-	/* This */
-	this_id = *(int *)argv[1];
+	/* This NOT WORKING*/
+	dprintf(1, "[Child %d] A\n", getpid());
+	memcpy(&this_id, argv+1, sizeof(int));
+	dprintf(1, "[Child %d] B\n", getpid());
+
+	dprintf(1, "[Child %d] Still here %s %X\n", getpid(), argv[0], argv[1]);
+	dprintf(1, "[Child %d] Value gained %d\n", getpid(), this_id);
 	_this_port = &_data_port[this_id];
 
 	/* LAST: Setting singal handler */
@@ -57,6 +63,7 @@ int main(int argc, char *argv[])
 void loop(){
 	supply_demand_update();
 	while(1){
+		dprintf(1, "[Child %d] Wait\n", getpid());
 		pause();
 	}
 }
@@ -70,7 +77,7 @@ void signal_handler(int signal)
 	switch (signal)
 	{
 	case SIGTERM:
-		close();
+		close_all();
 	case SIGUSR1: /* Change of day */
 		supply_demand_update();
 		break;
@@ -79,11 +86,12 @@ void signal_handler(int signal)
 	}
 }
 
-void close()
+void close_all()
 {
 	/* Detach shared memory */
 	detach(_data);
 	detach(_data_port);
 
+	dprintf(1, "[Child %d] Fucking dying\n", getpid());
 	exit(0);
 }
