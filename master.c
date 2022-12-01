@@ -10,7 +10,7 @@
 #include <fcntl.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include "base.h"
+#include "shared_mem.h"
 
 /* Macros */
 #define SHIP_EXEC "./ship"
@@ -55,6 +55,8 @@ int main()
 	_data->id_const_ship = id;
 
 	create_children();
+
+	/* TODO Initializing message queue for ports*/
 
 	/* Start child */
 	id = semget(KEY_SHARED, 1, 0600);

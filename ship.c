@@ -8,7 +8,7 @@
 #include <math.h>
 #include <string.h>
 #include <sys/sem.h>
-#include "base.h"
+#include "shared_mem.h"
 
 /* Global Variables */
 /* shared memory */
