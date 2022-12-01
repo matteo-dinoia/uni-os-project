@@ -169,18 +169,18 @@ void read_constants_from_file()
 pid_t create_proc(char *name, int index)
 {
 	pid_t proc_pid, ppid;
-	char *arg[3], *env[]={NULL};
+	char *arg[3], *env[]={NULL}, buf[10];
 	ppid=getpid();
 
 	if ((proc_pid = fork()) == -1){
 		close_all("[FATAL] Couldn't fork", EXIT_FAILURE);
 	} else if (proc_pid == 0){
 		/* NOT WORKING */
+		sprintf(buf, "%d", index);
 		arg[0] = name;
-		arg[1] = calloc(sizeof(index), 1);
-		memcpy(arg+1, &index, sizeof(index));
+		arg[1] = buf;
 		arg[2] = NULL;
-		dprintf(1, "[Child %d] Starting %s with ...\n", getpid(), name);
+		dprintf(1, "[Child %d] Starting with \"%s\"\n", getpid(), arg[1]);
 
 		execve(name, arg, env);
 		dprintf(1, "%s\n", strerror(errno));
