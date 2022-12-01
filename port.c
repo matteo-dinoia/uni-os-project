@@ -17,6 +17,7 @@ struct const_port *_this_port;
 void supply_demand_update();
 void signal_handler(int);
 void loop();
+void close();
 
 int main(int argc, char *argv[])
 {
@@ -63,10 +64,21 @@ void signal_handler(int signal)
 {
 	switch (signal)
 	{
+	case SIGTERM:
+		close();
 	case SIGUSR1: /* Change of day */
 		supply_demand_update();
 		break;
 	case SIGUSR2: /* Seastorm */
 		break;
 	}
+}
+
+void close()
+{
+	/* Detach shared memory */
+	detach(_data);
+	detach(_data_port);
+
+	exit(0);
 }

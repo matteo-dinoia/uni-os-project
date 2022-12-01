@@ -23,6 +23,7 @@ void move_to_port(double, double);
 void exchange_goods(int);
 void signal_handler(int);
 void loop();
+void close();
 
 int main(int argc, char *argv[])
 {
@@ -107,9 +108,21 @@ void exchange_goods(int port_id)
 void signal_handler(int signal)
 {
 	switch (signal){
+	case SIGTERM:
+		close();
 	case SIGUSR1: /* Storm -> stops the ship for STORM_DURATION time */
 		break;
 	case SIGUSR2: /* Maeltrom -> sinks all ships in a given range */
 		break;
 	}
+}
+
+void close()
+{
+	/* Detach shared memory */
+	detach(_data);
+	detach(_data_port);
+	detach(_data_ship);
+
+	exit(0);
 }

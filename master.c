@@ -168,12 +168,27 @@ void custom_handler(int signal)
 
 void close_all(const char *message, int exit_status)
 {
+	int i;
+
+	/* Killing and wait child */
+	for (i = 0; _data->SO_PORTI; i++)
+		kill(_data_port[i], SIGTERM);
+	for (i = 0; i < _data->SO_NAVI; i++)
+		kill(_data_ship[i], SIGTERM);
+	while(wait(NULL) != -1 || errno == EINTR);
+
+	/* Detach and mark for removal IPC structures */
+	detach(_data);
+	detach(_data_port);
+	detach(_data_ship);
+	shmctl(_data, IPC_RMID, NULL);
+	shmctl(_data_port, IPC_RMID, NULL);
+	shmctl(_data_ship, IPC_RMID, NULL);
+
+	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)
 		dprintf(1, "%s\n", message);
 	else
 		dprintf(2, "%s\n", message);
-
-	/* TODO deallocate everywhere */
-
 	exit(exit_status);
 }
