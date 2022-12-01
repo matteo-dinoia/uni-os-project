@@ -35,6 +35,8 @@ void loop();
 int main()
 {
 	int id;
+	struct sigaction sa;
+	sigset_t set_masked;
 	struct sembuf sem_oper;
 
 	srand(time(NULL) * getpid());
@@ -56,11 +58,19 @@ int main()
 
 	create_children();
 
-	/* Start child */
+	/* LAST: Start child */
 	id = semget(KEY_SHARED, 1, 0600);
 	sem_oper = create_sembuf(0, 0);
 	semop(id, &sem_oper, 1);
 
+	/* LAST: Setting signal handler */
+	bzero(&sa, sizeof(sa));
+	sa.sa_handler = &custom_handler;
+	sigfillset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGINT, &sa, NULL);
+
+	/* LAST: Start running*/
 	loop();
 }
 
