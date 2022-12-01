@@ -2,17 +2,20 @@
 #define _BASE_H
 
 #define KEY_SHARED 243 /* TO CHOOSE ONE */
-
+#define TRUE 1
+#define FALSE 0
 typedef int bool_t; /* Will likely use bool.h */
 typedef int id_t;
 
 /* Prototype */
 struct sembuf create_sembuf(int, int);
+void detach(void *);
+id_t get_shared(key_t, size_t);
+void *attach_shared(id_t);
 
 /* CONST */
 
-struct const_general
-{
+struct const_general{
 	/* Constants*/
 	int SO_LATO, SO_DAYS, SO_NAVI, SO_PORTI, SO_MERCI;	/* Generic simulation specifications */
 	int SO_STORM_DURATION, SO_SWELL_DURATION, SO_MAELSTORM; /* Weather events max duration */
@@ -23,32 +26,32 @@ struct const_general
 	/* Shared memory id */
 	id_t id_const_port;
 	id_t id_const_ship;
-	id_t id_bump_general;
-	id_t id_bump_port;
-	id_t id_bump_ship; /* Maybe not necessary */
-	id_t id_bump_cargo;
+
+	/* Msg id */
+	id_t id_msg_bump; /* still not in use */
 };
 
-struct const_port
-{
+struct const_port{
 	/* Coordinates */
-	int x;
-	int y;
+	double x;
+	double y;
 
+	pid_t pid;
 	int daily_restock_capacity;
 };
 
-struct const_ship
-{
+struct const_ship{
 	/* Coordinates */
-	int x;
-	int y;
+	double x;
+	double y;
 
+	pid_t pid;
 	bool_t is_moving;
 };
 
 /* BUMP */
 
+/*
 struct bump_general
 {
 	int n_travelling_cargo;
@@ -74,13 +77,13 @@ struct bump_port
 	bool_t affected_by_seastorm;
 };
 
-struct bump_cargo /* May not be necessary */
+struct bump_cargo
 {
 	int n_cargo_port;
 	int n_cargo_ship;
 	int n_cargo_delivered;
 	int n_cargo_wasted_port;
 	int n_cargo_wasted_ship;
-};
+};*/
 
 #endif
