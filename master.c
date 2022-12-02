@@ -174,7 +174,6 @@ pid_t create_proc(char *name, int index)
 	if ((proc_pid = fork()) == -1){
 		close_all("[FATAL] Couldn't fork", EXIT_FAILURE);
 	} else if (proc_pid == 0){
-		/* NOT WORKING */
 		sprintf(buf, "%d", index);
 		arg[0] = name;
 		arg[1] = buf;
