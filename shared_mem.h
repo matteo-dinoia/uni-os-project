@@ -5,13 +5,13 @@
 #define TRUE 1
 #define FALSE 0
 typedef int bool_t; /* Will likely use bool.h */
-typedef int id_t;
+typedef int id_shm_t;
 
 /* Prototype */
 struct sembuf create_sembuf(int, int);
 void detach(void *);
-id_t get_shared(key_t, size_t);
-void *attach_shared(id_t);
+id_shm_t get_shared(key_t, size_t);
+void *attach_shared(id_shm_t);
 
 /* CONST */
 
@@ -24,11 +24,11 @@ struct const_general{
 	int SO_MIN_VITA, SO_MAX_VITA;				/* Cargo specifications */
 
 	/* Shared memory id */
-	id_t id_const_port;
-	id_t id_const_ship;
+	id_shm_t id_const_port;
+	id_shm_t id_const_ship;
 
 	/* Msg id */
-	id_t id_msg_bump; /* still not in use */
+	id_shm_t id_msg_bump; /* still not in use */
 };
 
 struct const_port{

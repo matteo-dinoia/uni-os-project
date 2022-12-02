@@ -23,7 +23,7 @@ void move_to_port(double, double);
 void exchange_goods(int);
 void signal_handler(int);
 void loop();
-void close();
+void close_all();
 
 int main(int argc, char *argv[])
 {
@@ -44,8 +44,9 @@ int main(int argc, char *argv[])
 	_data_port = attach_shared(_data->id_const_port);
 	_data_ship = attach_shared(_data->id_const_ship);
 
-	/* this */
-	this_id = *(int *)argv[1];
+	/* This*/
+	this_id = atoi(argv[1]);
+	dprintf(1, "[Child ship %d] Initialized with %d\n", getpid(), this_id);
 	_this_ship = &_data_ship[this_id];
 
 	/* LAST: Setting signal handler */
@@ -68,6 +69,7 @@ void loop()
 
 	srand(time(NULL) * getpid()); /* temp */
 
+	dprintf(1, "[Child ship %d] Start looping\n", getpid());
 	while (1){
 		find_destiation_port(&dest_port, &dest_x, &dest_y);
 		move_to_port(dest_x, dest_y);
@@ -114,7 +116,7 @@ void signal_handler(int signal)
 {
 	switch (signal){
 	case SIGTERM:
-		close();
+		close_all();
 	case SIGUSR1: /* Storm -> stops the ship for STORM_DURATION time */
 		break;
 	case SIGUSR2: /* Maeltrom -> sinks all ships in a given range */
@@ -122,7 +124,7 @@ void signal_handler(int signal)
 	}
 }
 
-void close()
+void close_all()
 {
 	/* Detach shared memory */
 	detach(_data);
