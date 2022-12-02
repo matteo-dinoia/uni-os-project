@@ -168,9 +168,8 @@ void read_constants_from_file()
 
 pid_t create_proc(char *name, int index)
 {
-	pid_t proc_pid, ppid;
+	pid_t proc_pid;
 	char *arg[3], *env[]={NULL}, buf[10];
-	ppid=getpid();
 
 	if ((proc_pid = fork()) == -1){
 		close_all("[FATAL] Couldn't fork", EXIT_FAILURE);
