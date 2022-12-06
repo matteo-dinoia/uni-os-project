@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 	semop(id, &sem_oper, 1);
 
 	/* FIRST: Gain data struct */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT);
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
 	_data = attach_shared(id);
 	_data_port = attach_shared(_data->id_const_port);
 
