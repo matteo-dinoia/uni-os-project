@@ -75,7 +75,6 @@ void loop()
 
 void respond_msg(struct commerce_msgbuf msg_received)
 {
-
 }
 
 void supply_demand_update()
