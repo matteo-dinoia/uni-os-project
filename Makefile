@@ -18,5 +18,8 @@ $(TARGET): $(PROCESSES) $(REQUIRED)
 #GENERAL USE
 recompile: clear all
 all: $(TARGET)
+crun: clear run
+run: all
+	./$(TARGET)
 clear:
 	rm -f *.o $(TARGET) $(PROCESSES) *~
