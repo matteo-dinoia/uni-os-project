@@ -1,7 +1,7 @@
 #ifndef _SHARED_MEMORY_H
 #define _SHARED_MEMORY_H
 
-#define KEY_SHARED (0xf3) /* TO CHOOSE ONE */
+#define KEY_SHARED 0xf3 /* TO CHOOSE ONE */
 #define TRUE 1
 #define FALSE 0
 typedef int bool_t; /* Will likely use bool.h */
