@@ -121,6 +121,7 @@ void exchange_goods(int port_id)
 	struct sembuf sem_buf;
 
 	/* Get dock */
+	dprintf(1, "[Child ship %d] Wait dock at port %d (value = %d)\n", getpid(), port_id, semctl(_data->id_sem_docks, port_id, GETVAL));
 	sem_buf = create_sembuf(port_id, -1);
 	semop(_data->id_sem_docks, &sem_buf, 1);
 
@@ -130,7 +131,7 @@ void exchange_goods(int port_id)
 	dprintf(1, "[Child ship %d] Sending message\n", getpid());
 
 	/* Free dock */
-	sem_buf.sem_op = -1;
+	sem_buf.sem_op = 1;
 	semop(_data->id_sem_docks, &sem_buf, 1);
 }
 
