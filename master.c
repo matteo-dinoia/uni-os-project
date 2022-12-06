@@ -66,7 +66,12 @@ int main()
 	_data->id_const_ship = id;
 	shmctl(_data->id_const_ship, IPC_RMID, NULL);
 
-	/* TODO Initializing message queue for ports*/
+	/* Initializing message queue for ports*/
+	id = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
+	_data->id_msg_in_ports = id;
+
+	id = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
+	_data->id_msg_out_ports = id;
 
 	create_children();
 

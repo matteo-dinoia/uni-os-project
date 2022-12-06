@@ -8,6 +8,7 @@
 #include "shared_mem.h"
 
 /* Global variables */
+int _this_id;
 /* shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
@@ -26,7 +27,7 @@ int main(int argc, char *argv[])
 	struct sigaction sa;
 	sigset_t set_masked;
 	struct sembuf sem_oper;
-	int id_sem, id_shm, this_id;
+	int id_sem, id_shm;
 
 	/* FIRST: Wait for father */
 	id_sem = semget(KEY_SHARED, 1, 0600);
@@ -39,9 +40,9 @@ int main(int argc, char *argv[])
 	_data_port = attach_shared(_data->id_const_port);
 
 	/* This*/
-	this_id = atoi(argv[1]);
-	dprintf(1, "[Child port %d] Initialized with %d\n", getpid(), this_id);
-	_this_port = &_data_port[this_id];
+	_this_id = atoi(argv[1]);
+	dprintf(1, "[Child port %d] Initialized with %d\n", getpid(), _this_id);
+	_this_port = &_data_port[_this_id];
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -59,6 +60,7 @@ int main(int argc, char *argv[])
 void loop(){
 	supply_demand_update();
 	while(1){
+		msgrcv(_data->id_msg_in_ports, NULL, sizeof(NULL)-8, _this_id, 0);
 		dprintf(1, "[Child port %d] Wait\n", getpid());
 		pause();
 	}

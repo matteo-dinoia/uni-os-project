@@ -29,6 +29,9 @@ struct const_general{
 
 	/* Msg id */
 	id_shm_t id_msg_bump; /* still not in use */
+	id_shm_t id_msg_in_ports;
+	id_shm_t id_msg_out_ports;
+
 };
 
 struct const_port{
