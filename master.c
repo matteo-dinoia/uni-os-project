@@ -15,6 +15,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include "shared_mem.h"
+#include "semaphore.h"
 
 /* Macros */
 #define SHIP_EXEC "./ship"
@@ -27,6 +28,7 @@ struct const_general *_data;
 struct const_port *_data_port;
 struct const_ship *_data_ship;
 int id_data;
+int _id_sem;
 
 /* Prototypes */
 pid_t create_proc(char *, int);
@@ -36,6 +38,7 @@ void create_children();
 void read_constants_from_file();
 void create_shared_structures();
 double get_random_coord();
+int get_random(int, int);
 void loop();
 
 int main()
@@ -48,32 +51,41 @@ int main()
 	srand(time(NULL) * getpid());
 
 	/* General */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT);
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
 	id_data = id;
 	_data = shmat(id, NULL, 0);
-	shmctl(id_data, IPC_RMID, NULL);
 	read_constants_from_file();
 
 	/* Port */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
 	_data_port = shmat(id, NULL, 0);
 	_data->id_const_port = id;
-	shmctl(_data->id_const_port, IPC_RMID, NULL);
 
 	/* Ship */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
 	_data_ship = shmat(id, NULL, 0);
 	_data->id_const_ship = id;
-	shmctl(_data->id_const_ship, IPC_RMID, NULL);
 
-	/* TODO Initializing message queue for ports*/
+	/* Initializing message queue for ports*/
+	id = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_in_ports = id;
+
+	id = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_out_ports = id;
+
+	/* Initializing semaphores */
+	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
+	_id_sem=id;
+	semctl(id, 0, SETVAL, 1);
+
+	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
+	_data->id_sem_docks = id;
 
 	create_children();
 
 	/* LAST: Start child */
-	id = semget(KEY_SHARED, 1, 0600);
-	sem_oper = create_sembuf(0, 0);
-	semop(id, &sem_oper, 1);
+	sem_oper = create_sembuf(0, -1);
+	semop(_id_sem, &sem_oper, 1);
 
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
@@ -97,7 +109,7 @@ void loop()
 
 void create_children()
 {
-	int i, to_add, daily;
+	int i, to_add, daily, n_docks;
 	struct const_port *current_port;
 	struct const_ship *current_ship;
 
@@ -118,6 +130,9 @@ void create_children()
 			current_port->x = get_random_coord();
 			current_port->y = get_random_coord();
 		}
+
+		n_docks = get_random(1, _data->SO_BANCHINE);
+		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
 	}
 
 	for (i = 0; i < _data->SO_NAVI; i++){
@@ -130,8 +145,14 @@ void create_children()
 	}
 }
 
-double get_random_coord(){
+double get_random_coord()
+{
 	return rand() / (double)INT_MAX * _data->SO_LATO;
+}
+
+int get_random(int min, int max)
+{
+	return rand() % (max - min) + min;
 }
 
 void read_constants_from_file()
@@ -178,7 +199,6 @@ pid_t create_proc(char *name, int index)
 		arg[0] = name;
 		arg[1] = buf;
 		arg[2] = NULL;
-		dprintf(1, "[Child %d] Starting with \"%s\"\n", getpid(), arg[1]);
 
 		execve(name, arg, env);
 		dprintf(1, "%s\n", strerror(errno));
@@ -216,11 +236,20 @@ void close_all(const char *message, int exit_status)
 
 	while(wait(NULL) != -1 || errno == EINTR);
 
-	/* Detach and mark for removal IPC structures */
+	/* Closing message queue (need to be done before detaching shm) */
+	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
+	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
+
+	/* Detach and mark for removal IPC structures (needed in this order) */
+	shmctl(id_data, IPC_RMID, NULL);
+	shmctl(_data->id_const_port, IPC_RMID, NULL);
+	shmctl(_data->id_const_ship, IPC_RMID, NULL);
 	detach(_data);
 	detach(_data_port);
 	detach(_data_ship);
 
+	/* Removing semaphors */
+	semctl(_id_sem, 0, IPC_RMID);
 
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)

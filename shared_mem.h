@@ -1,19 +1,16 @@
-#ifndef _BASE_H
-#define _BASE_H
+#ifndef _SHARED_MEMORY_H
+#define _SHARED_MEMORY_H
 
-#define KEY_SHARED 243 /* TO CHOOSE ONE */
+#define KEY_SHARED 0xf3 /* TO CHOOSE ONE */
 #define TRUE 1
 #define FALSE 0
 typedef int bool_t; /* Will likely use bool.h */
 typedef int id_shm_t;
 
 /* Prototype */
-struct sembuf create_sembuf(int, int);
 void detach(void *);
 id_shm_t get_shared(key_t, size_t);
 void *attach_shared(id_shm_t);
-
-/* CONST */
 
 struct const_general{
 	/* Constants*/
@@ -29,6 +26,11 @@ struct const_general{
 
 	/* Msg id */
 	id_shm_t id_msg_bump; /* still not in use */
+	id_shm_t id_msg_in_ports;
+	id_shm_t id_msg_out_ports;
+
+	/* Semaphores */
+	id_shm_t id_sem_docks;
 };
 
 struct const_port{

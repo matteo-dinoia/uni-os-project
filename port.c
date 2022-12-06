@@ -5,9 +5,13 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/sem.h>
+#include <errno.h>
 #include "shared_mem.h"
+#include "message.h"
+#include "semaphore.h"
 
 /* Global variables */
+int _this_id;
 /* shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
@@ -17,6 +21,7 @@ struct const_port *_this_port;
 void supply_demand_update();
 void signal_handler(int);
 void loop();
+void respond_msg(struct commerce_msgbuf);
 void close_all();
 
 
@@ -26,22 +31,21 @@ int main(int argc, char *argv[])
 	struct sigaction sa;
 	sigset_t set_masked;
 	struct sembuf sem_oper;
-	int id_sem, id_shm, this_id;
+	int id;
 
 	/* FIRST: Wait for father */
-	id_sem = semget(KEY_SHARED, 1, 0600);
+	id = semget(KEY_SEM, 1, 0600);
 	sem_oper = create_sembuf(0, 0);
-	semop(id_sem, &sem_oper, 1);
+	semop(id, &sem_oper, 1);
 
 	/* FIRST: Gain data struct */
-	id_shm = get_shared(KEY_SHARED, sizeof(*_data));
-	_data = attach_shared(id_shm);
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
+	_data = attach_shared(id);
 	_data_port = attach_shared(_data->id_const_port);
 
 	/* This*/
-	this_id = atoi(argv[1]);
-	dprintf(1, "[Child port %d] Initialized with %d\n", getpid(), this_id);
-	_this_port = &_data_port[this_id];
+	_this_id = atoi(argv[1]);
+	_this_port = &_data_port[_this_id];
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -56,12 +60,23 @@ int main(int argc, char *argv[])
 	loop();
 }
 
-void loop(){
+void loop()
+{
+	struct commerce_msgbuf msg_received;
 	supply_demand_update();
-	while(1){
-		dprintf(1, "[Child port %d] Wait\n", getpid());
-		pause();
+	while (1){
+		msgrcv(_data->id_msg_in_ports, &msg_received, MSG_SIZE(msg_received), _this_id, 0);
+		/* Check all errors */
+		if (errno == EXIT_SUCCESS){
+			dprintf(1, "[Child port %d] Received a message\n", getpid());
+			respond_msg(msg_received);
+		}
 	}
+}
+
+void respond_msg(struct commerce_msgbuf msg_received)
+{
+
 }
 
 void supply_demand_update()
