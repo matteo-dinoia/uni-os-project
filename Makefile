@@ -18,7 +18,8 @@ $(TARGET): $(PROCESSES) $(REQUIRED)
 #GENERAL USE
 recompile: clear all
 all: $(TARGET)
-crun: recompile
+crun: tool-clear recompile
+	echo -e "\nPress any key to launch"; read  -n 1
 	./$(TARGET); rm -f *.o $(TARGET) $(PROCESSES) *~
 run: all
 	./$(TARGET)
@@ -32,3 +33,5 @@ tool-alive:
 	ps -aux | grep ./port
 tool-killall:
 	kill -s SIGINT master port ship
+tool-clear:
+	clear
