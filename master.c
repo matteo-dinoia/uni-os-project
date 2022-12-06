@@ -31,6 +31,7 @@ int id_data;
 int _id_sem;
 
 /* Prototypes */
+void initialize_shared();
 pid_t create_proc(char *, int);
 void custom_handler(int);
 void close_all(const char *, int);
@@ -46,8 +47,11 @@ int main()
 	struct sigaction sa;
 	sigset_t set_masked;
 
+	/* Initializing */
+	srand(time(NULL));
+	initialize_shared();
+
 	/* Create and start children*/
-	srand(time(NULL) * getpid());
 	create_children();
 	execute_single_sem_oper(_id_sem, 0, -1);
 
@@ -236,6 +240,10 @@ void close_all(const char *message, int exit_status)
 
 	while(wait(NULL) != -1 || errno == EINTR);
 
+	/* Removing semaphors */
+	semctl(_id_sem, 0, IPC_RMID);
+	semctl(_data->id_sem_docks, 0, IPC_RMID);
+
 	/* Closing message queue (need to be done before detaching shm) */
 	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
@@ -247,9 +255,6 @@ void close_all(const char *message, int exit_status)
 	detach(_data);
 	detach(_data_port);
 	detach(_data_ship);
-
-	/* Removing semaphors */
-	semctl(_id_sem, 0, IPC_RMID);
 
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)
