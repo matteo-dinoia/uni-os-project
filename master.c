@@ -78,7 +78,7 @@ int main()
 	_id_sem=id;
 	semctl(id, 0, SETVAL, 1);
 
-	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
+	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600 | IPC_CREAT | IPC_EXCL);
 	_data->id_sem_docks = id;
 
 	create_children();
