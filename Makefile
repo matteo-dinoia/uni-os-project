@@ -35,3 +35,5 @@ tool-killall:
 	kill -s SIGINT master port ship
 tool-clear:
 	clear
+tool-count:
+	printf "\nNumber of lines in project: "; cat *.c *.h Makefile | wc -l
