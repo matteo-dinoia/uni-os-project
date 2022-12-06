@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
 
 	/* This*/
 	_this_id = atoi(argv[1]);
-	dprintf(1, "[Child ship %d] Initialized with %d\n", getpid(), _this_id);
 	_this_ship = &_data_ship[_this_id];
 
 	/* LAST: Setting signal handler */
@@ -119,10 +118,20 @@ void move_to_port(double x_port, double y_port)
 void exchange_goods(int port_id)
 {
 	struct commerce_msgbuf msg;
-	msg.receiver = port_id;
-	msg.sender = _this_id;
+	struct sembuf sem_buf;
+
+	/* Get dock */
+	sem_buf = create_sembuf(port_id, -1);
+	semop(_data->id_sem_docks, &sem_buf, 1);
+
+	/* Communicate */
+	msg = create_commerce_msgbuf(_this_id, port_id);
 	msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
 	dprintf(1, "[Child ship %d] Sending message\n", getpid());
+
+	/* Free dock */
+	sem_buf.sem_op = -1;
+	semop(_data->id_sem_docks, &sem_buf, 1);
 }
 
 void signal_handler(int signal)

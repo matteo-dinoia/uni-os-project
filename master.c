@@ -38,6 +38,7 @@ void create_children();
 void read_constants_from_file();
 void create_shared_structures();
 double get_random_coord();
+int get_random(int, int);
 void loop();
 
 int main()
@@ -72,10 +73,13 @@ int main()
 	id = msgget(IPC_PRIVATE, 0600);
 	_data->id_msg_out_ports = id;
 
-	/* Initializing semaphors */
+	/* Initializing semaphores */
 	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
 	_id_sem=id;
 	semctl(id, 0, SETVAL, 1);
+
+	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
+	_data->id_sem_docks = id;
 
 	create_children();
 
@@ -105,7 +109,7 @@ void loop()
 
 void create_children()
 {
-	int i, to_add, daily;
+	int i, to_add, daily, n_docks;
 	struct const_port *current_port;
 	struct const_ship *current_ship;
 
@@ -126,6 +130,9 @@ void create_children()
 			current_port->x = get_random_coord();
 			current_port->y = get_random_coord();
 		}
+
+		n_docks = get_random(1, _data->SO_BANCHINE);
+		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
 	}
 
 	for (i = 0; i < _data->SO_NAVI; i++){
@@ -138,8 +145,14 @@ void create_children()
 	}
 }
 
-double get_random_coord(){
+double get_random_coord()
+{
 	return rand() / (double)INT_MAX * _data->SO_LATO;
+}
+
+int get_random(int min, int max)
+{
+	return rand() % (max - min) + min;
 }
 
 void read_constants_from_file()
@@ -186,7 +199,6 @@ pid_t create_proc(char *name, int index)
 		arg[0] = name;
 		arg[1] = buf;
 		arg[2] = NULL;
-		dprintf(1, "[Child %d] Starting with \"%s\"\n", getpid(), arg[1]);
 
 		execve(name, arg, env);
 		dprintf(1, "%s\n", strerror(errno));

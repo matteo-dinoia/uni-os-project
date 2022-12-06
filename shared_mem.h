@@ -12,8 +12,6 @@ void detach(void *);
 id_shm_t get_shared(key_t, size_t);
 void *attach_shared(id_shm_t);
 
-/* CONST */
-
 struct const_general{
 	/* Constants*/
 	int SO_LATO, SO_DAYS, SO_NAVI, SO_PORTI, SO_MERCI;	/* Generic simulation specifications */
@@ -31,6 +29,8 @@ struct const_general{
 	id_shm_t id_msg_in_ports;
 	id_shm_t id_msg_out_ports;
 
+	/* Semaphores */
+	id_shm_t id_sem_docks;
 };
 
 struct const_port{

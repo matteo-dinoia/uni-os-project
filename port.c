@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
 
 	/* This*/
 	_this_id = atoi(argv[1]);
-	dprintf(1, "[Child port %d] Initialized with %d\n", getpid(), _this_id);
 	_this_port = &_data_port[_this_id];
 
 	/* LAST: Setting singal handler */
