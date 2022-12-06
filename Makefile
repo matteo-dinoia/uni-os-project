@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -O0 -std=c89 -pedantic
 #
-REQUIRED =  shared_mem.o
+REQUIRED =  shared_mem.o message.o semaphore.o
 PROCESSES = ship port
 TARGET = master
 
