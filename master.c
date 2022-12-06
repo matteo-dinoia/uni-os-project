@@ -160,31 +160,21 @@ void read_constants_from_file()
 	FILE *file;
 	file = fopen("constants.txt", "r");
 
-	/* Reding generic simulation specifications */
-	fscanf(file, "%d", &_data->SO_LATO);
-	fscanf(file, "%d", &_data->SO_DAYS);
-	fscanf(file, "%d", &_data->SO_NAVI);
-	fscanf(file, "%d", &_data->SO_PORTI);
-	fscanf(file, "%d", &_data->SO_MERCI);
+	/*Reading*/
+	fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+			/* Generic simulation specifications */
+			&_data->SO_LATO, &_data->SO_DAYS,
+			&_data->SO_NAVI, &_data->SO_PORTI, &_data->SO_MERCI,
+			/* Weather events max duration */
+			&_data->SO_STORM_DURATION, &_data->SO_SWELL_DURATION, &_data->SO_MAELSTORM,
+			/* Ports specifications */
+			&_data->SO_FILL, &_data->SO_BANCHINE, &_data->SO_LOADSPEED,
+			/* Ships specifications */
+			&_data->SO_SIZE, &_data->SO_SPEED, &_data->SO_CAPACITY,
+			/* Cargo specifications */
+			&_data->SO_MIN_VITA, &_data->SO_MAX_VITA);
 
-	/* Reading weather events max duration */
-	fscanf(file, "%d", &_data->SO_STORM_DURATION);
-	fscanf(file, "%d", &_data->SO_SWELL_DURATION);
-	fscanf(file, "%d", &_data->SO_MAELSTORM);
-
-	/* Reading ports specifications */
-	fscanf(file, "%d", &_data->SO_FILL);
-	fscanf(file, "%d", &_data->SO_BANCHINE);
-	fscanf(file, "%d", &_data->SO_LOADSPEED);
-
-	/* Reading ships specifications */
-	fscanf(file, "%d", &_data->SO_SIZE);
-	fscanf(file, "%d", &_data->SO_SPEED);
-	fscanf(file, "%d", &_data->SO_CAPACITY);
-
-	/* Reading cargo specifications */
-	fscanf(file, "%d", &_data->SO_MIN_VITA);
-	fscanf(file, "%d", &_data->SO_MAX_VITA);
+	fclose(file);
 }
 
 pid_t create_proc(char *name, int index)
