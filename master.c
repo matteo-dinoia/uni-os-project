@@ -109,33 +109,41 @@ void loop()
 
 void create_children()
 {
+	/* Constants for readability */
+	const SO_DAYS = _data->SO_DAYS;
+	const SO_PORTI =  _data->SO_PORTI;
+	const SO_FILL = _data->SO_FILL;
+	const SO_LATO = _data->SO_LATO;
+	const SO_NAVI = _data->SO_NAVI;
+	const SO_BANCHINE = _data->SO_BANCHINE;
+
 	int i, to_add, daily, n_docks;
 	struct const_port *current_port;
 	struct const_ship *current_ship;
 
-	daily = _data->SO_FILL / (_data->SO_DAYS * _data->SO_PORTI);
-	for (i = 0; i < _data->SO_PORTI; i++){
+	daily = SO_FILL / (SO_DAYS * SO_PORTI);
+	for (i = 0; i < SO_PORTI; i++){
 		current_port = &_data_port[i];
 		current_port->pid = create_proc("./port", i);
 
-		to_add = (i < (_data->SO_FILL % (_data->SO_DAYS * _data->SO_PORTI))) ? 1 : 0;
+		to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
 		current_port->daily_restock_capacity = daily + to_add;
 
 		if (i<4){
 			/* ports in 4 corner */
-			current_port->x = i % 2 != 0 ? _data->SO_LATO : 0;
-			current_port->y = i < 2 ? _data->SO_LATO : 0;
+			current_port->x = i % 2 != 0 ? SO_LATO : 0;
+			current_port->y = i < 2 ? SO_LATO : 0;
 		}
 		else{
 			current_port->x = get_random_coord();
 			current_port->y = get_random_coord();
 		}
 
-		n_docks = get_random(1, _data->SO_BANCHINE);
+		n_docks = get_random(1, SO_BANCHINE);
 		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
 	}
 
-	for (i = 0; i < _data->SO_NAVI; i++){
+	for (i = 0; i < SO_NAVI; i++){
 		current_ship = &_data_ship[i];
 		current_ship->pid = create_proc("./ship", i);
 
