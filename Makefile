@@ -24,3 +24,11 @@ run: all
 	./$(TARGET)
 clear:
 	rm -f *.o $(TARGET) $(PROCESSES) *~
+
+#TOOLS
+tool-alive:
+	ps -aux | grep ./master
+	ps -aux | grep ./ship
+	ps -aux | grep ./port
+tool-killall:
+	kill -s SIGINT master port ship
