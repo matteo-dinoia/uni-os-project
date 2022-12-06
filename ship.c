@@ -9,8 +9,11 @@
 #include <string.h>
 #include <sys/sem.h>
 #include "shared_mem.h"
+#include "message.h"
+#include "semaphore.h"
 
 /* Global Variables */
+int _this_id;
 /* shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
@@ -28,26 +31,26 @@ void close_all();
 int main(int argc, char *argv[])
 {
 	/* Variables */
-	int id_sem, id_shm, this_id;
+	int id;
 	struct sigaction sa;
 	sigset_t set_masked;
 	struct sembuf sem_oper;
 
 	/* FIRST: Wait for father */
-	id_sem = semget(KEY_SHARED, 1, 0600);
+	id = semget(KEY_SEM, 1, 0600);
 	sem_oper = create_sembuf(0, 0);
-	semop(id_sem, &sem_oper, 1);
+	semop(id, &sem_oper, 1);
 
 	/* FIRST: Gain data struct */
-	id_shm = get_shared(KEY_SHARED, sizeof(*_data));
-	_data = attach_shared(id_shm);
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT);
+	_data = attach_shared(id);
 	_data_port = attach_shared(_data->id_const_port);
 	_data_ship = attach_shared(_data->id_const_ship);
 
 	/* This*/
-	this_id = atoi(argv[1]);
-	dprintf(1, "[Child ship %d] Initialized with %d\n", getpid(), this_id);
-	_this_ship = &_data_ship[this_id];
+	_this_id = atoi(argv[1]);
+	dprintf(1, "[Child ship %d] Initialized with %d\n", getpid(), _this_id);
+	_this_ship = &_data_ship[_this_id];
 
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
@@ -90,14 +93,19 @@ void find_destiation_port(int *dest, double *dest_x, double *dest_y)
 void move_to_port(double x_port, double y_port)
 {
 	struct timespec rem_time, travel_time;
-	int x, y;
+	const int x = _this_ship->x;
+	const int y = _this_ship->y;
+	double distance, time_days;
 
 	/* Time */
-	x = _this_ship->x;
-	y = _this_ship->y;
-	travel_time.tv_nsec = sqrt(pow((x - x_port), 2) + pow((y - y_port), 2));
+	distance = sqrt(pow((x - x_port), 2) + pow((y - y_port), 2));
+	time_days = distance / _data->SO_SPEED;
+	travel_time.tv_sec = (long)time_days;
+	travel_time.tv_nsec = (time_days - (long)time_days) * pow(10, 9);
+
 
 	/* Wait */
+	dprintf(1, "[Child ship %d] Time =%lf, %ld.%09ld\n", getpid(), time_days, travel_time.tv_sec, travel_time.tv_nsec);
 	do{
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
@@ -110,6 +118,11 @@ void move_to_port(double x_port, double y_port)
 
 void exchange_goods(int port_id)
 {
+	struct commerce_msgbuf msg;
+	msg.receiver = port_id;
+	msg.sender = _this_id;
+	msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
+	dprintf(1, "[Child ship %d] Sending message\n", getpid());
 }
 
 void signal_handler(int signal)
