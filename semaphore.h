@@ -5,5 +5,6 @@
 
 /* Prototype */
 struct sembuf create_sembuf(int, int);
+void execute_single_sem_oper(int, int, int);
 
 #endif

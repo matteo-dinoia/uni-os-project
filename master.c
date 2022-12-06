@@ -43,51 +43,15 @@ void loop();
 
 int main()
 {
-	int id;
 	struct sigaction sa;
 	sigset_t set_masked;
-	struct sembuf sem_oper;
 
+	/* Create and start children*/
 	srand(time(NULL) * getpid());
-
-	/* General */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
-	id_data = id;
-	_data = shmat(id, NULL, 0);
-	read_constants_from_file();
-
-	/* Port */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
-	_data_port = shmat(id, NULL, 0);
-	_data->id_const_port = id;
-
-	/* Ship */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
-	_data_ship = shmat(id, NULL, 0);
-	_data->id_const_ship = id;
-
-	/* Initializing message queue for ports*/
-	id = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_in_ports = id;
-
-	id = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_out_ports = id;
-
-	/* Initializing semaphores */
-	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	_id_sem=id;
-	semctl(id, 0, SETVAL, 1);
-
-	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
-	_data->id_sem_docks = id;
-
 	create_children();
+	execute_single_sem_oper(_id_sem, 0, -1);
 
-	/* LAST: Start child */
-	sem_oper = create_sembuf(0, -1);
-	semop(_id_sem, &sem_oper, 1);
-
-	/* LAST: Setting signal handler */
+	/* Setting signal handler (need to be done after) */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &custom_handler;
 	sigfillset(&set_masked);
@@ -95,8 +59,46 @@ int main()
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 
-	/* LAST: Start running*/
+	/* Start running*/
 	loop();
+}
+
+void initialize_shared()
+{
+	int id;
+
+	/* SHM: General */
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
+	id_data = id;
+	_data = shmat(id, NULL, 0);
+	read_constants_from_file();
+
+	/* SHM: Port */
+	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
+	_data_port = shmat(id, NULL, 0);
+	_data->id_const_port = id;
+
+	/* SHM: Ship */
+	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
+	_data_ship = shmat(id, NULL, 0);
+	_data->id_const_ship = id;
+
+	/* MSG: ports in */
+	id = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_in_ports = id;
+
+	/* MSG: ports out */
+	id = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_out_ports = id;
+
+	/* SEM: Start */
+	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
+	_id_sem=id;
+	semctl(id, 0, SETVAL, 1);
+
+	/* SEM: Docks */
+	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
+	_data->id_sem_docks = id;
 }
 
 void loop()
