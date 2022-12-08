@@ -6,13 +6,13 @@ PROCESSES = ship port
 TARGET = master
 
 #COMPILING SPECIFIC FILES
-ship: $(REQUIRED)
+ship: $(REQUIRED) ship.c
 	$(CC) $(CFLAGS) $(REQUIRED) ship.c -o ship -lm
 
-port: $(REQUIRED)
+port: $(REQUIRED) port.c
 	$(CC) $(CFLAGS) $(REQUIRED) port.c -o port
 
-$(TARGET): $(PROCESSES) $(REQUIRED)
+$(TARGET): $(PROCESSES) $(REQUIRED) $(TARGET).c
 	$(CC) $(CFLAGS) $(REQUIRED) $(TARGET).c -o $(TARGET)
 
 #GENERAL USE
