@@ -30,11 +30,9 @@ clear:
 
 #TOOLS
 tool-alive:
-	ps -aux | grep ./master
-	ps -aux | grep ./ship
-	ps -aux | grep ./port
+	ps -aux | grep -E "/master|/ship|/port" | grep -v -E "grep|rm" | cat;
 tool-killall:
-	kill -s SIGINT master port ship
+	killall -s INT master port ship | cat
 tool-clear:
 	clear
 tool-count:
