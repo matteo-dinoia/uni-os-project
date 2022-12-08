@@ -5,7 +5,7 @@ REQUIRED =  shared_mem.o message.o semaphore.o
 PROCESSES = ship port
 TARGET = master
 
-
+#COMPILING SPECIFIC FILES
 ship: $(REQUIRED)
 	$(CC) $(CFLAGS) $(REQUIRED) ship.c -o ship -lm
 
@@ -16,6 +16,7 @@ $(TARGET): $(PROCESSES) $(REQUIRED)
 	$(CC) $(CFLAGS) $(REQUIRED) $(TARGET).c -o $(TARGET)
 
 #GENERAL USE
+default_target: crun
 recompile: clear all
 all: $(TARGET)
 crun: tool-clear recompile
