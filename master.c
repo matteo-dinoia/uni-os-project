@@ -204,6 +204,7 @@ int get_random(int min, int max)
 void read_constants_from_file()
 {
 	FILE *file;
+	int banana;
 	file = fopen("constants.txt", "r");
 
 	/*Reading*/

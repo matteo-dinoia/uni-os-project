@@ -90,7 +90,7 @@ void loop()
 void find_destiation_port(int *dest, double *dest_x, double *dest_y)
 {
 	/* TODO actually choose */
-	*dest = rand() % _data->SO_NAVI;
+	*dest = rand() % _data->SO_PORTI;
 
 	/* get position */
 	*dest_x = _data_port[*dest].x;
