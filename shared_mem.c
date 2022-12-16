@@ -11,13 +11,6 @@
 
 /* Prototypes */
 
-/*
- * clean_pointers()
- * create?()
- * attach(int value) using switch
- * deattach_all()
- */
-
 void detach(void *pointer)
 {
 	if (pointer != NULL)
