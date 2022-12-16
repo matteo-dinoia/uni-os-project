@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include "shared_mem.h"
 #include "semaphore.h"
-
+* _data->SO_PORTI
 /* Macros */
 #define SHIP_EXEC "./ship"
 #define PORT_EXEC "./port"
@@ -28,6 +28,7 @@ struct const_general *_data;
 struct const_port *_data_port;
 struct const_ship *_data_ship;
 struct const_cargo *_data_cargo;
+struct int *_data_supply_demand;
 int id_data;
 int _id_sem;
 
@@ -48,7 +49,7 @@ int main()
 	struct sigaction sa;
 	sigset_t set_masked;
 
-	/* Initializing */
+	/* Initializing */* _data->SO_PORTI
 	srand(time(NULL));
 	initialize_shared();
 
@@ -82,6 +83,11 @@ void initialize_shared()
 	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
 	_data_port = shmat(id, NULL, 0);
 	_data->id_const_port = id;
+
+	/* SHM: Suppy and demand of ports*/
+	id = shmget(IPC_PRIVATE, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI, 0600);
+	_data_supply_demand = shmat(id, NULL, 0);
+	_data->id_supply_demand = id;
 
 	/* SHM: Ship */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
@@ -179,6 +185,9 @@ void create_children()
 		current_cargo->weight_batch = get_random(1, SO_SIZE);
 		current_cargo->shelf_life = get_random(SO_MIN_VITA, SO_MAX_VITA);
 	}
+
+	/* Initialize supply and demand */
+	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI);
 }
 
 double get_random_coord()

@@ -12,10 +12,13 @@
 
 /* Global variables */
 int _this_id;
+
 /* shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
 struct const_port *_this_port;
+struct int *_data_supply_demand;
+struct int *_this_supply_demand;
 
 /* Prototypes */
 void supply_demand_update();
@@ -41,10 +44,12 @@ int main(int argc, char *argv[])
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
 	_data = attach_shared(id);
 	_data_port = attach_shared(_data->id_const_port);
+	_data_supply_demand = attach_shared(_data->id_supply_demand);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
 	_this_port = &_data_port[_this_id];
+	_this_supply_demand = &_data_supply_demand[_this_id];
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -75,7 +80,30 @@ void loop()
 
 void respond_msg(struct commerce_msgbuf msg_received)
 {
+	struct commerce_msgbuf response;
+	int needed_type = msg_received.cargo_type;
+	int needed_supply = msg_received.n_cargo_batch;
+	int this_supply = _this_supply_demand[needed_type];
 
+	response = respond_commerce_msgbuf(msg_received);
+	response.status = STATUS_REFUSED;
+
+	if (needed_supply < 0  && _this_supply_demand[needed_type] < 0){
+		/* If supply is needed respond with how much */
+		response.n_cargo_batch = MAX(needed_supply, this_supply);
+		response.status = STATUS_ACCEPTED;
+	} else (needed_supply < 0 && _this_supply_demand[needed_type] > 0){
+		/* If supply is needed respond with how much */
+		response.n_cargo_batch = MIN(needed_supply, this_supply);
+		response.status = STATUS_ACCEPTED;
+	}
+
+	/* Refuse or send message */
+	if(response.status == STATUS_REFUSED){
+		response.cargo_type = needed_type;
+		response.cargo_supply = needed_supply;
+	}
+	msgsnd(_data->id_msg_out_ports, &response, MSG_SIZE(response), 0);
 }
 
 void supply_demand_update()

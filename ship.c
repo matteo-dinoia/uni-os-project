@@ -15,10 +15,11 @@
 /* Global Variables */
 int _this_id;
 /* shared memory */
+struct const_port *_this_ship;
 struct const_general *_data;
 struct const_port *_data_port;
 struct const_port *_data_ship;
-struct const_port *_this_ship;
+struct int *_data_supply_demand;
 
 /* Prototypes */
 void find_destiation_port(int *, double *, double *);
@@ -45,6 +46,7 @@ int main(int argc, char *argv[])
 	_data = attach_shared(id);
 	_data_port = attach_shared(_data->id_const_port);
 	_data_ship = attach_shared(_data->id_const_ship);
+	_data_supply_demand = attach_shared(_data->id_suppy_demand);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
