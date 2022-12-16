@@ -23,6 +23,7 @@ struct const_general{
 	/* Shared memory id */
 	id_shm_t id_const_port;
 	id_shm_t id_const_ship;
+	id_shm_t id_const_cargo;
 
 	/* Msg id */
 	id_shm_t id_msg_bump; /* still not in use */
@@ -49,6 +50,12 @@ struct const_ship{
 
 	pid_t pid;
 	bool_t is_moving;
+};
+
+struct const_cargo{
+	/* Coordinates */
+	int weight_batch;
+	int shelf_life;
 };
 
 /* BUMP */

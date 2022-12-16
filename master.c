@@ -27,6 +27,7 @@
 struct const_general *_data;
 struct const_port *_data_port;
 struct const_ship *_data_ship;
+struct const_cargo *_data_cargo;
 int id_data;
 int _id_sem;
 
@@ -87,6 +88,11 @@ void initialize_shared()
 	_data_ship = shmat(id, NULL, 0);
 	_data->id_const_ship = id;
 
+	/* SHM: Cargo */
+	id = shmget(IPC_PRIVATE, sizeof(*_data_cargo) * _data->SO_MERCI, 0600);
+	_data_cargo = shmat(id, NULL, 0);
+	_data->id_const_cargo = id;
+
 	/* MSG: ports in */
 	id = msgget(IPC_PRIVATE, 0600);
 	_data->id_msg_in_ports = id;
@@ -122,11 +128,18 @@ void create_children()
 	const SO_LATO = _data->SO_LATO;
 	const SO_NAVI = _data->SO_NAVI;
 	const SO_BANCHINE = _data->SO_BANCHINE;
+	const SO_MERCI = _data->SO_MERCI;
+	const SO_SIZE = _data->SO_SIZE;
+	const SO_MIN_VITA = _data->SO_MIN_VITA;
+	const SO_MAX_VITA = _data->SO_MAX_VITA;
+
 
 	int i, to_add, daily, n_docks;
 	struct const_port *current_port;
 	struct const_ship *current_ship;
+	struct const_cargo *current_cargo;
 
+	/* Initialize ports data */
 	daily = SO_FILL / (SO_DAYS * SO_PORTI);
 	for (i = 0; i < SO_PORTI; i++){
 		current_port = &_data_port[i];
@@ -149,6 +162,7 @@ void create_children()
 		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
 	}
 
+	/* Initialize ships data */
 	for (i = 0; i < SO_NAVI; i++){
 		current_ship = &_data_ship[i];
 		current_ship->pid = create_proc("./ship", i);
@@ -156,6 +170,14 @@ void create_children()
 		current_ship->x = get_random_coord();
 		current_ship->y = get_random_coord();
 		current_ship->is_moving = FALSE;
+	}
+
+	/* Initialize cargo data */
+	for (i = 0; i < SO_MERCI; i++){
+		current_cargo = &_data_cargo[i];
+
+		current_cargo->weight_batch = get_random(1, SO_SIZE);
+		current_cargo->shelf_life = get_random(SO_MIN_VITA, SO_MAX_VITA);
 	}
 }
 
