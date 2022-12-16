@@ -58,41 +58,4 @@ struct const_cargo{
 	int shelf_life;
 };
 
-/* BUMP */
-
-/*
-struct bump_general
-{
-	int n_travelling_cargo;
-	int n_travelling_empty;
-	int n_processing_cargo;
-
-	int *ship_bumps;
-	int *port_bumps;
-	int *cargo_bumps;
-};
-
-struct bump_ship
-{
-	bool_t affected_by_storm;
-};
-
-struct bump_port
-{
-	int n_cargo_received;
-	int n_cargo_shipped;
-	int n_cargo_present;
-
-	bool_t affected_by_seastorm;
-};
-
-struct bump_cargo
-{
-	int n_cargo_port;
-	int n_cargo_ship;
-	int n_cargo_delivered;
-	int n_cargo_wasted_port;
-	int n_cargo_wasted_ship;
-};*/
-
 #endif
