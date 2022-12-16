@@ -13,7 +13,7 @@
 
 /* Global variables */
 int _this_id;
-
+struct node_cargo *cargo_hold;
 /* shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
@@ -51,6 +51,10 @@ int main(int argc, char *argv[])
 	_this_id = atoi(argv[1]);
 	_this_port = &_data_port[_this_id];
 	_this_supply_demand = &_data_supply_demand[_this_id];
+
+	/* Local memory allocation */
+	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
+	bzero(cargo_hold, _data->SO_MERCI * sizeof(*cargo_hold));
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -127,6 +131,9 @@ void signal_handler(int signal)
 
 void close_all()
 {
+	/* Local memory deallocation */
+	free(cargo_hold);
+
 	/* Detach shared memory */
 	detach(_data);
 	detach(_data_port);
