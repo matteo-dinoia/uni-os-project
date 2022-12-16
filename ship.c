@@ -134,7 +134,7 @@ void exchange_goods(int port_id)
 		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
 		if (n_requested_port <= 0) continue; /* Only care of port request */
 
-		n_batch_ship = count_cargo(&cargo_hold[i]); /* TODO = */;
+		n_batch_ship = count_cargo(&cargo_hold[i]);
 
 		/* min i have cargo and ports need it*/
 		n_batch = MIN(n_batch_ship, n_requested_port);
