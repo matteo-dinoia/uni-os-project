@@ -16,7 +16,7 @@
 #include <sys/wait.h>
 #include "shared_mem.h"
 #include "semaphore.h"
-* _data->SO_PORTI
+
 /* Macros */
 #define SHIP_EXEC "./ship"
 #define PORT_EXEC "./port"
@@ -29,6 +29,7 @@ struct const_port *_data_port;
 struct const_ship *_data_ship;
 struct const_cargo *_data_cargo;
 struct int *_data_supply_demand;
+
 int id_data;
 int _id_sem;
 
@@ -49,7 +50,7 @@ int main()
 	struct sigaction sa;
 	sigset_t set_masked;
 
-	/* Initializing */* _data->SO_PORTI
+	/* Initializing */
 	srand(time(NULL));
 	initialize_shared();
 
@@ -283,9 +284,13 @@ void close_all(const char *message, int exit_status)
 	shmctl(id_data, IPC_RMID, NULL);
 	shmctl(_data->id_const_port, IPC_RMID, NULL);
 	shmctl(_data->id_const_ship, IPC_RMID, NULL);
+	shmctl(_data->id_const_cargo, IPC_RMID, NULL);
+	shmctl(_data->id_supply_demand, IPC_RMID, NULL);
 	detach(_data);
 	detach(_data_port);
 	detach(_data_ship);
+	detach(_data_supply_demand);
+	detach(_data_cargo);
 
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)

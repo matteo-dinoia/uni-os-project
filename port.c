@@ -92,7 +92,7 @@ void respond_msg(struct commerce_msgbuf msg_received)
 		/* If supply is needed respond with how much */
 		response.n_cargo_batch = MAX(needed_supply, this_supply);
 		response.status = STATUS_ACCEPTED;
-	} else (needed_supply < 0 && _this_supply_demand[needed_type] > 0){
+	} else (needed_supply > 0 && _this_supply_demand[needed_type] > 0){
 		/* If supply is needed respond with how much */
 		response.n_cargo_batch = MIN(needed_supply, this_supply);
 		response.status = STATUS_ACCEPTED;
