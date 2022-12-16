@@ -28,7 +28,7 @@ struct const_general *_data;
 struct const_port *_data_port;
 struct const_ship *_data_ship;
 struct const_cargo *_data_cargo;
-struct int *_data_supply_demand;
+int *_data_supply_demand;
 
 int id_data;
 int _id_sem;
