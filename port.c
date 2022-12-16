@@ -35,8 +35,7 @@ int main(int argc, char *argv[])
 
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
-	sem_oper = create_sembuf(0, 0);
-	semop(id, &sem_oper, 1);
+	execute_single_sem_oper(id, 0, 0);
 
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
@@ -76,7 +75,6 @@ void loop()
 
 void respond_msg(struct commerce_msgbuf msg_received)
 {
-
 }
 
 void supply_demand_update()

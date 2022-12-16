@@ -31,6 +31,7 @@ int id_data;
 int _id_sem;
 
 /* Prototypes */
+void initialize_shared();
 pid_t create_proc(char *, int);
 void custom_handler(int);
 void close_all(const char *, int);
@@ -43,51 +44,18 @@ void loop();
 
 int main()
 {
-	int id;
 	struct sigaction sa;
 	sigset_t set_masked;
-	struct sembuf sem_oper;
 
-	srand(time(NULL) * getpid());
+	/* Initializing */
+	srand(time(NULL));
+	initialize_shared();
 
-	/* General */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
-	id_data = id;
-	_data = shmat(id, NULL, 0);
-	read_constants_from_file();
-
-	/* Port */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
-	_data_port = shmat(id, NULL, 0);
-	_data->id_const_port = id;
-
-	/* Ship */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
-	_data_ship = shmat(id, NULL, 0);
-	_data->id_const_ship = id;
-
-	/* Initializing message queue for ports*/
-	id = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_in_ports = id;
-
-	id = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_out_ports = id;
-
-	/* Initializing semaphores */
-	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	_id_sem=id;
-	semctl(id, 0, SETVAL, 1);
-
-	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
-	_data->id_sem_docks = id;
-
+	/* Create and start children*/
 	create_children();
+	execute_single_sem_oper(_id_sem, 0, -1);
 
-	/* LAST: Start child */
-	sem_oper = create_sembuf(0, -1);
-	semop(_id_sem, &sem_oper, 1);
-
-	/* LAST: Setting signal handler */
+	/* Setting signal handler (need to be done after) */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &custom_handler;
 	sigfillset(&set_masked);
@@ -95,8 +63,46 @@ int main()
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 
-	/* LAST: Start running*/
+	/* Start running*/
 	loop();
+}
+
+void initialize_shared()
+{
+	int id;
+
+	/* SHM: General */
+	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
+	id_data = id;
+	_data = shmat(id, NULL, 0);
+	read_constants_from_file();
+
+	/* SHM: Port */
+	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
+	_data_port = shmat(id, NULL, 0);
+	_data->id_const_port = id;
+
+	/* SHM: Ship */
+	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
+	_data_ship = shmat(id, NULL, 0);
+	_data->id_const_ship = id;
+
+	/* MSG: ports in */
+	id = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_in_ports = id;
+
+	/* MSG: ports out */
+	id = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_out_ports = id;
+
+	/* SEM: Start */
+	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
+	_id_sem=id;
+	semctl(id, 0, SETVAL, 1);
+
+	/* SEM: Docks */
+	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
+	_data->id_sem_docks = id;
 }
 
 void loop()
@@ -109,33 +115,41 @@ void loop()
 
 void create_children()
 {
+	/* Constants for readability */
+	const SO_DAYS = _data->SO_DAYS;
+	const SO_PORTI =  _data->SO_PORTI;
+	const SO_FILL = _data->SO_FILL;
+	const SO_LATO = _data->SO_LATO;
+	const SO_NAVI = _data->SO_NAVI;
+	const SO_BANCHINE = _data->SO_BANCHINE;
+
 	int i, to_add, daily, n_docks;
 	struct const_port *current_port;
 	struct const_ship *current_ship;
 
-	daily = _data->SO_FILL / (_data->SO_DAYS * _data->SO_PORTI);
-	for (i = 0; i < _data->SO_PORTI; i++){
+	daily = SO_FILL / (SO_DAYS * SO_PORTI);
+	for (i = 0; i < SO_PORTI; i++){
 		current_port = &_data_port[i];
 		current_port->pid = create_proc("./port", i);
 
-		to_add = (i < (_data->SO_FILL % (_data->SO_DAYS * _data->SO_PORTI))) ? 1 : 0;
+		to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
 		current_port->daily_restock_capacity = daily + to_add;
 
 		if (i<4){
 			/* ports in 4 corner */
-			current_port->x = i % 2 != 0 ? _data->SO_LATO : 0;
-			current_port->y = i < 2 ? _data->SO_LATO : 0;
+			current_port->x = i % 2 != 0 ? SO_LATO : 0;
+			current_port->y = i < 2 ? SO_LATO : 0;
 		}
 		else{
 			current_port->x = get_random_coord();
 			current_port->y = get_random_coord();
 		}
 
-		n_docks = get_random(1, _data->SO_BANCHINE);
+		n_docks = get_random(1, SO_BANCHINE);
 		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
 	}
 
-	for (i = 0; i < _data->SO_NAVI; i++){
+	for (i = 0; i < SO_NAVI; i++){
 		current_ship = &_data_ship[i];
 		current_ship->pid = create_proc("./ship", i);
 
@@ -160,31 +174,21 @@ void read_constants_from_file()
 	FILE *file;
 	file = fopen("constants.txt", "r");
 
-	/* Reding generic simulation specifications */
-	fscanf(file, "%d", &_data->SO_LATO);
-	fscanf(file, "%d", &_data->SO_DAYS);
-	fscanf(file, "%d", &_data->SO_NAVI);
-	fscanf(file, "%d", &_data->SO_PORTI);
-	fscanf(file, "%d", &_data->SO_MERCI);
+	/*Reading*/
+	fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+			/* Generic simulation specifications */
+			&_data->SO_LATO, &_data->SO_DAYS,
+			&_data->SO_NAVI, &_data->SO_PORTI, &_data->SO_MERCI,
+			/* Weather events max duration */
+			&_data->SO_STORM_DURATION, &_data->SO_SWELL_DURATION, &_data->SO_MAELSTORM,
+			/* Ports specifications */
+			&_data->SO_FILL, &_data->SO_BANCHINE, &_data->SO_LOADSPEED,
+			/* Ships specifications */
+			&_data->SO_SIZE, &_data->SO_SPEED, &_data->SO_CAPACITY,
+			/* Cargo specifications */
+			&_data->SO_MIN_VITA, &_data->SO_MAX_VITA);
 
-	/* Reading weather events max duration */
-	fscanf(file, "%d", &_data->SO_STORM_DURATION);
-	fscanf(file, "%d", &_data->SO_SWELL_DURATION);
-	fscanf(file, "%d", &_data->SO_MAELSTORM);
-
-	/* Reading ports specifications */
-	fscanf(file, "%d", &_data->SO_FILL);
-	fscanf(file, "%d", &_data->SO_BANCHINE);
-	fscanf(file, "%d", &_data->SO_LOADSPEED);
-
-	/* Reading ships specifications */
-	fscanf(file, "%d", &_data->SO_SIZE);
-	fscanf(file, "%d", &_data->SO_SPEED);
-	fscanf(file, "%d", &_data->SO_CAPACITY);
-
-	/* Reading cargo specifications */
-	fscanf(file, "%d", &_data->SO_MIN_VITA);
-	fscanf(file, "%d", &_data->SO_MAX_VITA);
+	fclose(file);
 }
 
 pid_t create_proc(char *name, int index)
@@ -236,6 +240,10 @@ void close_all(const char *message, int exit_status)
 
 	while(wait(NULL) != -1 || errno == EINTR);
 
+	/* Removing semaphors */
+	semctl(_id_sem, 0, IPC_RMID);
+	semctl(_data->id_sem_docks, 0, IPC_RMID);
+
 	/* Closing message queue (need to be done before detaching shm) */
 	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
@@ -247,9 +255,6 @@ void close_all(const char *message, int exit_status)
 	detach(_data);
 	detach(_data_port);
 	detach(_data_ship);
-
-	/* Removing semaphors */
-	semctl(_id_sem, 0, IPC_RMID);
 
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)

@@ -38,8 +38,7 @@ int main(int argc, char *argv[])
 
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
-	sem_oper = create_sembuf(0, 0);
-	semop(id, &sem_oper, 1);
+	execute_single_sem_oper(id, 0, 0);
 
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
@@ -122,8 +121,7 @@ void exchange_goods(int port_id)
 
 	/* Get dock */
 	dprintf(1, "[Child ship %d] Wait dock at port %d (value = %d)\n", getpid(), port_id, semctl(_data->id_sem_docks, port_id, GETVAL));
-	sem_buf = create_sembuf(port_id, -1);
-	semop(_data->id_sem_docks, &sem_buf, 1);
+	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
 
 	/* Communicate */
 	msg = create_commerce_msgbuf(_this_id, port_id);
@@ -131,8 +129,7 @@ void exchange_goods(int port_id)
 	dprintf(1, "[Child ship %d] Sending message\n", getpid());
 
 	/* Free dock */
-	sem_buf.sem_op = 1;
-	semop(_data->id_sem_docks, &sem_buf, 1);
+	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
 }
 
 void signal_handler(int signal)
