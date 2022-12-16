@@ -24,6 +24,7 @@ struct const_general{
 	id_shm_t id_const_port;
 	id_shm_t id_const_ship;
 	id_shm_t id_const_cargo;
+	id_shm_t id_supply_demand;
 
 	/* Msg id */
 	id_shm_t id_msg_bump; /* still not in use */
@@ -53,7 +54,6 @@ struct const_ship{
 };
 
 struct const_cargo{
-	/* Coordinates */
 	int weight_batch;
 	int shelf_life;
 };
