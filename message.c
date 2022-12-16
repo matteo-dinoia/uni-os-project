@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <strings.h>
 #include "message.h"
 

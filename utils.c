@@ -1,12 +1,10 @@
+#define _GNU_SOURCE
 #include "utils.h"
-#include <stddef.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <math.h>
 
 /* Sorted by expiry date */
-struct _list_cargo
-{
-	struct node_cargo *first;
-};
-
 struct node_cargo{
 	int amount;
 	int expiry_date;
@@ -40,7 +38,7 @@ void remove_cargo(list_cargo *list, int n)
 
 void add_cargo(list_cargo *list, int amount, int expiry_date)
 {
-	struct node_cargo *current, to_move;
+	struct node_cargo *current, *to_move;
 
 	if(list == NULL){
 		dprintf(1, "FUCK should have controlled NULL in add cargo. kys\n");
@@ -50,7 +48,7 @@ void add_cargo(list_cargo *list, int amount, int expiry_date)
 
 	if(list->first == NULL || list->first->expiry_date >= expiry_date){
 		/* Create new first */
-		list->first = malloc(*list->first);
+		list->first = malloc(sizeof(*list->first));
 		list->first->expiry_date = expiry_date;
 		list->first->amount = amount;
 		list->first->next = current;
@@ -61,13 +59,13 @@ void add_cargo(list_cargo *list, int amount, int expiry_date)
 		current = current->next;
 		if(current == NULL || current->expiry_date >= expiry_date){
 			to_move = current;
-			current = malloc(*current);
+			current = malloc(sizeof(*current));
 			current->expiry_date = expiry_date;
 			current->amount = amount;
 			current->next = to_move;
-			current = null;
+			current = NULL;
 		}
-	} while (current != null);
+	} while (current != NULL);
 }
 
 int count_cargo(list_cargo *list)
@@ -83,7 +81,23 @@ int count_cargo(list_cargo *list)
 	return res;
 }
 
-struct timespec get_timespec(double interval_sec){
+void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
+{
+	struct node_cargo *to_remove;
+	if(list == NULL || list->first){
+		dprintf(1, "FUCK should have controlled NULL in pop cargo. kys\n");
+		return;
+	}
+
+	*amount = list->first->amount;
+	*expiry_date = list->first->expiry_date;
+
+	to_remove =list->first;
+	list->first = list->first->next;
+	free(to_remove);
+}
+
+struct timespec get_timespec(const double interval_sec){
 	struct timespec res;
 
 	res.tv_sec = (long)interval_sec;

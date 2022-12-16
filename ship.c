@@ -16,7 +16,7 @@
 
 /* Global Variables */
 int _this_id;
-struct node_cargo *cargo_hold;
+list_cargo *cargo_hold;
 /* shared memory */
 struct const_port *_this_ship;
 struct const_general *_data;
@@ -109,7 +109,6 @@ void move_to_port(double x_port, double y_port)
 	travel_time = get_timespec(distance / _data->SO_SPEED);
 
 	/* Wait */
-	dprintf(1, "[Child ship %d] Time =%lf, %ld.%09ld\n", getpid(), time_days, travel_time.tv_sec, travel_time.tv_nsec);
 	do {
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
@@ -135,7 +134,7 @@ void exchange_goods(int port_id)
 		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
 		if (n_requested_port <= 0) continue; /* Only care of port request */
 
-		n_batch_ship = count_cargo(node_cargo[i]); /* TODO = */;
+		n_batch_ship = count_cargo(&cargo_hold[i]); /* TODO = */;
 
 		/* min i have cargo and ports need it*/
 		n_batch = MIN(n_batch_ship, n_requested_port);
@@ -153,7 +152,7 @@ void exchange_goods(int port_id)
 
 			/* change data */
 			if (msg.status == STATUS_ACCEPTED){
-				add_cargo(node_cargo[i], msg.n_cargo_batch, msg.expiry_date)
+				add_cargo(&cargo_hold[i], msg.n_cargo_batch, msg.expiry_date);
 			}
 		}
 	}
