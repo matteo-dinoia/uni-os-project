@@ -9,6 +9,7 @@
 #include "shared_mem.h"
 #include "message.h"
 #include "semaphore.h"
+#include <sys/param.h>
 
 /* Global variables */
 int _this_id;
@@ -17,8 +18,8 @@ int _this_id;
 struct const_general *_data;
 struct const_port *_data_port;
 struct const_port *_this_port;
-struct int *_data_supply_demand;
-struct int *_this_supply_demand;
+int *_data_supply_demand;
+int *_this_supply_demand;
 
 /* Prototypes */
 void supply_demand_update();
@@ -85,14 +86,14 @@ void respond_msg(struct commerce_msgbuf msg_received)
 	int needed_supply = msg_received.n_cargo_batch;
 	int this_supply = _this_supply_demand[needed_type];
 
-	response = respond_commerce_msgbuf(msg_received);
+	response = respond_commerce_msgbuf(&msg_received);
 	response.status = STATUS_REFUSED;
 
 	if (needed_supply < 0  && _this_supply_demand[needed_type] < 0){
 		/* If supply is needed respond with how much */
 		response.n_cargo_batch = MAX(needed_supply, this_supply);
 		response.status = STATUS_ACCEPTED;
-	} else (needed_supply > 0 && _this_supply_demand[needed_type] > 0){
+	} else if (needed_supply > 0 && _this_supply_demand[needed_type] > 0){
 		/* If supply is needed respond with how much */
 		response.n_cargo_batch = MIN(needed_supply, this_supply);
 		response.status = STATUS_ACCEPTED;
@@ -101,7 +102,7 @@ void respond_msg(struct commerce_msgbuf msg_received)
 	/* Refuse or send message */
 	if(response.status == STATUS_REFUSED){
 		response.cargo_type = needed_type;
-		response.cargo_supply = needed_supply;
+		response.n_cargo_batch = needed_supply;
 	}
 	msgsnd(_data->id_msg_out_ports, &response, MSG_SIZE(response), 0);
 }
