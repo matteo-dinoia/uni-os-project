@@ -104,7 +104,7 @@ void move_to_port(double x_port, double y_port)
 
 	/* Wait */
 	dprintf(1, "[Child ship %d] Time =%lf, %ld.%09ld\n", getpid(), time_days, travel_time.tv_sec, travel_time.tv_nsec);
-	do{
+	do {
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
 	} while (errno == EINTR);
@@ -118,15 +118,39 @@ void exchange_goods(int port_id)
 {
 	struct commerce_msgbuf msg;
 	struct sembuf sem_buf;
+	int i, n_batch, n_requested_port, n_batch_ship;
 
 	/* Get dock */
-	dprintf(1, "[Child ship %d] Wait dock at port %d (value = %d)\n", getpid(), port_id, semctl(_data->id_sem_docks, port_id, GETVAL));
 	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
 
-	/* Communicate */
-	msg = create_commerce_msgbuf(_this_id, port_id);
-	msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
-	dprintf(1, "[Child ship %d] Sending message\n", getpid());
+	/* Communicate selling request */
+	for (i; i<_data->SO_MERCI; i++){
+		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
+		if (n_requested_port <= 0) continue; /* Only care of port request */
+
+		n_batch_ship /* TODO = */;
+
+		/* min i have cargo and ports need it*/
+		n_batch = MIN(n_batch_ship, n_requested_port);
+		if (n_batch != 0){
+			msg.n_cargo_batch = -n_batch;
+			msg.cargo_type = i;
+			msg.status = STATUS_REQUEST;
+
+			msg = create_commerce_msgbuf(_this_id, port_id);
+			msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
+
+			do {
+				msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
+			}while(errno == EXIT_FAILURE);
+
+			/* TODO change data */
+		}
+	}
+
+	/* Communicate buying request */
+
+	/* Wait for every translation to be "made" */
 
 	/* Free dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
