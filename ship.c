@@ -148,6 +148,7 @@ int sell(int port_id){
 	struct commerce_msgbuf msg;
 	int i, n_batch, n_requested_port, n_batch_ship, tons_moved;
 
+	tons_moved = 0;
 	msg = create_commerce_msgbuf(_this_id, port_id);
 	for (i; i<_data->SO_MERCI; i++){
 		/* Min i have cargo and ports need it */
