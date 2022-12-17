@@ -152,7 +152,7 @@ void exchange_goods(int port_id)
 
 			/* change data */
 			if (msg.status == STATUS_ACCEPTED){
-				add_cargo(&cargo_hold[i], msg.n_cargo_batch, msg.expiry_date);
+				remove_cargo(&cargo_hold[i], msg.n_cargo_batch, msg.expiry_date);
 			}
 		}
 	}
