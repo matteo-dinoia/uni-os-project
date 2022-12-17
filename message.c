@@ -26,7 +26,6 @@ void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int 
 
 	msg->cargo_type = type;
 	msg->n_cargo_batch = amount;
-	msg->n_cargo_batch = amount;
 	msg->expiry_date = expiry_date;
 	msg->status = status;
 }
