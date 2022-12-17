@@ -131,8 +131,7 @@ void exchange_goods(int port_id)
 	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
 
 	/* Communicate selling and buying request */
-	tot_tons_moved = sell(port_id);
-	tot_tons_moved += buy(port_id);
+	tot_tons_moved = sell(port_id) + buy(port_id);
 
 	/* Wait for every transaction to be "made" */
 	commerce_time = get_timespec(tot_tons_moved / (double)_data->SO_LOADSPEED);
