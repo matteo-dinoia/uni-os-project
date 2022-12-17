@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+
 #include "utils.h"
 #include <stdlib.h>
 #include <sys/time.h>
@@ -13,19 +14,20 @@ struct node_cargo{
 
 void remove_cargo(list_cargo *list, int amount)
 {
-	struct node_cargo *current = list->first, *to_remove;
+	struct node_cargo *current = list->first, *tmp;
 
 	while (amount > 0){
 		if (current == NULL) {
-			dprintf(1, "FUCK should have controlled NULL in remove cargo. kys\n");
+			dprintf(1, "Should have controlled NULL in remove cargo.\n");
 			return;
 		}
 
 		if (amount >= current->amount){
 			amount -=  current->amount;
-			to_remove = current;
+			tmp = current;
+
 			current = current->next;
-			free(to_remove);
+			free(tmp);
 		}
 		else{
 			amount = 0;
@@ -38,33 +40,42 @@ void remove_cargo(list_cargo *list, int amount)
 
 void add_cargo(list_cargo *list, int amount, int expiry_date)
 {
-	struct node_cargo *current, *to_move;
+	struct node_cargo *prev, *tmp, *current;
 
 	if(list == NULL){
-		dprintf(1, "FUCK should have controlled NULL in add cargo. kys\n");
+		dprintf(1, "Should have controlled NULL in add cargo.\n");
 		return;
 	}
-	current = list->first;
 
+	/* Is to be added on the head */
 	if(list->first == NULL || list->first->expiry_date >= expiry_date){
 		/* Create new first */
+		tmp = list->first;
 		list->first = malloc(sizeof(*list->first));
 		list->first->expiry_date = expiry_date;
 		list->first->amount = amount;
-		list->first->next = current;
+		list->first->next = tmp;
 		return;
 	}
 
+	/* Is in the middle */
+	prev = list->first;
 	do {
-		current = current->next;
+		current = prev->next;
 		if(current == NULL || current->expiry_date >= expiry_date){
-			to_move = current;
-			current = malloc(sizeof(*current));
+			tmp = current;
+
+			/* Create new node */
+			current = malloc(sizeof(*prev));
 			current->expiry_date = expiry_date;
 			current->amount = amount;
-			current->next = to_move;
+			current->next = tmp;
+
+			/* Attach it and end cycle*/
+			prev->next = current;
 			current = NULL;
 		}
+		prev = prev->next;
 	} while (current != NULL);
 }
 
@@ -83,18 +94,18 @@ int count_cargo(list_cargo *list)
 
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 {
-	struct node_cargo *to_remove;
+	struct node_cargo *tmp;
 	if(list == NULL || list->first){
-		dprintf(1, "FUCK should have controlled NULL in pop cargo. kys\n");
+		dprintf(1, "Should have controlled NULL in pop cargo.\n");
 		return;
 	}
 
 	*amount = list->first->amount;
 	*expiry_date = list->first->expiry_date;
 
-	to_remove =list->first;
+	tmp =list->first;
 	list->first = list->first->next;
-	free(to_remove);
+	free(tmp);
 }
 
 struct timespec get_timespec(double interval_sec){

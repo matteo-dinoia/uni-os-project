@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+
 #include <sys/sem.h>
 #include "semaphore.h"
 
