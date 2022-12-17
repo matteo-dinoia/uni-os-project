@@ -165,7 +165,7 @@ int sell(int port_id){
 		/* Wait response */
 		do {
 			msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
-		}while(errno == EXIT_FAILURE);
+		}while(errno == EINTR);
 
 		/* Change data */
 		if (msg.status == STATUS_ACCEPTED){
