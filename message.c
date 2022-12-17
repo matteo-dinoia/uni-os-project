@@ -3,6 +3,7 @@
 #include <strings.h>
 #include <stdlib.h>
 #include "message.h"
+#include "shared_mem.h"
 
 struct commerce_msgbuf create_commerce_msgbuf(long sender, long receiver)
 {
@@ -28,4 +29,12 @@ void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int 
 	msg->n_cargo_batch = amount;
 	msg->expiry_date = expiry_date;
 	msg->status = status;
+}
+
+void send_commerce_msg(const id_shm_t id, const struct commerce_msgbuf *msg, ){
+	msgsnd(id, &msg, MSG_SIZE(msg), 0);
+}
+
+void receive_commerce_msg(const id_shm_t id, struct commerce_msgbuf *msg, int type){
+	msgrcv(id, &msg, MSG_SIZE(msg), type, 0);
 }
