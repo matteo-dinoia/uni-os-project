@@ -4,7 +4,7 @@
 #define KEY_SEM 0xa2
 
 /* Prototype */
-struct sembuf create_sembuf(int, int);
-void execute_single_sem_oper(int, int, int);
+struct sembuf create_sembuf(int index, int value);
+void execute_single_sem_oper(int id, int index, int value);
 
 #endif

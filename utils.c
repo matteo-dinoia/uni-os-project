@@ -11,25 +11,25 @@ struct node_cargo{
 	struct node_cargo *next;
 };
 
-void remove_cargo(list_cargo *list, int n)
+void remove_cargo(list_cargo *list, int amount)
 {
 	struct node_cargo *current = list->first, *to_remove;
 
-	while (n > 0){
+	while (amount > 0){
 		if (current == NULL) {
 			dprintf(1, "FUCK should have controlled NULL in remove cargo. kys\n");
 			return;
 		}
 
-		if (n >= current->amount){
-			n -=  current->amount;
+		if (amount >= current->amount){
+			amount -=  current->amount;
 			to_remove = current;
 			current = current->next;
 			free(to_remove);
 		}
 		else{
-			n = 0;
-			current->amount -= n;
+			amount = 0;
+			current->amount -= amount;
 		}
 	}
 
@@ -97,7 +97,7 @@ void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 	free(to_remove);
 }
 
-struct timespec get_timespec(const double interval_sec){
+struct timespec get_timespec(double interval_sec){
 	struct timespec res;
 
 	res.tv_sec = (long)interval_sec;

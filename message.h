@@ -7,9 +7,9 @@
 #define STATUS_REFUSED 2
 
 /* Prototype */
-struct commerce_msgbuf create_commerce_msgbuf(long, long);
-struct commerce_msgbuf respond_commerce_msgbuf(const struct commerce_msgbuf *);
-
+struct commerce_msgbuf create_commerce_msgbuf(long sender, long receiver);
+struct commerce_msgbuf respond_commerce_msgbuf(const struct commerce_msgbuf *msg);
+void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int expiry_date, int status);
 
 struct commerce_msgbuf{
 	long receiver;
