@@ -6,11 +6,11 @@ typedef struct{
 } list_cargo;
 
 /* Prototype */
-void remove_cargo(list_cargo *, int);
-void add_cargo(list_cargo *, int, int);
-int count_cargo(list_cargo *);
-void pop_cargo(list_cargo *, int *, int *);
-struct timespec get_timespec(const double);
+void remove_cargo(list_cargo *list, int amount);
+void add_cargo(list_cargo *list, int amount, int expiry_date);
+int count_cargo(list_cargo *list);
+void pop_cargo(list_cargo *list, int *amount, int *expiry_date);
+struct timespec get_timespec(double interval_sec);
 
 
 #endif

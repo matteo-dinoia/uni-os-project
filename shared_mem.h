@@ -8,9 +8,9 @@ typedef int bool_t; /* Will likely use bool.h */
 typedef int id_shm_t;
 
 /* Prototype */
-void detach(void *);
-id_shm_t get_shared(key_t, size_t);
-void *attach_shared(id_shm_t);
+void detach(void *pointer);
+id_shm_t get_shared(key_t key, size_t size);
+void *attach_shared(id_shm_t id);
 
 struct const_general{
 	/* Constants*/

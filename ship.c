@@ -30,6 +30,8 @@ void move_to_port(double, double);
 void exchange_goods(int);
 void signal_handler(int);
 void loop();
+int sell(int port_id);
+int buy(int port_id);
 void close_all();
 
 int main(int argc, char *argv[])
@@ -121,53 +123,65 @@ void move_to_port(double x_port, double y_port)
 
 void exchange_goods(int port_id)
 {
-	struct commerce_msgbuf msg;
 	struct sembuf sem_buf;
-	struct timespec rem_time, travel_time;
-	int i, n_batch, n_requested_port, n_batch_ship, tot_tons_moved;
+	struct timespec rem_time, commerce_time;
+	int tot_tons_moved;
 
 	/* Get dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
 
-	/* Communicate selling request */
-	for (i; i<_data->SO_MERCI; i++){
-		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
-		if (n_requested_port <= 0) continue; /* Only care of port request */
-
-		n_batch_ship = count_cargo(&cargo_hold[i]);
-
-		/* min i have cargo and ports need it*/
-		n_batch = MIN(n_batch_ship, n_requested_port);
-		if (n_batch != 0){
-			msg.n_cargo_batch = -n_batch;
-			msg.cargo_type = i;
-			msg.status = STATUS_REQUEST;
-
-			msg = create_commerce_msgbuf(_this_id, port_id);
-			msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
-
-			do {
-				msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
-			}while(errno == EXIT_FAILURE);
-
-			/* change data */
-			if (msg.status == STATUS_ACCEPTED){
-				remove_cargo(&cargo_hold[i], msg.n_cargo_batch, msg.expiry_date);
-			}
-		}
-	}
-
-	/* Communicate buying request */
+	/* Communicate selling and buying request */
+	tot_tons_moved = sell(port_id) + buy(port_id);
 
 	/* Wait for every transaction to be "made" */
-	travel_time = get_timespec(_data->SO_LOADSPEED*(double)tot_tons_moved);
+	commerce_time = get_timespec(tot_tons_moved / (double)_data->SO_LOADSPEED);
 	do {
-		nanosleep(&travel_time, &rem_time);
-		travel_time = rem_time;
+		nanosleep(&commerce_time, &rem_time);
+		commerce_time = rem_time;
 	} while (errno == EINTR);
 
 	/* Free dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
+}
+
+int sell(int port_id){
+	struct commerce_msgbuf msg;
+	int i, n_batch, n_requested_port, n_batch_ship, tons_moved;
+
+	tons_moved = 0;
+	msg = create_commerce_msgbuf(_this_id, port_id);
+	for (i; i<_data->SO_MERCI; i++){
+		/* Min i have cargo and ports need it */
+		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
+		n_batch_ship = count_cargo(&cargo_hold[i]);
+		n_batch = MIN(n_batch_ship, n_requested_port);
+		/* If nothing to be sell then skip this type*/
+		if (n_batch <= 0) continue;
+
+		/* Send message */
+		set_commerce_msgbuf(&msg, i, -n_batch, -1, STATUS_REQUEST);
+		msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
+
+		/* Wait response */
+		do {
+			msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
+		}while(errno == EINTR);
+
+		/* Change data */
+		if (msg.status == STATUS_ACCEPTED){
+			n_batch = abs(msg.n_cargo_batch);
+			remove_cargo(&cargo_hold[i], n_batch);
+			tons_moved += n_batch;
+		}
+
+	}
+
+	return tons_moved;
+}
+
+int buy(int port_id){
+	/* TODO implements */
+	return -1;
 }
 
 void signal_handler(int signal)
