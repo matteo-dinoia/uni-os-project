@@ -9,11 +9,12 @@
 #include "shared_mem.h"
 #include "message.h"
 #include "semaphore.h"
+#include "utils.h"
 #include <sys/param.h>
 
 /* Global variables */
 int _this_id;
-
+list_cargo *cargo_hold;
 /* shared memory */
 struct const_general *_data;
 struct const_port *_data_port;
@@ -52,6 +53,10 @@ int main(int argc, char *argv[])
 	_this_port = &_data_port[_this_id];
 	_this_supply_demand = &_data_supply_demand[_this_id];
 
+	/* Local memory allocation */
+	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
+	bzero(cargo_hold, _data->SO_MERCI * sizeof(*cargo_hold));
+
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
@@ -85,18 +90,36 @@ void respond_msg(struct commerce_msgbuf msg_received)
 	int needed_type = msg_received.cargo_type;
 	int needed_supply = msg_received.n_cargo_batch;
 	int this_supply = _this_supply_demand[needed_type];
+	int tot_exchange, amount, expiry_date;
 
 	response = respond_commerce_msgbuf(&msg_received);
 	response.status = STATUS_REFUSED;
 
 	if (needed_supply < 0  && _this_supply_demand[needed_type] < 0){
-		/* If supply is needed respond with how much */
+		/* If port is buying respond with how much */
 		response.n_cargo_batch = MAX(needed_supply, this_supply);
 		response.status = STATUS_ACCEPTED;
+		_this_supply_demand[needed_type] -= response.n_cargo_batch;
 	} else if (needed_supply > 0 && _this_supply_demand[needed_type] > 0){
-		/* If supply is needed respond with how much */
-		response.n_cargo_batch = MIN(needed_supply, this_supply);
+		/* If port is selling respond with how much */
+		tot_exchange = MIN(needed_supply, this_supply);
 		response.status = STATUS_ACCEPTED;
+		_this_supply_demand[needed_type] -= tot_exchange;
+
+		while (tot_exchange >= 0){
+			/* Spamming messages */
+			pop_cargo(&cargo_hold[needed_type], &amount, &expiry_date);
+			if (amount > tot_exchange){
+				add_cargo(&cargo_hold[needed_type], amount - tot_exchange, expiry_date);
+				amount = tot_exchange;
+			}
+
+			response.n_cargo_batch = amount;
+			response.expiry_date = expiry_date;
+			msgsnd(_data->id_msg_out_ports, &response, MSG_SIZE(response), 0);
+			tot_exchange -= amount;
+		}
+		return;
 	}
 
 	/* Refuse or send message */
@@ -127,6 +150,9 @@ void signal_handler(int signal)
 
 void close_all()
 {
+	/* Local memory deallocation */
+	free(cargo_hold);
+
 	/* Detach shared memory */
 	detach(_data);
 	detach(_data_port);

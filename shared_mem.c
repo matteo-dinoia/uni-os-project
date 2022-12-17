@@ -1,4 +1,4 @@
-/* Libraries */
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <sys/shm.h>

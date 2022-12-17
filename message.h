@@ -16,6 +16,7 @@ struct commerce_msgbuf{
 	long sender;
 	int cargo_type;
 	int n_cargo_batch; /* Can be positive or negative */
+	int expiry_date;
 	int status;
 };
 

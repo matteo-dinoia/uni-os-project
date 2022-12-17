@@ -11,10 +11,12 @@
 #include "shared_mem.h"
 #include "message.h"
 #include "semaphore.h"
+#include "utils.h"
 #include <sys/param.h>
 
 /* Global Variables */
 int _this_id;
+list_cargo *cargo_hold;
 /* shared memory */
 struct const_port *_this_ship;
 struct const_general *_data;
@@ -53,6 +55,10 @@ int main(int argc, char *argv[])
 	_this_id = atoi(argv[1]);
 	_this_ship = &_data_ship[_this_id];
 
+	/* Local memory allocation */
+	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
+	bzero(cargo_hold, _data->SO_MERCI * sizeof(*cargo_hold));
+
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
@@ -84,7 +90,7 @@ void loop()
 void find_destiation_port(int *dest, double *dest_x, double *dest_y)
 {
 	/* TODO actually choose */
-	*dest = rand() % _data->SO_NAVI;
+	*dest = rand() % _data->SO_PORTI;
 
 	/* get position */
 	*dest_x = _data_port[*dest].x;
@@ -96,17 +102,13 @@ void move_to_port(double x_port, double y_port)
 	struct timespec rem_time, travel_time;
 	const int x = _this_ship->x;
 	const int y = _this_ship->y;
-	double distance, time_days;
+	double distance;
 
 	/* Time */
 	distance = sqrt(pow((x - x_port), 2) + pow((y - y_port), 2));
-	time_days = distance / _data->SO_SPEED;
-	travel_time.tv_sec = (long)time_days;
-	travel_time.tv_nsec = (time_days - (long)time_days) * pow(10, 9);
-
+	travel_time = get_timespec(distance / _data->SO_SPEED);
 
 	/* Wait */
-	dprintf(1, "[Child ship %d] Time =%lf, %ld.%09ld\n", getpid(), time_days, travel_time.tv_sec, travel_time.tv_nsec);
 	do {
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
@@ -121,7 +123,8 @@ void exchange_goods(int port_id)
 {
 	struct commerce_msgbuf msg;
 	struct sembuf sem_buf;
-	int i, n_batch, n_requested_port, n_batch_ship;
+	struct timespec rem_time, travel_time;
+	int i, n_batch, n_requested_port, n_batch_ship, tot_tons_moved;
 
 	/* Get dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
@@ -131,7 +134,7 @@ void exchange_goods(int port_id)
 		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
 		if (n_requested_port <= 0) continue; /* Only care of port request */
 
-		n_batch_ship /* TODO = */;
+		n_batch_ship = count_cargo(&cargo_hold[i]);
 
 		/* min i have cargo and ports need it*/
 		n_batch = MIN(n_batch_ship, n_requested_port);
@@ -147,13 +150,21 @@ void exchange_goods(int port_id)
 				msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
 			}while(errno == EXIT_FAILURE);
 
-			/* TODO change data */
+			/* change data */
+			if (msg.status == STATUS_ACCEPTED){
+				remove_cargo(&cargo_hold[i], msg.n_cargo_batch, msg.expiry_date);
+			}
 		}
 	}
 
 	/* Communicate buying request */
 
-	/* Wait for every translation to be "made" */
+	/* Wait for every transaction to be "made" */
+	travel_time = get_timespec(_data->SO_LOADSPEED*(double)tot_tons_moved);
+	do {
+		nanosleep(&travel_time, &rem_time);
+		travel_time = rem_time;
+	} while (errno == EINTR);
 
 	/* Free dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
@@ -173,6 +184,9 @@ void signal_handler(int signal)
 
 void close_all()
 {
+	/* Local memory deallocation */
+	free(cargo_hold);
+
 	/* Detach shared memory */
 	detach(_data);
 	detach(_data_port);
