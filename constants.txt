@@ -1,16 +1,18 @@
-1
-2
-1
-2
-5
-6
-7
-8
-9
-10
-11
-12
-13
-14
-15
-16
+// Doesn't matter order but it matter the form!!
+//Should be <name> = <number>;
+SO_LATO = 1;
+SO_DAYS = 2;
+SO_NAVI = 3;
+SO_PORTI = 4;
+SO_MERCI = 5;
+SO_STORM_DURATION = 6;
+SO_SWELL_DURATION = 7;
+SO_MAELSTORM = 8;
+SO_FILL = 9;
+SO_BANCHINE = 10;
+SO_LOADSPEED = 11;
+SO_SIZE = 12;
+SO_SPEED = 13;
+SO_CAPACITY = 14;
+SO_MIN_VITA = 15;
+SO_MAX_VITA = 16;

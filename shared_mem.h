@@ -1,18 +1,15 @@
 #ifndef _SHARED_MEMORY_H
 #define _SHARED_MEMORY_H
 
-#define KEY_SHARED 0xf3 /* TO CHOOSE ONE */
-#define TRUE 1
-#define FALSE 0
-typedef int bool_t; /* Will likely use bool.h */
-typedef int id_shm_t;
+#include "utils.h"
+#define KEY_SHARED 0xf3 /* TODO choose one */
 
 /* Prototype */
 void detach(void *pointer);
-id_shm_t get_shared(key_t key, size_t size);
-void *attach_shared(id_shm_t id);
+id_shared_t get_shared(key_t key, size_t size);
+void *attach_shared(id_shared_t id);
 
-struct const_general{
+struct general{
 	/* Constants*/
 	int SO_LATO, SO_DAYS, SO_NAVI, SO_PORTI, SO_MERCI;	/* Generic simulation specifications */
 	int SO_STORM_DURATION, SO_SWELL_DURATION, SO_MAELSTORM; /* Weather events max duration */
@@ -21,22 +18,21 @@ struct const_general{
 	int SO_MIN_VITA, SO_MAX_VITA;				/* Cargo specifications */
 
 	/* Shared memory id */
-	id_shm_t id_const_port;
-	id_shm_t id_const_ship;
-	id_shm_t id_const_cargo;
-	id_shm_t id_supply_demand;
+	id_shared_t id_port;
+	id_shared_t id_ship;
+	id_shared_t id_cargo;
+	id_shared_t id_supply_demand;
 
 	/* Msg id */
-	id_shm_t id_msg_bump; /* still not in use */
-	id_shm_t id_msg_in_ports;
-	id_shm_t id_msg_out_ports;
+	id_shared_t id_msg_bump; /* still not in use */
+	id_shared_t id_msg_in_ports;
+	id_shared_t id_msg_out_ports;
 
 	/* Semaphores */
-	id_shm_t id_sem_docks;
+	id_shared_t id_sem_docks;
 };
 
-struct const_port{
-	/* Coordinates */
+struct port{
 	double x;
 	double y;
 
@@ -44,8 +40,7 @@ struct const_port{
 	int daily_restock_capacity;
 };
 
-struct const_ship{
-	/* Coordinates */
+struct ship{
 	double x;
 	double y;
 
@@ -53,7 +48,7 @@ struct const_ship{
 	bool_t is_moving;
 };
 
-struct const_cargo{
+struct cargo{
 	int weight_batch;
 	int shelf_life;
 };

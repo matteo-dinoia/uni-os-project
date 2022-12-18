@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
-
 #include "utils.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
@@ -115,4 +115,9 @@ struct timespec get_timespec(double interval_sec){
 	res.tv_nsec = (interval_sec - (long)interval_sec) * pow(10, 9);
 
 	return res;
+}
+
+int get_random(int min_included, int max_excluded)
+{
+	return rand() % (max_excluded - min_included) + min_included;
 }

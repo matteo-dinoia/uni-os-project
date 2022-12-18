@@ -1,37 +1,32 @@
 #define _GNU_SOURCE
-
-/* Libraries */
-#include <signal.h>
-#include <limits.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <fcntl.h>
+#include <stdio.h>
 #include <sys/shm.h>
 #include <sys/sem.h>
-#include <time.h>
-#include <string.h>
 #include <sys/wait.h>
+#include <errno.h>
+#include <signal.h>
+#include <limits.h>
 #include "shared_mem.h"
 #include "semaphore.h"
+#include "utils.h"
 
 /* Macros */
-#define SHIP_EXEC "./ship"
-#define PORT_EXEC "./port"
+#define CLOSE_SHM(id, pointer) \
+		do {\
+			shmctl((id), IPC_RMID, NULL);\
+			detach((pointer));\
+		}while (0)
 
 /* Global variables */
-
-/* Shared memory */
-struct const_general *_data;
-struct const_port *_data_port;
-struct const_ship *_data_ship;
-struct const_cargo *_data_cargo;
-int *_data_supply_demand;
-
-int id_data;
+int _id_data;
 int _id_sem;
+/* Shared memory */
+struct general *_data;
+struct port *_data_port;
+struct ship *_data_ship;
+struct cargo *_data_cargo;
+int *_data_supply_demand;
 
 /* Prototypes */
 void initialize_shared();
@@ -42,7 +37,6 @@ void create_children();
 void read_constants_from_file();
 void create_shared_structures();
 double get_random_coord();
-int get_random(int, int);
 void loop();
 
 int main()
@@ -76,14 +70,14 @@ void initialize_shared()
 
 	/* SHM: General */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
-	id_data = id;
 	_data = shmat(id, NULL, 0);
+	_id_data = id;
 	read_constants_from_file();
 
 	/* SHM: Port */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
 	_data_port = shmat(id, NULL, 0);
-	_data->id_const_port = id;
+	_data->id_port = id;
 
 	/* SHM: Suppy and demand of ports*/
 	id = shmget(IPC_PRIVATE, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI, 0600);
@@ -93,12 +87,12 @@ void initialize_shared()
 	/* SHM: Ship */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
 	_data_ship = shmat(id, NULL, 0);
-	_data->id_const_ship = id;
+	_data->id_ship = id;
 
 	/* SHM: Cargo */
 	id = shmget(IPC_PRIVATE, sizeof(*_data_cargo) * _data->SO_MERCI, 0600);
 	_data_cargo = shmat(id, NULL, 0);
-	_data->id_const_cargo = id;
+	_data->id_cargo = id;
 
 	/* MSG: ports in */
 	id = msgget(IPC_PRIVATE, 0600);
@@ -110,8 +104,8 @@ void initialize_shared()
 
 	/* SEM: Start */
 	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	_id_sem=id;
 	semctl(id, 0, SETVAL, 1);
+	_id_sem = id;
 
 	/* SEM: Docks */
 	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
@@ -141,9 +135,9 @@ void create_children()
 	const SO_MAX_VITA = _data->SO_MAX_VITA;
 
 	int i, to_add, daily, n_docks;
-	struct const_port *current_port;
-	struct const_ship *current_ship;
-	struct const_cargo *current_cargo;
+	struct port *current_port;
+	struct ship *current_ship;
+	struct cargo *current_cargo;
 
 	/* Initialize ports data */
 	daily = SO_FILL / (SO_DAYS * SO_PORTI);
@@ -195,18 +189,101 @@ double get_random_coord()
 	return rand() / (double)INT_MAX * _data->SO_LATO;
 }
 
-int get_random(int min, int max)
-{
-	return rand() % (max - min) + min;
-}
-
 void read_constants_from_file()
 {
 	FILE *file;
+	char name[100];
+	int char_read, num, c;
+	bool_t equal_found, num_found;
 	file = fopen("constants.txt", "r");
 
 	/*Reading*/
-	fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+	num = 0;
+	c = 0;
+	name[0] = '\0';
+	equal_found = FALSE;
+	num_found = FALSE;
+	while ((char_read = fgetc(file)) != EOF){
+		if ((char_read >= 'A' && char_read <= 'Z') || char_read == '_'){
+			if (equal_found)
+				close_all("[Error] Couldn't parse constants.txt (found = followed by char)", EXIT_FAILURE);
+			else if (c >= 99)
+				close_all("[Error] Couldn't parse constants.txt (found name too big)", EXIT_FAILURE);
+			name[c] = (char) char_read;
+			name[++c] = '\0';
+		}
+		else if (char_read == '='){
+			equal_found = TRUE;
+		}
+		else if (char_read >= '0' && char_read <= '9'){
+			if (!equal_found)
+				close_all("[Error] Couldn't parse constants.txt (not found = before number)", EXIT_FAILURE);
+
+			num = num * 10 + (char_read - '0');
+			num_found = TRUE;
+			if(num < 0)
+				close_all("[Error] Couldn't parse constants.txt (found number so big that exceed int)", EXIT_FAILURE);
+		}
+		else if (char_read == ';'){
+			if(!num_found)
+				close_all("[Error] Couldn't parse constants.txt (not found number before ;)", EXIT_FAILURE);
+			/* Check */
+			if (strcmp(name, "SO_LATO") == 0){
+				_data->SO_LATO = num;
+			}else if (strcmp(name, "SO_DAYS") == 0){
+				_data->SO_DAYS = num;
+			}else if (strcmp(name, "SO_NAVI") == 0){
+				_data->SO_NAVI = num;
+			}else if (strcmp(name, "SO_PORTI") == 0){
+				_data->SO_PORTI = num;
+			}else if (strcmp(name, "SO_MERCI") == 0){
+				_data->SO_MERCI = num;
+			}else if (strcmp(name, "SO_STORM_DURATION") == 0){
+				_data->SO_STORM_DURATION = num;
+			}else if (strcmp(name, "SO_SWELL_DURATION") == 0){
+				_data->SO_SWELL_DURATION = num;
+			}else if (strcmp(name, "SO_MAELSTORM") == 0){
+				_data->SO_MAELSTORM = num;
+			}else if (strcmp(name, "SO_FILL") == 0){
+				_data->SO_FILL = num;
+			}else if (strcmp(name, "SO_BANCHINE") == 0){
+				_data->SO_BANCHINE = num;
+			}else if (strcmp(name, "SO_LOADSPEED") == 0){
+				_data->SO_LOADSPEED = num;
+			}else if (strcmp(name, "SO_SIZE") == 0){
+				_data->SO_SIZE = num;
+			}else if (strcmp(name, "SO_SPEED") == 0){
+				_data->SO_SPEED = num;
+			}else if (strcmp(name, "SO_CAPACITY") == 0){
+				_data->SO_CAPACITY = num;
+			}else if (strcmp(name, "SO_MIN_VITA") == 0){
+				_data->SO_MIN_VITA = num;
+			}else if (strcmp(name, "SO_MAX_VITA") == 0){
+				_data->SO_MAX_VITA = num;
+			}else{
+				close_all("[Error] Couldn't parse constants.txt (found invalid var name)", EXIT_FAILURE);
+			}
+			dprintf(1, "Set %d to %s\n", num, name);
+			/* Reset */
+			num = 0;
+			c = 0;
+			name[0] = '\0';
+			equal_found = FALSE;
+			num_found = FALSE;
+		}
+		else if (char_read == '/'){
+			char_read = fgetc(file);
+			if(char_read != '/')
+				close_all("[Error] Couldn't parse constants.txt (found single /)", EXIT_FAILURE);
+
+			while((char_read = fgetc(file)) != EOF && (char_read = fgetc(file)) != '\n'){}
+		}
+		else if(char_read != ' ' && char_read != '\n' && char_read != '\r' && char_read != '\t')
+			close_all("[Error] Couldn't parse constants.txt (found invalid char)", EXIT_FAILURE);
+	}
+
+	while (0){
+		fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
 			/* Generic simulation specifications */
 			&_data->SO_LATO, &_data->SO_DAYS,
 			&_data->SO_NAVI, &_data->SO_PORTI, &_data->SO_MERCI,
@@ -218,7 +295,21 @@ void read_constants_from_file()
 			&_data->SO_SIZE, &_data->SO_SPEED, &_data->SO_CAPACITY,
 			/* Cargo specifications */
 			&_data->SO_MIN_VITA, &_data->SO_MAX_VITA);
+	}
 
+	dprintf(1, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+			/* Generic simulation specifications */
+			_data->SO_LATO, _data->SO_DAYS,
+			_data->SO_NAVI, _data->SO_PORTI, _data->SO_MERCI,
+			/* Weather events max duration */
+			_data->SO_STORM_DURATION, _data->SO_SWELL_DURATION, _data->SO_MAELSTORM,
+			/* Ports specifications */
+			_data->SO_FILL, _data->SO_BANCHINE, _data->SO_LOADSPEED,
+			/* Ships specifications */
+			_data->SO_SIZE, _data->SO_SPEED, _data->SO_CAPACITY,
+			/* Cargo specifications */
+			_data->SO_MIN_VITA, _data->SO_MAX_VITA);
+	close_all("TEST", 0);
 	fclose(file);
 }
 
@@ -280,16 +371,11 @@ void close_all(const char *message, int exit_status)
 	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
 
 	/* Detach and mark for removal IPC structures (needed in this order) */
-	shmctl(id_data, IPC_RMID, NULL);
-	shmctl(_data->id_const_port, IPC_RMID, NULL);
-	shmctl(_data->id_const_ship, IPC_RMID, NULL);
-	shmctl(_data->id_const_cargo, IPC_RMID, NULL);
-	shmctl(_data->id_supply_demand, IPC_RMID, NULL);
-	detach(_data);
-	detach(_data_port);
-	detach(_data_ship);
-	detach(_data_supply_demand);
-	detach(_data_cargo);
+	CLOSE_SHM(_data->id_port, _data_port);
+	CLOSE_SHM(_data->id_ship, _data_ship);
+	CLOSE_SHM(_data->id_cargo, _data_cargo);
+	CLOSE_SHM(_data->id_supply_demand, _data_supply_demand);
+	CLOSE_SHM(_id_data, _data); /* must be last */
 
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS)

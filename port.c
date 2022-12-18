@@ -1,6 +1,4 @@
 #define _GNU_SOURCE
-
-/* Libraries */
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
@@ -17,10 +15,10 @@
 int _this_id;
 list_cargo *cargo_hold;
 /* shared memory */
-struct const_general *_data;
-struct const_cargo *_data_cargo;
-struct const_port *_data_port;
-struct const_port *_this_port;
+struct general *_data;
+struct cargo *_data_cargo;
+struct port *_data_port;
+struct port *_this_port;
 int *_data_supply_demand;
 int *_this_supply_demand;
 
@@ -49,9 +47,9 @@ int main(int argc, char *argv[])
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
 	_data = attach_shared(id);
-	_data_port = attach_shared(_data->id_const_port);
+	_data_port = attach_shared(_data->id_port);
 	_data_supply_demand = attach_shared(_data->id_supply_demand);
-	_data_cargo = attach_shared(_data->id_const_cargo);
+	_data_cargo = attach_shared(_data->id_cargo);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
@@ -144,7 +142,7 @@ void supply_demand_update()
 
 	/* TODO avoid going over the limits */
 	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
-		rand_type = rand() % _data->SO_MERCI;
+		rand_type = get_random(0, _data->SO_MERCI);
 		if (_this_supply_demand[rand_type] > 0){
 			is_demand = FALSE;
 		} else if (_this_supply_demand[rand_type] < 0) {
@@ -155,7 +153,7 @@ void supply_demand_update()
 			is_demand = FALSE;
 		}else {
 			/* TODO fix this shit */
-			is_demand = rand() % 2;
+			is_demand = get_random(0, 2);
 		}
 
 		if (is_demand){

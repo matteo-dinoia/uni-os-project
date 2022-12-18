@@ -1,6 +1,4 @@
 #define _GNU_SOURCE
-
-/* Libraries */
 #include <stdlib.h>
 #include <time.h>
 #include <errno.h>
@@ -20,11 +18,11 @@ int _this_id;
 int _current_capacity;
 list_cargo *cargo_hold;
 /* shared memory */
-struct const_port *_this_ship;
-struct const_general *_data;
-struct const_port *_data_port;
-struct const_port *_data_ship;
-struct const_cargo *_data_cargo;
+struct port *_this_ship;
+struct general *_data;
+struct port *_data_port;
+struct port *_data_ship;
+struct cargo *_data_cargo;
 int *_data_supply_demand;
 
 /* Prototypes */
@@ -55,10 +53,10 @@ int main(int argc, char *argv[])
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
 	_data = attach_shared(id);
-	_data_port = attach_shared(_data->id_const_port);
-	_data_ship = attach_shared(_data->id_const_ship);
+	_data_port = attach_shared(_data->id_port);
+	_data_ship = attach_shared(_data->id_ship);
 	_data_supply_demand = attach_shared(_data->id_supply_demand);
-	_data_cargo = attach_shared(_data->id_const_cargo);
+	_data_cargo = attach_shared(_data->id_cargo);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
@@ -104,9 +102,9 @@ void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_por
 	int offset; /* TODO actually choose */
 
 	if (old_port < 0){ /* not in a port */
-		*dest = rand() % (_data->SO_PORTI);
+		*dest = get_random(0, _data->SO_PORTI);
 	}else { /* in port */
-		offset = rand() % (_data->SO_PORTI - 1) + 1;
+		offset = get_random(1, _data->SO_PORTI + 1);
 		*dest = (old_port + offset) % _data->SO_PORTI;
 	}
 
@@ -233,7 +231,7 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 	int i, cargo_id, n_cargo, n_cargo_port, n_cargo_capacity;
 
 	/* TODO should start from last time place */
-	cargo_id = rand() % SO_MERCI;
+	cargo_id = get_random(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
 		/* TODO: make it seriously */
 		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id];
