@@ -82,7 +82,7 @@ void add_cargo(list_cargo *list, int amount, int expiry_date)
 int count_cargo(list_cargo *list)
 {
 	struct node_cargo *current = list->first;
-	int res;
+	int res = 0;
 
 	while (current != NULL){
 		res +=  current->amount;

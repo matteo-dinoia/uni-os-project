@@ -140,7 +140,6 @@ void create_children()
 	const SO_MIN_VITA = _data->SO_MIN_VITA;
 	const SO_MAX_VITA = _data->SO_MAX_VITA;
 
-
 	int i, to_add, daily, n_docks;
 	struct const_port *current_port;
 	struct const_ship *current_ship;

@@ -6,17 +6,19 @@
 #include <string.h>
 #include <sys/sem.h>
 #include <errno.h>
+#include <sys/param.h>
+#include <time.h>
 #include "shared_mem.h"
 #include "message.h"
 #include "semaphore.h"
 #include "utils.h"
-#include <sys/param.h>
 
 /* Global variables */
 int _this_id;
 list_cargo *cargo_hold;
 /* shared memory */
 struct const_general *_data;
+struct const_cargo *_data_cargo;
 struct const_port *_data_port;
 struct const_port *_this_port;
 int *_data_supply_demand;
@@ -38,6 +40,8 @@ int main(int argc, char *argv[])
 	struct sembuf sem_oper;
 	int id;
 
+	dprintf(1, "[Port] Start initialization\n");
+
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
 	execute_single_sem_oper(id, 0, 0);
@@ -47,15 +51,14 @@ int main(int argc, char *argv[])
 	_data = attach_shared(id);
 	_data_port = attach_shared(_data->id_const_port);
 	_data_supply_demand = attach_shared(_data->id_supply_demand);
+	_data_cargo = attach_shared(_data->id_const_cargo);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
 	_this_port = &_data_port[_this_id];
 	_this_supply_demand = &_data_supply_demand[_this_id];
-
 	/* Local memory allocation */
 	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
-	bzero(cargo_hold, _data->SO_MERCI * sizeof(*cargo_hold));
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -73,14 +76,19 @@ int main(int argc, char *argv[])
 void loop()
 {
 	struct commerce_msgbuf msg_received;
+
+	srand(time(NULL) * getpid());
 	supply_demand_update();
+
+	dprintf(1, "[Port %d] Start\n", _this_id);
 	while (1){
-		msgrcv(_data->id_msg_in_ports, &msg_received, MSG_SIZE(msg_received), _this_id, 0);
+		receive_commerce_msg(_data->id_msg_in_ports, &msg_received, _this_id);
 		/* Check all errors */
 		if (errno == EXIT_SUCCESS){
 			dprintf(1, "[Child port %d] Received a message\n", getpid());
 			respond_msg(msg_received);
 		}
+		dprintf(1, "[Port %d] Errno = %d\n", _this_id, errno);
 	}
 }
 
@@ -103,7 +111,6 @@ void respond_msg(struct commerce_msgbuf msg_received)
 	} else if (needed_supply > 0 && _this_supply_demand[needed_type] > 0){
 		/* If port is selling respond with how much */
 		tot_exchange = MIN(needed_supply, this_supply);
-		response.status = STATUS_ACCEPTED;
 		_this_supply_demand[needed_type] -= tot_exchange;
 
 		while (tot_exchange >= 0){
@@ -113,11 +120,11 @@ void respond_msg(struct commerce_msgbuf msg_received)
 				add_cargo(&cargo_hold[needed_type], amount - tot_exchange, expiry_date);
 				amount = tot_exchange;
 			}
-
-			response.n_cargo_batch = amount;
-			response.expiry_date = expiry_date;
-			msgsnd(_data->id_msg_out_ports, &response, MSG_SIZE(response), 0);
+			set_commerce_msgbuf(&response, needed_type, amount, expiry_date, STATUS_PARTIAL);
 			tot_exchange -= amount;
+			if (tot_exchange <= 0)
+				response.status = STATUS_ACCEPTED;
+			send_commerce_msg(_data->id_msg_out_ports, &response);
 		}
 		return;
 	}
@@ -127,11 +134,46 @@ void respond_msg(struct commerce_msgbuf msg_received)
 		response.cargo_type = needed_type;
 		response.n_cargo_batch = needed_supply;
 	}
-	msgsnd(_data->id_msg_out_ports, &response, MSG_SIZE(response), 0);
+	send_commerce_msg(_data->id_msg_out_ports, &response);
 }
 
 void supply_demand_update()
 {
+	int rem_offer_tons = _this_port->daily_restock_capacity;
+	int rem_demand_tons = _this_port->daily_restock_capacity;
+	int rand_type;
+	bool_t is_demand;
+
+	/* TODO avoid going over the limits */
+	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
+		rand_type = rand() % _data->SO_MERCI;
+		if (_this_supply_demand[rand_type] > 0){
+			is_demand = FALSE;
+		} else if (_this_supply_demand[rand_type] < 0) {
+			is_demand = TRUE;
+		} else if (rem_offer_tons < rem_demand_tons){
+			is_demand = TRUE;
+		}else if (rem_offer_tons > rem_demand_tons){
+			is_demand = FALSE;
+		}else {
+			/* TODO fix this shit */
+			is_demand = rand() % 2;
+		}
+
+		dprintf(1, "[PP] is_demand %d rem_offer %d rem_demand %d type %d quant %d\n", is_demand, rem_offer_tons, rem_demand_tons, rand_type, _this_supply_demand[rand_type]);
+		if (is_demand){
+			if (rem_demand_tons > 0){
+				_this_supply_demand[rand_type] -= 1;
+				rem_demand_tons -= _data_cargo->weight_batch;
+			}
+		}
+		else{
+			if (rem_offer_tons > 0){
+				_this_supply_demand[rand_type] += 1;
+				rem_offer_tons -= _data_cargo->weight_batch;
+			}
+		}
+	}
 }
 
 void signal_handler(int signal)
@@ -156,6 +198,7 @@ void close_all()
 	/* Detach shared memory */
 	detach(_data);
 	detach(_data_port);
+	detach(_data_supply_demand);
 
 	dprintf(1, "[Child %d] Fucking dying\n", getpid());
 	exit(0);
