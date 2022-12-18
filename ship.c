@@ -47,6 +47,7 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	struct sembuf sem_oper;
 
+	dprintf(1, "[Ship] Start initialization\n");
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
 	execute_single_sem_oper(id, 0, 0);
@@ -65,7 +66,7 @@ int main(int argc, char *argv[])
 
 	/* Local memory allocation */
 	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
-	bzero(cargo_hold, _data->SO_MERCI * sizeof(*cargo_hold));
+	dprintf(1, "%d\n", cargo_hold->first);
 
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
@@ -88,11 +89,13 @@ void loop()
 	srand(time(NULL) * getpid()); /* temp */
 
 	old_port = -1;
-	dprintf("[Ship %d] Start", _this_id);
+	dprintf(1, "[Ship %d] Start\n", _this_id);
 	while (1){
 		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
 		move_to_port(dest_x, dest_y);
+		dprintf(1, "[Ship %d] arrived at %d\n", _this_id, dest_port);
 		exchange_goods(dest_port);
+		dprintf(1, "[Ship %d] old = %d new = %d\n", _this_id, old_port, dest_port);
 		old_port = dest_port;
 	}
 }
@@ -101,13 +104,14 @@ void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_por
 {
 	int offset; /* TODO actually choose */
 
-	if(old_port == -1) /* not in a port */
-		offset = rand() % (_data->SO_PORTI);
-	else /* in port */
+	if (old_port < 0){ /* not in a port */
+		*dest = rand() % (_data->SO_PORTI);
+	}else { /* in port */
 		offset = rand() % (_data->SO_PORTI - 1) + 1;
+		*dest = (old_port + offset) % _data->SO_PORTI;
+	}
 
 	/* get position */
-	*dest = (old_port + offset) % _data->SO_PORTI;
 	*dest_x = _data_port[*dest].x;
 	*dest_y = _data_port[*dest].y;
 }
@@ -164,9 +168,10 @@ int sell(int port_id)
 
 	tons_moved = 0;
 	msg = create_commerce_msgbuf(_this_id, port_id);
-	for (i; i<_data->SO_MERCI; i++){
-		/* Min i have cargo and ports need it */
+	for (i = 0; i<_data->SO_MERCI; i++){
+		/* Min i have cargo and ports need it */;
 		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
+
 		n_batch_ship = count_cargo(&cargo_hold[i]);
 		n_batch = MIN(n_batch_ship, n_requested_port);
 		/* If nothing to be sell then skip this type*/

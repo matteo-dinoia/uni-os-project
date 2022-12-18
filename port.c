@@ -40,6 +40,8 @@ int main(int argc, char *argv[])
 	struct sembuf sem_oper;
 	int id;
 
+	dprintf(1, "[Port] Start initialization\n");
+
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
 	execute_single_sem_oper(id, 0, 0);
@@ -55,10 +57,8 @@ int main(int argc, char *argv[])
 	_this_id = atoi(argv[1]);
 	_this_port = &_data_port[_this_id];
 	_this_supply_demand = &_data_supply_demand[_this_id];
-
 	/* Local memory allocation */
 	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
-	bzero(cargo_hold, _data->SO_MERCI * sizeof(*cargo_hold));
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -80,7 +80,7 @@ void loop()
 	srand(time(NULL) * getpid());
 	supply_demand_update();
 
-	dprintf("[Ship %d] Start", _this_id);
+	dprintf(1, "[Port %d] Start\n", _this_id);
 	while (1){
 		receive_commerce_msg(_data->id_msg_in_ports, &msg_received, _this_id);
 		/* Check all errors */
@@ -88,6 +88,7 @@ void loop()
 			dprintf(1, "[Child port %d] Received a message\n", getpid());
 			respond_msg(msg_received);
 		}
+		dprintf(1, "[Port %d] Errno = %d\n", _this_id, errno);
 	}
 }
 
@@ -144,13 +145,13 @@ void supply_demand_update()
 	bool_t is_demand;
 
 	/* TODO avoid going over the limits */
-	while (rem_offer_tons >= 0 || rem_demand_tons >= 0) {
+	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
 		rand_type = rand() % _data->SO_MERCI;
 		if (_this_supply_demand[rand_type] > 0){
 			is_demand = FALSE;
 		} else if (_this_supply_demand[rand_type] < 0) {
 			is_demand = TRUE;
-		} else if (rem_offer_tons > rem_demand_tons){
+		} else if (rem_offer_tons < rem_demand_tons){
 			is_demand = TRUE;
 		}else if (rem_offer_tons > rem_demand_tons){
 			is_demand = FALSE;
@@ -159,6 +160,7 @@ void supply_demand_update()
 			is_demand = rand() % 2;
 		}
 
+		dprintf(1, "[PP] is_demand %d rem_offer %d rem_demand %d type %d quant %d\n", is_demand, rem_offer_tons, rem_demand_tons, rand_type, _this_supply_demand[rand_type]);
 		if (is_demand){
 			if (rem_demand_tons > 0){
 				_this_supply_demand[rand_type] -= 1;
@@ -167,7 +169,7 @@ void supply_demand_update()
 		}
 		else{
 			if (rem_offer_tons > 0){
-				_this_supply_demand[rand_type] -= 1;
+				_this_supply_demand[rand_type] += 1;
 				rem_offer_tons -= _data_cargo->weight_batch;
 			}
 		}
