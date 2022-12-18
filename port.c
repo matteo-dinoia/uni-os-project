@@ -38,8 +38,6 @@ int main(int argc, char *argv[])
 	struct sembuf sem_oper;
 	int id;
 
-	dprintf(1, "[Port] Start initialization\n");
-
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
 	execute_single_sem_oper(id, 0, 0);
@@ -68,22 +66,21 @@ int main(int argc, char *argv[])
 	sigaction(SIGTERM, &sa, NULL);
 
 	/* LAST: Start running*/
+	srand(time(NULL) * getpid());
 	loop();
 }
 
 void loop()
 {
-	struct commerce_msgbuf msg_received;
+	struct commerce_msgbuf msg;
 
-	srand(time(NULL) * getpid());
 	supply_demand_update();
+	dprintf(1, "[Port %d] Finished shop update\n", _this_id);
 
-	dprintf(1, "[Port %d] Start\n", _this_id);
 	while (1){
-		receive_commerce_msg(_data->id_msg_in_ports, &msg_received, _this_id);
-		/* Check all errors */
+		receive_commerce_msg(_data->id_msg_in_ports, &msg, _this_id);
 		if (errno == EXIT_SUCCESS)
-			respond_msg(msg_received);
+			respond_msg(msg);
 	}
 }
 

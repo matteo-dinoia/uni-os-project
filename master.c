@@ -193,7 +193,7 @@ void read_constants_from_file()
 {
 	FILE *file;
 	char name[100];
-	int char_read, num, c;
+	int char_read, num, c, i;
 	bool_t equal_found, num_found;
 	file = fopen("constants.txt", "r");
 
@@ -221,7 +221,7 @@ void read_constants_from_file()
 
 			num = num * 10 + (char_read - '0');
 			num_found = TRUE;
-			if(num < 0)
+			if (num < 0)
 				close_all("[Error] Couldn't parse constants.txt (found number so big that exceed int)", EXIT_FAILURE);
 		}
 		else if (char_read == ';'){
@@ -270,46 +270,23 @@ void read_constants_from_file()
 			name[0] = '\0';
 			equal_found = FALSE;
 			num_found = FALSE;
-		}
-		else if (char_read == '/'){
+		}else if (char_read == '/'){
 			char_read = fgetc(file);
-			if(char_read != '/')
+			if (char_read != '/')
 				close_all("[Error] Couldn't parse constants.txt (found single /)", EXIT_FAILURE);
 
-			while((char_read = fgetc(file)) != EOF && (char_read = fgetc(file)) != '\n'){}
-		}
-		else if(char_read != ' ' && char_read != '\n' && char_read != '\r' && char_read != '\t')
+			while ((char_read = fgetc(file)) != EOF && (char_read = fgetc(file)) != '\n'){}
+		}else if (char_read != ' ' && char_read != '\n' && char_read != '\r' && char_read != '\t'){
 			close_all("[Error] Couldn't parse constants.txt (found invalid char)", EXIT_FAILURE);
+		}
+
 	}
 
-	while (0){
-		fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
-			/* Generic simulation specifications */
-			&_data->SO_LATO, &_data->SO_DAYS,
-			&_data->SO_NAVI, &_data->SO_PORTI, &_data->SO_MERCI,
-			/* Weather events max duration */
-			&_data->SO_STORM_DURATION, &_data->SO_SWELL_DURATION, &_data->SO_MAELSTORM,
-			/* Ports specifications */
-			&_data->SO_FILL, &_data->SO_BANCHINE, &_data->SO_LOADSPEED,
-			/* Ships specifications */
-			&_data->SO_SIZE, &_data->SO_SPEED, &_data->SO_CAPACITY,
-			/* Cargo specifications */
-			&_data->SO_MIN_VITA, &_data->SO_MAX_VITA);
-	}
 
-	dprintf(1, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
-			/* Generic simulation specifications */
-			_data->SO_LATO, _data->SO_DAYS,
-			_data->SO_NAVI, _data->SO_PORTI, _data->SO_MERCI,
-			/* Weather events max duration */
-			_data->SO_STORM_DURATION, _data->SO_SWELL_DURATION, _data->SO_MAELSTORM,
-			/* Ports specifications */
-			_data->SO_FILL, _data->SO_BANCHINE, _data->SO_LOADSPEED,
-			/* Ships specifications */
-			_data->SO_SIZE, _data->SO_SPEED, _data->SO_CAPACITY,
-			/* Cargo specifications */
-			_data->SO_MIN_VITA, _data->SO_MAX_VITA);
-	close_all("TEST", 0);
+	for (i = 0; i < 16; i++)
+		dprintf(1, "%d ", ((int *)_data)[i]);
+	dprintf(1, "\n");
+
 	fclose(file);
 }
 
@@ -319,7 +296,7 @@ pid_t create_proc(char *name, int index)
 	char *arg[3], *env[]={NULL}, buf[10];
 
 	if ((proc_pid = fork()) == -1){
-		close_all("[FATAL] Couldn't fork", EXIT_FAILURE);
+		close_all("[FATAL] Failed to fork child", EXIT_FAILURE);
 	} else if (proc_pid == 0){
 		sprintf(buf, "%d", index);
 		arg[0] = name;
@@ -348,29 +325,33 @@ void custom_handler(int signal)
 
 void close_all(const char *message, int exit_status)
 {
-	int i;
+	int i, pid;
 
 	/* Killing and wait child */
-	for (i = 0; i<_data->SO_PORTI; i++){
-		if(_data_port[i].pid > 0)
-			kill(_data_port[i].pid, SIGTERM);
+	if (_data_port != NULL){
+		for (i = 0; i<_data->SO_PORTI; i++){
+			pid = _data_port[i].pid;
+			if(pid > 0 && pid != getpid())
+				kill(pid, SIGTERM);
+		}
 	}
-	for (i = 0; i < _data->SO_NAVI; i++){
-		if(_data_ship[i].pid > 0)
-			kill(_data_ship[i].pid, SIGTERM);
+	if (_data_ship != NULL){
+		for (i = 0; i < _data->SO_NAVI; i++){
+			pid = _data_ship[i].pid;
+			if(pid > 0 && pid != getpid())
+				kill(pid, SIGTERM);
+		}
 	}
 
 	while(wait(NULL) != -1 || errno == EINTR);
 
-	/* Removing semaphors */
+	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
 	semctl(_data->id_sem_docks, 0, IPC_RMID);
-
-	/* Closing message queue (need to be done before detaching shm) */
+	/* Closing message queues */
 	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
-
-	/* Detach and mark for removal IPC structures (needed in this order) */
+	/* Closing shared memories */
 	CLOSE_SHM(_data->id_port, _data_port);
 	CLOSE_SHM(_data->id_ship, _data_ship);
 	CLOSE_SHM(_data->id_cargo, _data_cargo);
@@ -378,9 +359,7 @@ void close_all(const char *message, int exit_status)
 	CLOSE_SHM(_id_data, _data); /* must be last */
 
 	/* Messanges and exit */
-	if (exit_status == EXIT_SUCCESS)
-		dprintf(1, "\n%s\n", message);
-	else
-		dprintf(2, "\n%s\n", message);
+	if (exit_status == EXIT_SUCCESS) dprintf(1, "\n%s\n", message);
+	else dprintf(2, "\n%s\n", message);
 	exit(exit_status);
 }

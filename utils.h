@@ -1,6 +1,8 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+/* MACRO */
+#define TEST() dprintf(1, "TEST ALIVE: is still alive at %d in %s", __LINE__, __FILE__)
 /* Fake boolean */
 #define TRUE 1
 #define FALSE 0

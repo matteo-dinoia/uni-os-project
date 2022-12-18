@@ -45,7 +45,6 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	struct sembuf sem_oper;
 
-	dprintf(1, "[Ship] Start initialization\n");
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
 	execute_single_sem_oper(id, 0, 0);
@@ -76,6 +75,7 @@ int main(int argc, char *argv[])
 	sigaction(SIGTERM, &sa, NULL);
 
 	/* LAST: Start running*/
+	srand(time(NULL) * getpid()); /* TODO temp */
 	loop();
 }
 
@@ -84,10 +84,7 @@ void loop()
 	int dest_port, old_port;
 	double dest_x, dest_y;
 
-	srand(time(NULL) * getpid()); /* temp */
-
 	old_port = -1;
-	dprintf(1, "[Ship %d] Start\n", _this_id);
 	while (1){
 		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
 		move_to_port(dest_x, dest_y);
