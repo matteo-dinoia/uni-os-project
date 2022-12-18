@@ -191,102 +191,33 @@ double get_random_coord()
 
 void read_constants_from_file()
 {
+	const NUM_VALUE = 16;
+	int num_read, value, counter;
+	char c;
 	FILE *file;
-	char name[100];
-	int char_read, num, c, i;
-	bool_t equal_found, num_found;
+
 	file = fopen("constants.txt", "r");
-
-	/*Reading*/
-	num = 0;
-	c = 0;
-	name[0] = '\0';
-	equal_found = FALSE;
-	num_found = FALSE;
-	while ((char_read = fgetc(file)) != EOF){
-		if ((char_read >= 'A' && char_read <= 'Z') || char_read == '_'){
-			if (equal_found)
-				close_all("[Error] Couldn't parse constants.txt (found = followed by char)", EXIT_FAILURE);
-			else if (c >= 99)
-				close_all("[Error] Couldn't parse constants.txt (found name too big)", EXIT_FAILURE);
-			name[c] = (char) char_read;
-			name[++c] = '\0';
-		}
-		else if (char_read == '='){
-			equal_found = TRUE;
-		}
-		else if (char_read >= '0' && char_read <= '9'){
-			if (!equal_found)
-				close_all("[Error] Couldn't parse constants.txt (not found = before number)", EXIT_FAILURE);
-
-			num = num * 10 + (char_read - '0');
-			num_found = TRUE;
-			if (num < 0)
-				close_all("[Error] Couldn't parse constants.txt (found number so big that exceed int)", EXIT_FAILURE);
-		}
-		else if (char_read == ';'){
-			if(!num_found)
-				close_all("[Error] Couldn't parse constants.txt (not found number before ;)", EXIT_FAILURE);
-			/* Check */
-			if (strcmp(name, "SO_LATO") == 0){
-				_data->SO_LATO = num;
-			}else if (strcmp(name, "SO_DAYS") == 0){
-				_data->SO_DAYS = num;
-			}else if (strcmp(name, "SO_NAVI") == 0){
-				_data->SO_NAVI = num;
-			}else if (strcmp(name, "SO_PORTI") == 0){
-				_data->SO_PORTI = num;
-			}else if (strcmp(name, "SO_MERCI") == 0){
-				_data->SO_MERCI = num;
-			}else if (strcmp(name, "SO_STORM_DURATION") == 0){
-				_data->SO_STORM_DURATION = num;
-			}else if (strcmp(name, "SO_SWELL_DURATION") == 0){
-				_data->SO_SWELL_DURATION = num;
-			}else if (strcmp(name, "SO_MAELSTORM") == 0){
-				_data->SO_MAELSTORM = num;
-			}else if (strcmp(name, "SO_FILL") == 0){
-				_data->SO_FILL = num;
-			}else if (strcmp(name, "SO_BANCHINE") == 0){
-				_data->SO_BANCHINE = num;
-			}else if (strcmp(name, "SO_LOADSPEED") == 0){
-				_data->SO_LOADSPEED = num;
-			}else if (strcmp(name, "SO_SIZE") == 0){
-				_data->SO_SIZE = num;
-			}else if (strcmp(name, "SO_SPEED") == 0){
-				_data->SO_SPEED = num;
-			}else if (strcmp(name, "SO_CAPACITY") == 0){
-				_data->SO_CAPACITY = num;
-			}else if (strcmp(name, "SO_MIN_VITA") == 0){
-				_data->SO_MIN_VITA = num;
-			}else if (strcmp(name, "SO_MAX_VITA") == 0){
-				_data->SO_MAX_VITA = num;
-			}else{
-				close_all("[Error] Couldn't parse constants.txt (found invalid var name)", EXIT_FAILURE);
-			}
-			dprintf(1, "Set %d to %s\n", num, name);
-			/* Reset */
-			num = 0;
-			c = 0;
-			name[0] = '\0';
-			equal_found = FALSE;
-			num_found = FALSE;
-		}else if (char_read == '/'){
-			char_read = fgetc(file);
-			if (char_read != '/')
-				close_all("[Error] Couldn't parse constants.txt (found single /)", EXIT_FAILURE);
-
-			while ((char_read = fgetc(file)) != EOF && (char_read = fgetc(file)) != '\n'){}
-		}else if (char_read != ' ' && char_read != '\n' && char_read != '\r' && char_read != '\t'){
-			close_all("[Error] Couldn't parse constants.txt (found invalid char)", EXIT_FAILURE);
+	dprintf(1, "[CONST VALUE]");
+	while ((num_read = fscanf(file, "%d", &value)) != EOF){
+		if (num_read != 0){
+			if(counter >= NUM_VALUE)
+				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
+			((int*)_data)[counter++] = value;
+			dprintf(1, " %d", value);
 		}
 
+		fscanf(file, "%*[ \t]");
+		if ((c = fgetc(file)) == '#'){
+			fscanf(file, "%*[^\n]");
+		}else if(!(c >= '0' && c <= '9')){
+			close_all("[FATAL] Found invalid char (reading file constant.txt)", EXIT_FAILURE);
+		}
 	}
-
-
-	for (i = 0; i < 16; i++)
-		dprintf(1, "%d ", ((int *)_data)[i]);
 	dprintf(1, "\n");
+	if(counter < NUM_VALUE)
+		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
 
+	close_all("W", 0);
 	fclose(file);
 }
 
