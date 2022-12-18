@@ -67,7 +67,6 @@ int main(int argc, char *argv[])
 
 	/* Local memory allocation */
 	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
-	dprintf(1, "%d\n", cargo_hold->first);
 
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
