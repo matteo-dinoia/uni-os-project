@@ -217,7 +217,6 @@ void read_constants_from_file()
 	if(counter < NUM_VALUE)
 		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
 
-	close_all("W", 0);
 	fclose(file);
 }
 
