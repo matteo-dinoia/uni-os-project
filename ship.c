@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
 	/* This*/
 	_this_id = atoi(argv[1]);
 	_this_ship = &_data_ship[_this_id];
+	_current_capacity = _data->SO_CAPACITY;
 
 	/* Local memory allocation */
 	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
