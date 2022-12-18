@@ -8,11 +8,12 @@
 #include <math.h>
 #include <string.h>
 #include <sys/sem.h>
+#include <sys/param.h>
 #include "shared_mem.h"
 #include "message.h"
 #include "semaphore.h"
 #include "utils.h"
-#include <sys/param.h>
+
 
 /* Global Variables */
 int _this_id;
@@ -27,7 +28,7 @@ struct const_cargo *_data_cargo;
 int *_data_supply_demand;
 
 /* Prototypes */
-void find_destiation_port(int *, double *, double *);
+void find_destiation_port(int *, double *, double *, int);
 void move_to_port(double, double);
 void exchange_goods(int);
 void signal_handler(int);
@@ -81,25 +82,32 @@ int main(int argc, char *argv[])
 
 void loop()
 {
-	int dest_port;
+	int dest_port, old_port;
 	double dest_x, dest_y;
 
 	srand(time(NULL) * getpid()); /* temp */
 
-	dprintf(1, "[Child ship %d] Start looping\n", getpid());
+	old_port = -1;
+	dprintf("[Ship %d] Start", _this_id);
 	while (1){
-		find_destiation_port(&dest_port, &dest_x, &dest_y);
+		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
 		move_to_port(dest_x, dest_y);
 		exchange_goods(dest_port);
+		old_port = dest_port;
 	}
 }
 
-void find_destiation_port(int *dest, double *dest_x, double *dest_y)
+void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_port)
 {
-	/* TODO actually choose */
-	*dest = rand() % _data->SO_PORTI;
+	int offset; /* TODO actually choose */
+
+	if(old_port == -1) /* not in a port */
+		offset = rand() % (_data->SO_PORTI);
+	else /* in port */
+		offset = rand() % (_data->SO_PORTI - 1) + 1;
 
 	/* get position */
+	*dest = (old_port + offset) % _data->SO_PORTI;
 	*dest_x = _data_port[*dest].x;
 	*dest_y = _data_port[*dest].y;
 }
@@ -166,11 +174,11 @@ int sell(int port_id)
 
 		/* Send message */
 		set_commerce_msgbuf(&msg, i, -n_batch, -1, STATUS_REQUEST); /* Not needed expiry date because it is instantly burnt */
-		msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
+		send_commerce_msg(_data->id_msg_in_ports, &msg);
 
 		/* Wait response */
 		do {
-			msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
+			receive_commerce_msg(_data->id_msg_out_ports, &msg, _this_id);
 		}while(errno == EINTR);
 
 		/* Change data */
@@ -189,29 +197,28 @@ int sell(int port_id)
 
 int buy(int port_id)
 {
-	int n_batch, wight, tons_moved;
-	struct msgbuf msg;
+	int n_batch, weight, tons_moved, type;
+	struct commerce_msgbuf msg;
 
 	tons_moved = 0;
 	msg = create_commerce_msgbuf(_this_id, port_id);
 	while (pick_buy(port_id, &type, &n_batch) != -1){
 
 		set_commerce_msgbuf(&msg, type, n_batch, -1, STATUS_REQUEST);
-		msgsnd(_data->id_msg_in_ports, &msg, MSG_SIZE(msg), 0);
+		send_commerce_msg(_data->id_msg_in_ports, &msg);
 
 		/* Wait response */
 		do {
-			msgrcv(_data->id_msg_out_ports, &msg, MSG_SIZE(msg), _this_id, 0);
-		}while(errno == EINTR);
-
-		/* Change data */
-		if (msg.status == STATUS_ACCEPTED){
-			n_batch = abs(msg.n_cargo_batch);
-			remove_cargo(&cargo_hold[i], n_batch);
-			weight = n_batch * _data_cargo[i].weight_batch;
-			tons_moved += weight;
-			_current_capacity += weight;
-		}
+			receive_commerce_msg(_data->id_msg_out_ports, &msg, _this_id);
+			/* Change data */
+			if (errno == EXIT_SUCCESS && msg.status >= STATUS_PARTIAL){
+				n_batch = abs(msg.n_cargo_batch);
+				add_cargo(&cargo_hold[type], n_batch, msg.expiry_date);
+				weight = n_batch * _data_cargo[type].weight_batch;
+				tons_moved += weight;
+				_current_capacity -= weight;
+			}
+		}while(errno == EINTR || msg.status == STATUS_PARTIAL);
 	}
 
 	return tons_moved;
@@ -231,8 +238,8 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 		n_cargo = MIN(n_cargo_port, n_cargo_capacity);
 
 		if (n_cargo > 0){
-			pick_type = cargo_id;
-			pick_amount = n_cargo;
+			*pick_type = cargo_id;
+			*pick_amount = n_cargo;
 			return 0;
 		}
 
@@ -263,6 +270,7 @@ void close_all()
 	detach(_data);
 	detach(_data_port);
 	detach(_data_ship);
+	detach(_data_supply_demand);
 
 	exit(0);
 }
