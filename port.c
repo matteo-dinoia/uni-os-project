@@ -84,11 +84,8 @@ void loop()
 	while (1){
 		receive_commerce_msg(_data->id_msg_in_ports, &msg_received, _this_id);
 		/* Check all errors */
-		if (errno == EXIT_SUCCESS){
-			dprintf(1, "[Child port %d] Received a message\n", getpid());
+		if (errno == EXIT_SUCCESS)
 			respond_msg(msg_received);
-		}
-		dprintf(1, "[Port %d] Errno = %d\n", _this_id, errno);
 	}
 }
 
@@ -113,6 +110,7 @@ void respond_msg(struct commerce_msgbuf msg_received)
 		tot_exchange = MIN(needed_supply, this_supply);
 		_this_supply_demand[needed_type] -= tot_exchange;
 
+		dprintf(1, "TEST tot %d", tot_exchange);
 		while (tot_exchange >= 0){
 			/* Spamming messages */
 			pop_cargo(&cargo_hold[needed_type], &amount, &expiry_date);
@@ -160,17 +158,18 @@ void supply_demand_update()
 			is_demand = rand() % 2;
 		}
 
-		dprintf(1, "[PP] is_demand %d rem_offer %d rem_demand %d type %d quant %d\n", is_demand, rem_offer_tons, rem_demand_tons, rand_type, _this_supply_demand[rand_type]);
 		if (is_demand){
 			if (rem_demand_tons > 0){
 				_this_supply_demand[rand_type] -= 1;
 				rem_demand_tons -= _data_cargo->weight_batch;
+				dprintf(1, "[PP DEMAND on %d] type %d new_quant %d rem %d\n", _this_id, rand_type, _this_supply_demand[rand_type], rem_demand_tons);
 			}
 		}
 		else{
 			if (rem_offer_tons > 0){
 				_this_supply_demand[rand_type] += 1;
 				rem_offer_tons -= _data_cargo->weight_batch;
+				dprintf(1, "[PP OFFER on %d] type %d new_quant %d rem %d\n", _this_id, rand_type, _this_supply_demand[rand_type], rem_offer_tons);
 			}
 		}
 	}

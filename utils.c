@@ -95,7 +95,7 @@ int count_cargo(list_cargo *list)
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 {
 	struct node_cargo *tmp;
-	if(list == NULL || list->first){
+	if(list == NULL || list->first == NULL){
 		dprintf(1, "Should have controlled NULL in pop cargo.\n");
 		return;
 	}

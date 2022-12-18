@@ -23,6 +23,9 @@ all: $(TARGET)
 crun: tool-clear recompile
 	echo -e "\nPress any key to launch"; read  -n 1
 	./$(TARGET); rm -f *.o $(TARGET) $(PROCESSES) *~
+crunf: tool-clear recompile
+	echo -e "\nPress any key to launch"; read  -n 1
+	./$(TARGET) > logs.txt; rm -f *.o $(TARGET) $(PROCESSES) *~
 run: all
 	./$(TARGET)
 clear:

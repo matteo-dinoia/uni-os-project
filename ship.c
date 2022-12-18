@@ -93,9 +93,8 @@ void loop()
 	while (1){
 		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
 		move_to_port(dest_x, dest_y);
-		dprintf(1, "[Ship %d] arrived at %d\n", _this_id, dest_port);
+		dprintf(1, "[Ship %d] arrived at %d from %d\n\n", _this_id, dest_port, old_port);
 		exchange_goods(dest_port);
-		dprintf(1, "[Ship %d] old = %d new = %d\n", _this_id, old_port, dest_port);
 		old_port = dest_port;
 	}
 }
@@ -208,7 +207,6 @@ int buy(int port_id)
 	tons_moved = 0;
 	msg = create_commerce_msgbuf(_this_id, port_id);
 	while (pick_buy(port_id, &type, &n_batch) != -1){
-
 		set_commerce_msgbuf(&msg, type, n_batch, -1, STATUS_REQUEST);
 		send_commerce_msg(_data->id_msg_in_ports, &msg);
 
