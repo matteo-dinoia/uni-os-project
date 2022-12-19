@@ -194,9 +194,10 @@ void read_constants_from_file()
 	const NUM_VALUE = 16;
 	int num_read, value, counter;
 	char c;
-	FILE *file;
 
-	file = fopen("constants.txt", "r");
+	/* Take file from out of bin directory */
+	FILE *file = fopen("../constants.txt", "r");
+
 	dprintf(1, "[CONST VALUE]");
 	while ((num_read = fscanf(file, "%d", &value)) != EOF){
 		if (num_read != 0){
