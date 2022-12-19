@@ -7,9 +7,9 @@
 #include <errno.h>
 #include <signal.h>
 #include <limits.h>
-#include "shared_mem.h"
-#include "semaphore.h"
-#include "utils.h"
+#include "header/shared_mem.h"
+#include "header/semaphore.h"
+#include "header/utils.h"
 
 /* Macros */
 #define CLOSE_SHM(id, pointer) \

@@ -3,16 +3,16 @@ CFLAGS=-g -O0 -std=c89 -pedantic
 CCOMPILE=$(CC) $(CFLAGS)
 #
 REQUIRED=shared_mem.o message.o semaphore.o utils.o
-PROCESSES=ship port meteo
 TARGET=master
+PROCESSES=ship port meteo $(TARGET)
 
-all: $(PROCESSES) $(TARGET)
+all: $(PROCESSES)
 
 #COMPILING SPECIFIC FILES
 %.o: %.c
 	$(CCOMPILE) -c $< -o $@
-%: %.c $(REQUIRED)
-	$(CCOMPILE) $(REQUIRED) $< -o $@ -lm
+$(PROCESSES): $(PROCESSES:.c) $(REQUIRED)
+	$(CCOMPILE) $(REQUIRED) $@.c -o $@ -lm
 
 #GENERAL USE
 recompile: clear all

@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <sys/msg.h>
 #include <errno.h>
-#include "message.h"
-#include "shared_mem.h"
+#include "header/message.h"
+#include "header/shared_mem.h"
 
 struct commerce_msgbuf create_commerce_msgbuf(long sender, long receiver)
 {

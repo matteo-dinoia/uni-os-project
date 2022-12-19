@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 #include <sys/sem.h>
-#include "semaphore.h"
+#include "header/semaphore.h"
 
 struct sembuf create_sembuf(int index, int value)
 {
