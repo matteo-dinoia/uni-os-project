@@ -45,7 +45,7 @@ int main()
 	sigset_t set_masked;
 
 	/* Initializing */
-	srand(time(NULL));
+	srand(time(NULL) * getpid());
 	initialize_shared();
 
 	/* Create and start children*/

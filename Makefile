@@ -1,35 +1,32 @@
-CC = gcc
-CFLAGS = -g -O0 -std=c89 -pedantic
+CC=gcc
+CFLAGS=-g -O0 -std=c89 -pedantic
+CCOMPILE=$(CC) $(CFLAGS)
 #
-REQUIRED =  shared_mem.o message.o semaphore.o utils.o
-PROCESSES = ship port
-TARGET = master
+REQUIRED=shared_mem.o message.o semaphore.o utils.o
+PROCESSES=ship port meteo
+TARGET=master
 
-default: crun
+all: $(PROCESSES) $(TARGET)
 
 #COMPILING SPECIFIC FILES
-ship: $(REQUIRED) ship.c
-	$(CC) $(CFLAGS) $(REQUIRED) ship.c -o ship -lm
-
-port: $(REQUIRED) port.c
-	$(CC) $(CFLAGS) $(REQUIRED) port.c -o port
-
-$(TARGET): $(PROCESSES) $(REQUIRED) $(TARGET).c
-	$(CC) $(CFLAGS) $(REQUIRED) $(TARGET).c -o $(TARGET)
+%.o: %.c
+	$(CCOMPILE) -c $< -o $@
+%: %.c $(REQUIRED)
+	$(CCOMPILE) $(REQUIRED) $< -o $@ -lm
 
 #GENERAL USE
 recompile: clear all
-all: $(TARGET)
-crun: tool-clear recompile
-	echo -e "\nPress any key to launch"; read  -n 1
-	./$(TARGET); rm -f *.o $(TARGET) $(PROCESSES) *~
-crunf: tool-clear recompile
-	echo -e "\nPress any key to launch"; read  -n 1
-	./$(TARGET) > logs.txt; rm -f *.o $(TARGET) $(PROCESSES) *~
 run: all
 	./$(TARGET)
 clear:
-	rm -f *.o $(TARGET) $(PROCESSES) *~
+	$(RM) *.o $(TARGET) $(PROCESSES) *~
+
+crun: tool-clear recompile
+	echo -e "\nPress any key to launch"; read -n 1
+	./$(TARGET); rm -f *.o $(TARGET) $(PROCESSES) *~
+crunf: tool-clear recompile
+	echo -e "\nPress any key to launch"; read -n 1
+	./$(TARGET) > output.log; rm -f *.o $(TARGET) $(PROCESSES) *~
 
 #TOOLS
 tool-alive:
