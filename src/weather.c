@@ -38,11 +38,11 @@ int main()
 	/* LAST: Set signal handler */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
-	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGALRM, &sa, NULL);
 	sigaction(SIGDAY, &sa, NULL);
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
-	sigaction(SIGALRM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
 
 	/* LAST: Start running */
 	srand(time(NULL) * getpid());
