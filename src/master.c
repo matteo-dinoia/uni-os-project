@@ -129,8 +129,8 @@ void loop()
 	}
 }
 
-void print_dump_data(){
-
+void print_dump_data()
+{
 }
 
 void create_children()
@@ -296,7 +296,6 @@ void close_all(const char *message, int exit_status)
 	}
 
 	while(wait(NULL) != -1 || errno == EINTR);
-
 
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
