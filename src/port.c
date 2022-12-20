@@ -6,10 +6,10 @@
 #include <errno.h>
 #include <sys/param.h>
 #include <time.h>
-#include "shared_mem.h"
-#include "message.h"
-#include "semaphore.h"
-#include "utils.h"
+#include "header/shared_mem.h"
+#include "header/message.h"
+#include "header/semaphore.h"
+#include "header/utils.h"
 
 /* Global variables */
 int _this_id;

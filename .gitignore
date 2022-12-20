@@ -1,24 +1,5 @@
-# Ignore all
-*
-# Unignore all with extensions
-!*.*
-# Unignore all dirs
-!*/
-### Above combination will ignore all files without extension ###
-
-#Unignore Makefile
-!Makefile
-
-# Object files
-*.o
-
-# Libraries
-*.lib
-*.a
-*.so
-
-# Executables
-*.out
+# Compiled
+bin
 
 # VS Code file
 .vscode
