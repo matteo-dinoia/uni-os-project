@@ -50,7 +50,6 @@ struct ship{
 
 	/* Dump */
 	bool_t dump_is_empty;
-	bool_t dump_is_at_port;
 	bool_t dump_is_at_dock;
 };
 
