@@ -1,6 +1,4 @@
 #define _GNU_SOURCE
-
-/* Libraries */
 #include <stdlib.h>
 #include <time.h>
 #include <errno.h>
@@ -20,11 +18,11 @@ int _this_id;
 int _current_capacity;
 list_cargo *cargo_hold;
 /* shared memory */
-struct const_port *_this_ship;
-struct const_general *_data;
-struct const_port *_data_port;
-struct const_port *_data_ship;
-struct const_cargo *_data_cargo;
+struct port *_this_ship;
+struct general *_data;
+struct port *_data_port;
+struct port *_data_ship;
+struct cargo *_data_cargo;
 int *_data_supply_demand;
 
 /* Prototypes */
@@ -47,7 +45,6 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	struct sembuf sem_oper;
 
-	dprintf(1, "[Ship] Start initialization\n");
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
 	execute_single_sem_oper(id, 0, 0);
@@ -55,10 +52,10 @@ int main(int argc, char *argv[])
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
 	_data = attach_shared(id);
-	_data_port = attach_shared(_data->id_const_port);
-	_data_ship = attach_shared(_data->id_const_ship);
+	_data_port = attach_shared(_data->id_port);
+	_data_ship = attach_shared(_data->id_ship);
 	_data_supply_demand = attach_shared(_data->id_supply_demand);
-	_data_cargo = attach_shared(_data->id_const_cargo);
+	_data_cargo = attach_shared(_data->id_cargo);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
@@ -78,6 +75,7 @@ int main(int argc, char *argv[])
 	sigaction(SIGTERM, &sa, NULL);
 
 	/* LAST: Start running*/
+	srand(time(NULL) * getpid()); /* TODO temp */
 	loop();
 }
 
@@ -86,16 +84,12 @@ void loop()
 	int dest_port, old_port;
 	double dest_x, dest_y;
 
-	srand(time(NULL) * getpid()); /* temp */
-
 	old_port = -1;
-	dprintf(1, "[Ship %d] Start\n", _this_id);
 	while (1){
 		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
 		move_to_port(dest_x, dest_y);
-		dprintf(1, "[Ship %d] arrived at %d\n", _this_id, dest_port);
+		dprintf(1, "[Ship %d] arrived at %d from %d\n\n", _this_id, dest_port, old_port);
 		exchange_goods(dest_port);
-		dprintf(1, "[Ship %d] old = %d new = %d\n", _this_id, old_port, dest_port);
 		old_port = dest_port;
 	}
 }
@@ -105,9 +99,9 @@ void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_por
 	int offset; /* TODO actually choose */
 
 	if (old_port < 0){ /* not in a port */
-		*dest = rand() % (_data->SO_PORTI);
+		*dest = get_random(0, _data->SO_PORTI);
 	}else { /* in port */
-		offset = rand() % (_data->SO_PORTI - 1) + 1;
+		offset = get_random(1, _data->SO_PORTI + 1);
 		*dest = (old_port + offset) % _data->SO_PORTI;
 	}
 
@@ -208,7 +202,6 @@ int buy(int port_id)
 	tons_moved = 0;
 	msg = create_commerce_msgbuf(_this_id, port_id);
 	while (pick_buy(port_id, &type, &n_batch) != -1){
-
 		set_commerce_msgbuf(&msg, type, n_batch, -1, STATUS_REQUEST);
 		send_commerce_msg(_data->id_msg_in_ports, &msg);
 
@@ -235,7 +228,7 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 	int i, cargo_id, n_cargo, n_cargo_port, n_cargo_capacity;
 
 	/* TODO should start from last time place */
-	cargo_id = rand() % SO_MERCI;
+	cargo_id = get_random(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
 		/* TODO: make it seriously */
 		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id];

@@ -1,10 +1,10 @@
 #define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/types.h>
 #include "shared_mem.h"
+#include "utils.h"
 
 /* Macros */
 
@@ -18,12 +18,12 @@ void detach(void *pointer)
 		shmdt(pointer);
 }
 
-id_shm_t get_shared(key_t key, size_t size)
+id_shared_t get_shared(key_t key, size_t size)
 {
 	return shmget(key, size, 0600 | IPC_CREAT);
 }
 
-void *attach_shared(id_shm_t id)
+void *attach_shared(id_shared_t id)
 {
 	return shmat(id, NULL, 0);
 }
