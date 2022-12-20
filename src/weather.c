@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
+#include "header/semaphore.h"
 #include "header/shared_mem.h"
 #include "header/utils.h"
 
@@ -16,11 +17,14 @@ struct ship *_data_ship;
 
 /* Prototype */
 void loop();
+void storm();
+void maelstrom();
+void swell();
+void signal_handler(int);
 
 int main()
 {
 	/* Variables */
-	struct sembuf sem_oper;
 	struct sigaction sa;
 	sigset_t set_masked;
 	int id;
@@ -71,8 +75,8 @@ void storm()
 	int ship_i = get_random(0, SO_NAVI);
 
 	for (i = 0; i < SO_NAVI; i++){
-		if (_data_ship[ship_i]->pid != 0 && _data_ship[ship_i]->is_moving){
-			kill(_data_ship->pid, SIGSTORM); /* TODO: change the signal */
+		if (_data_ship[ship_i].pid != 0 && _data_ship[ship_i].is_moving){
+			kill(_data_ship[ship_i].pid, SIGSTORM); /* TODO: change the signal */
 			return;
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
@@ -89,15 +93,15 @@ void maelstrom()
 	int ship_i = get_random(0, SO_NAVI);
 
 	for (i = 0; i < SO_NAVI; i++){
-		if (_data_ship[ship_i]->pid != 0){
-			kill(_data_ship->pid, SIGMAELSTROM); /* TODO: change the signal */
+		if (_data_ship[ship_i].pid != 0){
+			kill(_data_ship[ship_i].pid, SIGMAELSTROM); /* TODO: change the signal */
 			return;
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
 	}
 
 	/* Comunicate all ship are dead to parent */
-	kill(_data->parent_pid, SIGTERM); /* TODO: change signale */
+	kill(getppid(), SIGTERM); /* TODO: change signale */
 }
 
 /* Stop a port every day for SO_SWELL_DURATION hours */
@@ -106,7 +110,7 @@ void swell()
 	const SO_PORTI = _data->SO_PORTI;
 	int port_i = get_random(0, SO_PORTI);
 
-	kill(_data_ship->pid, SIGSWELL); /* TODO: change the signal */
+	kill(_data_port[port_i].pid, SIGSWELL); /* TODO: change the signal */
 }
 
 void signal_handler(int signal)

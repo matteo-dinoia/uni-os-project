@@ -35,7 +35,6 @@ int main(int argc, char *argv[])
 	/* Variables */
 	struct sigaction sa;
 	sigset_t set_masked;
-	struct sembuf sem_oper;
 	int id;
 
 	/* FIRST: Wait for father */
