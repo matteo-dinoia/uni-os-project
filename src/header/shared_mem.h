@@ -24,7 +24,6 @@ struct general{
 	id_shared_t id_supply_demand;
 
 	/* Msg id */
-	id_shared_t id_msg_bump; /* still not in use */
 	id_shared_t id_msg_in_ports;
 	id_shared_t id_msg_out_ports;
 
@@ -35,22 +34,43 @@ struct general{
 struct port{
 	double x;
 	double y;
-
 	pid_t pid;
 	int daily_restock_capacity;
+
+	/* Dump */
+	int dump_dock_used;
+	int dump_dock_tot;
 };
 
 struct ship{
 	double x;
 	double y;
-
 	pid_t pid;
 	bool_t is_moving;
+
+	/* Dump */
+	bool_t dump_is_empty;
+	bool_t dump_is_at_dock;
 };
 
 struct cargo{
 	int weight_batch;
 	int shelf_life;
+
+	/* Dump */
+	int dump_at_port;
+	int dump_in_ship;
+	int dump_tot_delivered;
+	int dump_exipered_ship;
+	int dump_exipered_port;
+};
+
+struct supply_demand{
+	int quantity;
+
+	/* Dump */
+	int dump_tot_sent;
+	int dump_tot_received;
 };
 
 #endif

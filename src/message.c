@@ -33,18 +33,18 @@ void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int 
 	msg->status = status;
 }
 
-void send_commerce_msg(int id, const struct commerce_msgbuf *msg)
+void send_commerce_msg(id_shared_t id, const struct commerce_msgbuf *msg)
 {
 	dprintf(1, "[SEND on id %d, from %d to %d] type: %d amount: %d expiry-date: %d\n",
-		id, msg->sender, msg->receiver, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date);
+			id, msg->sender, msg->receiver, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date);
 	msgsnd(id, msg, MSG_SIZE(*msg), 0);
 }
 
-void receive_commerce_msg(int id, struct commerce_msgbuf *msg, int type)
+void receive_commerce_msg(id_shared_t id, struct commerce_msgbuf *msg, int type)
 {
 	dprintf(1, "[RECEIVE on id %d, type %d] initialize\n", id, type + 1);
 
-	msgrcv(id, msg, MSG_SIZE(*msg), 0, 0);
+	msgrcv(id, msg, MSG_SIZE(*msg), type + 1, 0);
 
 	if(errno != EXIT_SUCCESS)
 		dprintf(1, "Error: %d, meaning:%s\n", errno, strerror(errno));

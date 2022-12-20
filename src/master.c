@@ -9,24 +9,28 @@
 #include <limits.h>
 #include "header/shared_mem.h"
 #include "header/semaphore.h"
+#include "header/message.h"
 #include "header/utils.h"
 
 /* Macros */
 #define CLOSE_SHM(id, pointer) \
 		do {\
-			shmctl((id), IPC_RMID, NULL);\
-			detach((pointer));\
+			if(id >= 0){\
+				shmctl((id), IPC_RMID, NULL);\
+				if(pointer != NULL) detach((pointer));\
+			} \
 		}while (0)
 
 /* Global variables */
 int _id_data;
 int _id_sem;
+int _weather_pid = 0;
 /* Shared memory */
 struct general *_data;
 struct port *_data_port;
 struct ship *_data_ship;
 struct cargo *_data_cargo;
-int *_data_supply_demand;
+struct supply_demand *_data_supply_demand;
 
 /* Prototypes */
 void initialize_shared();
@@ -37,6 +41,7 @@ void create_children();
 void read_constants_from_file();
 void create_shared_structures();
 double get_random_coord();
+void print_dump_data();
 void loop();
 
 int main()
@@ -44,18 +49,25 @@ int main()
 	struct sigaction sa;
 	sigset_t set_masked;
 
-	/* Initializing */
+
+	/* Initializing Variable*/
 	srand(time(NULL) * getpid());
+	sigfillset(&set_masked);
+	/* read_constants_from_file(); move here */
+
+	/* Initializing no error can be inside */
+	sigprocmask(SIG_BLOCK, &set_masked, NULL);
 	initialize_shared();
+	sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 	/* Create and start children*/
 	create_children();
 	execute_single_sem_oper(_id_sem, 0, -1);
 
+
 	/* Setting signal handler (need to be done after) */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &custom_handler;
-	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
@@ -72,6 +84,7 @@ void initialize_shared()
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
 	_data = shmat(id, NULL, 0);
 	_id_data = id;
+
 	read_constants_from_file();
 
 	/* SHM: Port */
@@ -114,10 +127,12 @@ void initialize_shared()
 
 void loop()
 {
-	while (1){
-		dprintf(1, "[Parent] Wait\n");
-		pause(); /* TODO get data */
-	}
+	/* Wait forever */
+	while (1) pause();
+}
+
+void print_dump_data()
+{
 }
 
 void create_children()
@@ -181,15 +196,19 @@ void create_children()
 	}
 
 	/* Initialize supply and demand */
+	/* TODO BZERO TO EVERYTHING UP -> missing base value */
 	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI);
+
+	/* Initialize weather */
+	_weather_pid = create_proc("./weather", -1);
 }
 
-double get_random_coord()
+double get_random_coord() /* TODO: convert to macro (togheter with get_random) */
 {
 	return rand() / (double)INT_MAX * _data->SO_LATO;
 }
 
-void read_constants_from_file()
+void read_constants_from_file() /* Crashable */
 {
 	const NUM_VALUE = 16;
 	int num_read, value, counter;
@@ -197,12 +216,16 @@ void read_constants_from_file()
 
 	/* Take file from out of bin directory */
 	FILE *file = fopen("../constants.txt", "r");
+	if(file == NULL)
+		close_all("[FATAL] Could not open file (reading file constant.txt)", EXIT_FAILURE);
 
 	dprintf(1, "[CONST VALUE]");
 	while ((num_read = fscanf(file, "%d", &value)) != EOF){
 		if (num_read != 0){
-			if(counter >= NUM_VALUE)
+			if(counter >= NUM_VALUE){
+				fclose(file);
 				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
+			}
 			((int*)_data)[counter++] = value;
 			dprintf(1, " %d", value);
 		}
@@ -211,17 +234,19 @@ void read_constants_from_file()
 		if ((c = fgetc(file)) == '#'){
 			fscanf(file, "%*[^\n]");
 		}else if(!(c >= '0' && c <= '9')){
+			fclose(file);
 			close_all("[FATAL] Found invalid char (reading file constant.txt)", EXIT_FAILURE);
 		}
 	}
 	dprintf(1, "\n");
-	if(counter < NUM_VALUE)
-		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
 
 	fclose(file);
+
+	if(counter < NUM_VALUE)
+		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
 }
 
-pid_t create_proc(char *name, int index)
+pid_t create_proc(char *name, int index) /* Crashable*/
 {
 	pid_t proc_pid;
 	char *arg[3], *env[]={NULL}, buf[10];
@@ -266,6 +291,7 @@ void close_all(const char *message, int exit_status)
 	int i, pid;
 
 	/* Killing and wait child */
+	/* TODO more testing */
 	if (_data_port != NULL){
 		for (i = 0; i<_data->SO_PORTI; i++){
 			pid = _data_port[i].pid;
@@ -280,6 +306,8 @@ void close_all(const char *message, int exit_status)
 				kill(pid, SIGINT);
 		}
 	}
+	if(_weather_pid > 0 && _weather_pid != getpid())
+		kill(_weather_pid, SIGINT);
 
 	while(wait(NULL) != -1 || errno == EINTR);
 
