@@ -244,10 +244,17 @@ pid_t create_proc(char *name, int index)
 
 void custom_handler(int signal)
 {
+	int i;
+
 	switch (signal){
 	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
+		break;
+	case SIGALRM:
+		for (i = 0; i<_data->SO_PORTI; i++)
+			kill(_data_port[i].pid, SIGDAY);
+		kill(_meteo_pid, SIGDAY);
 		break;
 	default:
 		break;
@@ -263,14 +270,14 @@ void close_all(const char *message, int exit_status)
 		for (i = 0; i<_data->SO_PORTI; i++){
 			pid = _data_port[i].pid;
 			if(pid > 0 && pid != getpid())
-				kill(pid, SIGTERM);
+				kill(pid, SIGINT);
 		}
 	}
 	if (_data_ship != NULL){
 		for (i = 0; i < _data->SO_NAVI; i++){
 			pid = _data_ship[i].pid;
 			if(pid > 0 && pid != getpid())
-				kill(pid, SIGTERM);
+				kill(pid, SIGINT);
 		}
 	}
 
