@@ -10,6 +10,7 @@
 #define SIGSWELL SIGUSR1
 #define SIGSTORM SIGUSR1
 #define SIGMAELSTROM SIGUSR2
+
 /* Fake boolean */
 #define TRUE 1
 #define FALSE 0
@@ -30,6 +31,13 @@ int count_cargo(list_cargo *list);
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date);
 
 struct timespec get_timespec(double interval_sec);
-int get_random(int min_included, int max_excluded);
+
+/* MACRO FUNCTION */
+#define SEND_SIGNAL(pid, signal)\
+	if((pid) > 1 && (pid) != getpid()) kill((pid), (signal))
+#define RANDOM(min_included, max_excluded)\
+	(rand() % ((max_excluded) - (min_included)) + (min_included))
+#define RANDOM_DOUBLE(min_included, max_excluded)\
+	(rand() / (double)INT_MAX * (max_excluded) + (min_included))
 
 #endif
