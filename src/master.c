@@ -124,9 +124,8 @@ void initialize_shared()
 
 void loop()
 {
-	while (1){
-		pause();
-	}
+	/* Wait forever */
+	while (1) pause();
 }
 
 void print_dump_data()
