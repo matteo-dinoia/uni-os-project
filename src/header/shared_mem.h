@@ -24,7 +24,6 @@ struct general{
 	id_shared_t id_supply_demand;
 
 	/* Msg id */
-	id_shared_t id_msg_bump; /* still not in use */
 	id_shared_t id_msg_in_ports;
 	id_shared_t id_msg_out_ports;
 
