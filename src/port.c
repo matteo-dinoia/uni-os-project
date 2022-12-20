@@ -59,11 +59,11 @@ int main(int argc, char *argv[])
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
-	sigaction(SIGUSR1, &sa, NULL);
-	sigaction(SIGUSR2, &sa, NULL);
+	sigaction(SIGDAY, &sa, NULL);
+	sigaction(SIGSWELL, &sa, NULL);
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
-	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
@@ -105,7 +105,6 @@ void respond_msg(struct commerce_msgbuf msg_received)
 		tot_exchange = MIN(needed_supply, this_supply);
 		_this_supply_demand[needed_type] -= tot_exchange;
 
-		dprintf(1, "TEST tot %d", tot_exchange);
 		while (tot_exchange >= 0){
 			/* Spamming messages */
 			pop_cargo(&cargo_hold[needed_type], &amount, &expiry_date);
@@ -172,6 +171,8 @@ void supply_demand_update()
 
 void signal_handler(int signal)
 {
+	struct timespec rem_time, wait_time;
+
 	switch (signal)
 	{
 	case SIGINT:
@@ -180,8 +181,12 @@ void signal_handler(int signal)
 		supply_demand_update();
 		break;
 	case SIGSWELL: /* Swell */
-
-		break;
+		wait_time = get_timespec(_data->SO_SWELL_DURATION/24.0);
+		do {
+			nanosleep(&wait_time, &rem_time);
+			wait_time = rem_time;
+		} while (errno == EINTR);
+		break; /* TODO: receive possile second signal equal */
 	}
 }
 

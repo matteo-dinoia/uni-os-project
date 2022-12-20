@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <signal.h>
+#include <sys/time.h>
 #include "header/shared_mem.h"
 #include "header/utils.h"
 
@@ -20,9 +21,9 @@ int main()
 {
 	/* Variables */
 	struct sembuf sem_oper;
+	struct sigaction sa;
+	sigset_t set_masked;
 	int id;
-
-
 
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
@@ -34,6 +35,15 @@ int main()
 	_data_port = attach_shared(_data->id_port);
 	_data_ship = attach_shared(_data->id_ship);
 
+	/* LAST: Set signal handler */
+	bzero(&sa, sizeof(sa));
+	sa.sa_handler = &signal_handler;
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGDAY, &sa, NULL);
+	sigfillset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGALRM, &sa, NULL);
+
 	/* LAST: Start running */
 	srand(time(NULL) * getpid());
 	loop();
@@ -41,11 +51,16 @@ int main()
 
 void loop()
 {
-	while (1){
-		dprintf(1, "[Meteo] Wait\n");
-		pause(); /* TODO do meteo stuff */
-		_data->SO_SWELL_DURATION;
-	}
+	struct itimerval interval;
+
+	/* Maelstrom clock */
+	interval.it_interval = get_timespec(_data->SO_MAELSTROM);
+	interval.it_value = interval.it_interval;
+	setitimer(ITIMER_REAL, &interval, NULL);
+
+	/* Wait Forever */
+	dprintf(1, "[Meteo] Wait\n");
+	while (1) pause();
 }
 
 /* Adds SO_STORM_DURATION to the ship travel time once per day */
@@ -92,4 +107,20 @@ void swell()
 	int port_i = get_random(0, SO_PORTI);
 
 	kill(_data_ship->pid, SIGSWELL); /* TODO: change the signal */
+}
+
+void signal_handler(int signal)
+{
+	switch (signal)
+	{
+	case SIGINT:
+		close_all();
+	case SIGDAY: /* Change of day */
+		storm();
+		swell();
+		break;
+	case SIGALRM: /* Swell */
+		maelstrom();
+		break;
+	}
 }

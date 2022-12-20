@@ -68,11 +68,11 @@ int main(int argc, char *argv[])
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
-	sigaction(SIGUSR1, &sa, NULL);
-	sigaction(SIGUSR2, &sa, NULL);
+	sigaction(SIGSTORM, &sa, NULL);
+	sigaction(SIGMAELSTROM, &sa, NULL);
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
-	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid()); /* TODO temp */
@@ -249,18 +249,28 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 
 void signal_handler(int signal)
 {
+	struct timespec rem_time, wait_time;
+
 	switch (signal){
-	case SIGTERM:
+	case SIGTERM: /* Closing for every other reason */
+	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		close_all();
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
-		break;
-	case SIGMAELSTROM: /* Maeltrom -> sinks all ships in a given range */
-		break;
+		wait_time = get_timespec(_data->SO_STORM_DURATION/24.0);
+		do {
+			nanosleep(&wait_time, &rem_time);
+			wait_time = rem_time;
+		} while (errno == EINTR);
+		break; /* TODO: receive possile second signal equal */
 	}
 }
 
 void close_all()
 {
+	/* Signaling data of death */
+	_this_ship->pid = 0;
+	/* TODO: dump*/
+
 	/* Local memory deallocation */
 	free(cargo_hold);
 

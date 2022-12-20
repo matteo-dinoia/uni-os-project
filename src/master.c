@@ -244,10 +244,17 @@ pid_t create_proc(char *name, int index)
 
 void custom_handler(int signal)
 {
+	int i;
+
 	switch (signal){
 	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
+		break;
+	case SIGALRM:
+		for (i = 0; i<_data->SO_PORTI; i++)
+			kill(_data_port[i].pid, SIGDAY);
+		kill(_meteo_pid, SIGDAY);
 		break;
 	default:
 		break;
