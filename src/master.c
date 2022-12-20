@@ -279,7 +279,7 @@ void custom_handler(int signal)
 	case SIGALRM:
 		for (i = 0; i<_data->SO_PORTI; i++)
 			kill(_data_port[i].pid, SIGDAY);
-		kill(_meteo_pid, SIGDAY);
+		kill(_weather_pid, SIGDAY);
 		break;
 	default:
 		break;
