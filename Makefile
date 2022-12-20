@@ -6,7 +6,7 @@ CCOMPILE=$(CC) $(CFLAGS)
 _REQUIRED=shared_mem message semaphore utils
 REQUIRED_O=$(patsubst %, bin/%.o,$(_REQUIRED))
 TARGET=master
-_PROCESSES=ship port meteo $(TARGET)
+_PROCESSES=ship port weather $(TARGET)
 PROCESSES_OUT=$(addprefix bin/,$(_PROCESSES))
 
 all: $(PROCESSES_OUT)
@@ -26,6 +26,8 @@ clear:
 	$(RM) -r bin
 run: all
 	cd bin && ./$(TARGET)
+runf: all
+	cd bin && ./$(TARGET) > ../output.log
 crun: _clear-screen recompile _wait-input
 	cd bin && ./$(TARGET); $(RM) -r bin
 crunf: _clear-screen recompile _wait-input

@@ -200,7 +200,7 @@ void create_children()
 	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI);
 
 	/* Initialize weather */
-	_weather_pid = create_proc("./weather", -1);
+	/*_weather_pid = create_proc("./weather", -1);*/
 }
 
 double get_random_coord() /* TODO: convert to macro (togheter with get_random) */

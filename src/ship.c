@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
 	int id;
 	struct sigaction sa;
 	sigset_t set_masked;
-	struct sembuf sem_oper;
 
 	/* FIRST: Wait for father */
 	id = semget(KEY_SEM, 1, 0600);
@@ -252,7 +251,7 @@ void signal_handler(int signal)
 	struct timespec rem_time, wait_time;
 
 	switch (signal){
-	case SIGTERM: /* Closing for every other reason */
+	case SIGINT: /* Closing for every other reason */
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		close_all();
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
