@@ -98,9 +98,9 @@ void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_por
 	int offset; /* TODO actually choose */
 
 	if (old_port < 0){ /* not in a port */
-		*dest = get_random(0, _data->SO_PORTI);
+		*dest = RANDOM(0, _data->SO_PORTI);
 	}else { /* in port */
-		offset = get_random(1, _data->SO_PORTI + 1);
+		offset = RANDOM(1, _data->SO_PORTI + 1);
 		*dest = (old_port + offset) % _data->SO_PORTI;
 	}
 
@@ -227,7 +227,7 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 	int i, cargo_id, n_cargo, n_cargo_port, n_cargo_capacity;
 
 	/* TODO should start from last time place */
-	cargo_id = get_random(0, SO_MERCI);
+	cargo_id = RANDOM(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
 		/* TODO: make it seriously */
 		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id];

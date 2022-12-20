@@ -137,7 +137,7 @@ void supply_demand_update()
 
 	/* TODO avoid going over the limits */
 	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
-		rand_type = get_random(0, _data->SO_MERCI);
+		rand_type = RANDOM(0, _data->SO_MERCI);
 		if (_this_supply_demand[rand_type] > 0){
 			is_demand = FALSE;
 		} else if (_this_supply_demand[rand_type] < 0) {
@@ -148,7 +148,7 @@ void supply_demand_update()
 			is_demand = FALSE;
 		}else {
 			/* TODO fix this shit */
-			is_demand = get_random(0, 2);
+			is_demand = RANDOM(0, 2);
 		}
 
 		if (is_demand){

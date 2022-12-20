@@ -27,7 +27,7 @@ clear:
 run: all
 	cd bin && ./$(TARGET)
 runf: all
-	cd bin && ./$(TARGET) > ../output.log
+	cd bin && ./$(TARGET) >../output.log
 crun: _clear-screen recompile _wait-input
 	cd bin && ./$(TARGET); $(RM) -r bin
 crunf: _clear-screen recompile _wait-input

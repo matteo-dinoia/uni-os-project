@@ -13,6 +13,11 @@
 #include "header/utils.h"
 
 /* Macros */
+#define CREATE_SHM(key, id, pointer, num_elem, extra_flags)\
+		do{\
+			(id) = shmget((key), sizeof(*(pointer))*(num_elem), 0600 | (extra_flags));\
+			(pointer) = shmat(id, NULL, 0);\
+		}while(0)
 #define CLOSE_SHM(id, pointer) \
 		do {\
 			if(id >= 0){\
@@ -20,6 +25,7 @@
 				if(pointer != NULL) detach((pointer));\
 			} \
 		}while (0)
+
 
 /* Global variables */
 int _id_data;
@@ -40,7 +46,6 @@ void close_all(const char *, int);
 void create_children();
 void read_constants_from_file();
 void create_shared_structures();
-double get_random_coord();
 void print_dump_data();
 void loop();
 
@@ -49,11 +54,9 @@ int main()
 	struct sigaction sa;
 	sigset_t set_masked;
 
-
 	/* Initializing Variable*/
 	srand(time(NULL) * getpid());
 	sigfillset(&set_masked);
-	/* read_constants_from_file(); move here */
 
 	/* Initializing no error can be inside */
 	sigprocmask(SIG_BLOCK, &set_masked, NULL);
@@ -61,9 +64,9 @@ int main()
 	sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 	/* Create and start children*/
+	semctl(_id_sem, 0, SETVAL, 1);
 	create_children();
 	execute_single_sem_oper(_id_sem, 0, -1);
-
 
 	/* Setting signal handler (need to be done after) */
 	bzero(&sa, sizeof(sa));
@@ -78,51 +81,22 @@ int main()
 
 void initialize_shared()
 {
-	int id;
-
 	/* SHM: General */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600 | IPC_CREAT | IPC_EXCL);
-	_data = shmat(id, NULL, 0);
-	_id_data = id;
-
+	CREATE_SHM(KEY_SHARED, _id_data, _data, 1, IPC_CREAT | IPC_EXCL);
 	read_constants_from_file();
+	CREATE_SHM(IPC_PRIVATE, _data->id_ship, _data_ship, _data->SO_NAVI, 0);
+	CREATE_SHM(IPC_PRIVATE, _data->id_port, _data_port, _data->SO_PORTI, 0);
+	CREATE_SHM(IPC_PRIVATE, _data->id_cargo, _data_cargo, _data->SO_MERCI, 0);
+	CREATE_SHM(IPC_PRIVATE, _data->id_supply_demand, _data_supply_demand,
+			_data->SO_MERCI * _data->SO_PORTI, 0);
 
-	/* SHM: Port */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_port) * _data->SO_PORTI, 0600);
-	_data_port = shmat(id, NULL, 0);
-	_data->id_port = id;
+	/* MSG port in and out */
+	_data->id_msg_in_ports = msgget(IPC_PRIVATE, 0600);
+	_data->id_msg_out_ports = msgget(IPC_PRIVATE, 0600);
 
-	/* SHM: Suppy and demand of ports*/
-	id = shmget(IPC_PRIVATE, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI, 0600);
-	_data_supply_demand = shmat(id, NULL, 0);
-	_data->id_supply_demand = id;
-
-	/* SHM: Ship */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_ship) * _data->SO_NAVI, 0600);
-	_data_ship = shmat(id, NULL, 0);
-	_data->id_ship = id;
-
-	/* SHM: Cargo */
-	id = shmget(IPC_PRIVATE, sizeof(*_data_cargo) * _data->SO_MERCI, 0600);
-	_data_cargo = shmat(id, NULL, 0);
-	_data->id_cargo = id;
-
-	/* MSG: ports in */
-	id = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_in_ports = id;
-
-	/* MSG: ports out */
-	id = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_out_ports = id;
-
-	/* SEM: Start */
-	id = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	semctl(id, 0, SETVAL, 1);
-	_id_sem = id;
-
-	/* SEM: Docks */
-	id = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
-	_data->id_sem_docks = id;
+	/* SEM: Start and docks */
+	_id_sem = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
+	_data->id_sem_docks = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
 }
 
 void loop()
@@ -169,11 +143,11 @@ void create_children()
 			current_port->y = i < 2 ? SO_LATO : 0;
 		}
 		else{
-			current_port->x = get_random_coord();
-			current_port->y = get_random_coord();
+			current_port->x = RANDOM_DOUBLE(0, SO_LATO);
+			current_port->y = RANDOM_DOUBLE(0, SO_LATO);
 		}
 
-		n_docks = get_random(1, SO_BANCHINE);
+		n_docks = RANDOM(1, SO_BANCHINE);
 		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
 	}
 
@@ -182,8 +156,8 @@ void create_children()
 		current_ship = &_data_ship[i];
 		current_ship->pid = create_proc("./ship", i);
 
-		current_ship->x = get_random_coord();
-		current_ship->y = get_random_coord();
+		current_ship->x = RANDOM_DOUBLE(0, SO_LATO);
+		current_ship->y = RANDOM_DOUBLE(0, SO_LATO);
 		current_ship->is_moving = FALSE;
 	}
 
@@ -191,8 +165,8 @@ void create_children()
 	for (i = 0; i < SO_MERCI; i++){
 		current_cargo = &_data_cargo[i];
 
-		current_cargo->weight_batch = get_random(1, SO_SIZE);
-		current_cargo->shelf_life = get_random(SO_MIN_VITA, SO_MAX_VITA);
+		current_cargo->weight_batch = RANDOM(1, SO_SIZE);
+		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
 	}
 
 	/* Initialize supply and demand */
@@ -201,11 +175,6 @@ void create_children()
 
 	/* Initialize weather */
 	/*_weather_pid = create_proc("./weather", -1);*/
-}
-
-double get_random_coord() /* TODO: convert to macro (togheter with get_random) */
-{
-	return rand() / (double)INT_MAX * _data->SO_LATO;
 }
 
 void read_constants_from_file() /* Crashable */
@@ -291,24 +260,11 @@ void close_all(const char *message, int exit_status)
 	int i, pid;
 
 	/* Killing and wait child */
-	/* TODO more testing */
-	if (_data_port != NULL){
-		for (i = 0; i<_data->SO_PORTI; i++){
-			pid = _data_port[i].pid;
-			if(pid > 0 && pid != getpid())
-				kill(pid, SIGINT);
-		}
-	}
-	if (_data_ship != NULL){
-		for (i = 0; i < _data->SO_NAVI; i++){
-			pid = _data_ship[i].pid;
-			if(pid > 0 && pid != getpid())
-				kill(pid, SIGINT);
-		}
-	}
-	if(_weather_pid > 0 && _weather_pid != getpid())
-		kill(_weather_pid, SIGINT);
-
+	SEND_SIGNAL(_weather_pid, SIGINT);
+	for (i = 0; _data_port != NULL && i<_data->SO_PORTI; i++)
+		SEND_SIGNAL(_data_port[i].pid, SIGINT);
+	for (i = 0; _data_ship != NULL && i<_data->SO_NAVI; i++)
+		SEND_SIGNAL(_data_ship[i].pid, SIGINT);
 	while(wait(NULL) != -1 || errno == EINTR);
 
 	/* Closing semaphors */

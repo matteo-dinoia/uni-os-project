@@ -116,8 +116,3 @@ struct timespec get_timespec(double interval_sec){
 
 	return res;
 }
-
-int get_random(int min_included, int max_excluded)
-{
-	return rand() % (max_excluded - min_included) + min_included;
-}
