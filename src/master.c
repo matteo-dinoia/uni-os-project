@@ -53,14 +53,15 @@ int main()
 	srand(time(NULL) * getpid());
 	sigfillset(&set_masked);
 
-	/* Initializing */
+	/* Initializing no error can be inside */
 	sigprocmask(SIG_BLOCK, &set_masked, NULL);
 	initialize_shared();
-	create_children();
 	sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
-	/* Start children*/
+	/* Create and start children*/
+	create_children();
 	execute_single_sem_oper(_id_sem, 0, -1);
+
 
 	/* Setting signal handler (need to be done after) */
 	bzero(&sa, sizeof(sa));
