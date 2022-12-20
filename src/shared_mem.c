@@ -3,8 +3,8 @@
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/types.h>
-#include "shared_mem.h"
-#include "utils.h"
+#include "header/shared_mem.h"
+#include "header/utils.h"
 
 /* Macros */
 

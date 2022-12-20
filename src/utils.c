@@ -1,9 +1,9 @@
 #define _GNU_SOURCE
-#include "utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
+#include "header/utils.h"
 
 /* Sorted by expiry date */
 struct node_cargo{

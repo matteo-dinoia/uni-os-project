@@ -7,10 +7,10 @@
 #include <string.h>
 #include <sys/sem.h>
 #include <sys/param.h>
-#include "shared_mem.h"
-#include "message.h"
-#include "semaphore.h"
-#include "utils.h"
+#include "header/shared_mem.h"
+#include "header/message.h"
+#include "header/semaphore.h"
+#include "header/utils.h"
 
 
 /* Global Variables */
