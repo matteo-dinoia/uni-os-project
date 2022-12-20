@@ -174,12 +174,13 @@ void signal_handler(int signal)
 {
 	switch (signal)
 	{
-	case SIGTERM:
+	case SIGINT:
 		close_all();
-	case SIGUSR1: /* Change of day */
+	case SIGDAY: /* Change of day */
 		supply_demand_update();
 		break;
-	case SIGUSR2: /* Seastorm */
+	case SIGSWELL: /* Swell */
+
 		break;
 	}
 }

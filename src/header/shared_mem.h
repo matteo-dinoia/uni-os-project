@@ -12,7 +12,7 @@ void *attach_shared(id_shared_t id);
 struct general{
 	/* Constants*/
 	int SO_LATO, SO_DAYS, SO_NAVI, SO_PORTI, SO_MERCI;	/* Generic simulation specifications */
-	int SO_STORM_DURATION, SO_SWELL_DURATION, SO_MAELSTORM; /* Weather events max duration */
+	int SO_STORM_DURATION, SO_SWELL_DURATION, SO_MAELSTROM; /* Weather events max duration */
 	int SO_FILL, SO_BANCHINE, SO_LOADSPEED;			/* Ports specifications */
 	int SO_SIZE, SO_SPEED, SO_CAPACITY;			/* Ships specifications */
 	int SO_MIN_VITA, SO_MAX_VITA;				/* Cargo specifications */

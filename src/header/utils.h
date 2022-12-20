@@ -1,8 +1,15 @@
 #ifndef _UTILS_H
 #define _UTILS_H
 
+#include <signal.h>
+
 /* MACRO */
 #define TEST() dprintf(1, "TEST ALIVE: is still alive at %d in %s", __LINE__, __FILE__)
+/* User defined signal */
+#define SIGDAY SIGCHLD
+#define SIGSWELL SIGUSR1
+#define SIGSTORM SIGUSR1
+#define SIGMAELSTROM SIGUSR2
 /* Fake boolean */
 #define TRUE 1
 #define FALSE 0

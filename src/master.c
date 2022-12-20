@@ -263,14 +263,14 @@ void close_all(const char *message, int exit_status)
 		for (i = 0; i<_data->SO_PORTI; i++){
 			pid = _data_port[i].pid;
 			if(pid > 0 && pid != getpid())
-				kill(pid, SIGTERM);
+				kill(pid, SIGINT);
 		}
 	}
 	if (_data_ship != NULL){
 		for (i = 0; i < _data->SO_NAVI; i++){
 			pid = _data_ship[i].pid;
 			if(pid > 0 && pid != getpid())
-				kill(pid, SIGTERM);
+				kill(pid, SIGINT);
 		}
 	}
 

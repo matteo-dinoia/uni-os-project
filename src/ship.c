@@ -252,9 +252,9 @@ void signal_handler(int signal)
 	switch (signal){
 	case SIGTERM:
 		close_all();
-	case SIGUSR1: /* Storm -> stops the ship for STORM_DURATION time */
+	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		break;
-	case SIGUSR2: /* Maeltrom -> sinks all ships in a given range */
+	case SIGMAELSTROM: /* Maeltrom -> sinks all ships in a given range */
 		break;
 	}
 }
