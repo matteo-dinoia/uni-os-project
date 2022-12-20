@@ -87,7 +87,7 @@ void loop()
 	while (1){
 		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
 		move_to_port(dest_x, dest_y);
-		dprintf(1, "[Ship %d] arrived at %d from %d\n\n", _this_id, dest_port, old_port);
+		dprintf(1, "\t[Ship %d] arrived at %d from %d\n", _this_id, dest_port, old_port);
 		exchange_goods(dest_port);
 		old_port = dest_port;
 	}
@@ -100,7 +100,7 @@ void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_por
 	if (old_port < 0){ /* not in a port */
 		*dest = RANDOM(0, _data->SO_PORTI);
 	}else { /* in port */
-		offset = RANDOM(1, _data->SO_PORTI + 1);
+		offset = RANDOM(1, _data->SO_PORTI);
 		*dest = (old_port + offset) % _data->SO_PORTI;
 	}
 

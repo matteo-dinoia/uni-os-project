@@ -74,7 +74,6 @@ void loop()
 	struct commerce_msgbuf msg;
 
 	supply_demand_update();
-	dprintf(1, "[Port %d] Finished shop update\n", _this_id);
 
 	while (1){
 		receive_commerce_msg(_data->id_msg_in_ports, &msg, _this_id);
@@ -104,9 +103,15 @@ void respond_msg(struct commerce_msgbuf msg_received)
 		tot_exchange = MIN(needed_supply, this_supply);
 		_this_supply_demand[needed_type] -= tot_exchange;
 
-		while (tot_exchange >= 0){
+		while (tot_exchange > 0){
 			/* Spamming messages */
 			pop_cargo(&cargo_hold[needed_type], &amount, &expiry_date);
+			if(amount == 0){
+				dprintf(2, "!---[ERROR] Port is responding with 0");
+				set_commerce_msgbuf(&response, needed_type, amount, expiry_date, STATUS_ACCEPTED);
+				send_commerce_msg(_data->id_msg_out_ports, &response);
+				return;
+			}
 			if (amount > tot_exchange){
 				add_cargo(&cargo_hold[needed_type], amount - tot_exchange, expiry_date);
 				amount = tot_exchange;
@@ -151,19 +156,16 @@ void supply_demand_update()
 			is_demand = RANDOM(0, 2);
 		}
 
-		if (is_demand){
-			if (rem_demand_tons > 0){
-				_this_supply_demand[rand_type] -= 1;
-				rem_demand_tons -= _data_cargo->weight_batch;
-				dprintf(1, "[PP DEMAND on %d] type %d new_quant %d rem %d\n", _this_id, rand_type, _this_supply_demand[rand_type], rem_demand_tons);
-			}
+		if (is_demand && rem_demand_tons > 0){
+			_this_supply_demand[rand_type] -= 1;
+			rem_demand_tons -= _data_cargo->weight_batch;
+			dprintf(1, "[PP DEMAND on %d] type %d new_quant %d rem %d\n", _this_id + 1, rand_type, _this_supply_demand[rand_type], rem_demand_tons);
 		}
-		else{
-			if (rem_offer_tons > 0){
-				_this_supply_demand[rand_type] += 1;
-				rem_offer_tons -= _data_cargo->weight_batch;
-				dprintf(1, "[PP OFFER on %d] type %d new_quant %d rem %d\n", _this_id, rand_type, _this_supply_demand[rand_type], rem_offer_tons);
-			}
+		else if (!is_demand && rem_offer_tons > 0){
+			_this_supply_demand[rand_type] += 1;
+			rem_offer_tons -= _data_cargo->weight_batch;
+			add_cargo(cargo_hold, _data_cargo->weight_batch, RANDOM(9000, 9999)); /* TODO expiry date*/
+			dprintf(1, "[PP OFFER on %d] type %d new_quant %d rem %d\n", _this_id + 1, rand_type, _this_supply_demand[rand_type], rem_offer_tons);
 		}
 	}
 }
@@ -199,6 +201,5 @@ void close_all()
 	detach(_data_port);
 	detach(_data_supply_demand);
 
-	dprintf(1, "[Child %d] Fucking dying\n", getpid());
 	exit(0);
 }

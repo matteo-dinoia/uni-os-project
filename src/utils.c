@@ -95,8 +95,13 @@ int count_cargo(list_cargo *list)
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 {
 	struct node_cargo *tmp;
-	if(list == NULL || list->first == NULL){
-		dprintf(1, "Should have controlled NULL in pop cargo.\n");
+	if(list == NULL){
+		dprintf(1, "Should have controlled NULL in pop cargo (list = %p).\n", (void *) list);
+		return;
+	}else if(list->first == NULL){
+		dprintf(1, "Should have controlled NOT_EMPTY in pop cargo (list-> first = %p).\n", (void *) list->first);
+		*amount = 0;
+		*expiry_date = -3;
 		return;
 	}
 
@@ -115,4 +120,18 @@ struct timespec get_timespec(double interval_sec){
 	res.tv_nsec = (interval_sec - (long)interval_sec) * pow(10, 9);
 
 	return res;
+}
+
+void timer(double interval_sec){
+	struct itimerval interval;
+	long sec, usec;
+
+	sec = (long)interval_sec;
+	usec = (interval_sec - (long)interval_sec) * pow(10, 6);
+
+	interval.it_interval.tv_sec = sec;
+	interval.it_interval.tv_sec = usec;
+	interval.it_value = interval.it_interval;
+
+	setitimer(ITIMER_REAL, &interval, NULL);
 }

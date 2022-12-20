@@ -24,6 +24,8 @@ bin/%: src/%.c $(REQUIRED_O)
 recompile: clear all
 clear:
 	$(RM) -r bin
+debug: all
+	cd bin && gdb $(TARGET)
 run: all
 	cd bin && ./$(TARGET)
 runf: all
