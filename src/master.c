@@ -52,6 +52,7 @@ int main()
 	/* Initializing Variable*/
 	srand(time(NULL) * getpid());
 	sigfillset(&set_masked);
+	/* read_constants_from_file(); move here */
 
 	/* Initializing no error can be inside */
 	sigprocmask(SIG_BLOCK, &set_masked, NULL);
