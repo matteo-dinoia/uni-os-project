@@ -24,6 +24,7 @@
 /* Global variables */
 int _id_data;
 int _id_sem;
+int _weather_pid = 0;
 /* Shared memory */
 struct general *_data;
 struct port *_data_port;
@@ -197,6 +198,9 @@ void create_children()
 	/* Initialize supply and demand */
 	/* TODO BZERO TO EVERYTHING UP -> missing base value */
 	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI);
+
+	/* Initialize weather */
+	_weather_pid = create_proc("./weather", -1);
 }
 
 double get_random_coord() /* TODO: convert to macro (togheter with get_random) */
@@ -295,6 +299,8 @@ void close_all(const char *message, int exit_status)
 				kill(pid, SIGTERM);
 		}
 	}
+	if(_weather_pid > 0 && _weather_pid != getpid())
+		kill(_weather_pid, SIGINT);
 
 	while(wait(NULL) != -1 || errno == EINTR);
 
