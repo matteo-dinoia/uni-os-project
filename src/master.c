@@ -198,7 +198,7 @@ void create_children()
 	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI);
 }
 
-double get_random_coord()
+double get_random_coord() /* TODO: convert to macro (togheter with get_random) */
 {
 	return rand() / (double)INT_MAX * _data->SO_LATO;
 }
@@ -211,6 +211,8 @@ void read_constants_from_file() /* Crashable */
 
 	/* Take file from out of bin directory */
 	FILE *file = fopen("../constants.txt", "r");
+	if(file == NULL)
+		close_all("[FATAL] Could not open file (reading file constant.txt)", EXIT_FAILURE);
 
 	dprintf(1, "[CONST VALUE]");
 	while ((num_read = fscanf(file, "%d", &value)) != EOF){
