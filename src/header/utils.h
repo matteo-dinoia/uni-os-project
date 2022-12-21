@@ -32,6 +32,8 @@ void timer(double interval_sec);
 
 /* MACRO FUNCTION */
 #define TEST() dprintf(1, "TEST ALIVE: is still alive at %d in %s\n", __LINE__, __FILE__)
+#define GET_SIGN(number)\
+	((number) / abs((number)))
 #define SEND_SIGNAL(pid, signal)\
 	if((pid) > 1 && (pid) != getpid()) kill((pid), (signal))
 #define RANDOM(min_included, max_excluded)\

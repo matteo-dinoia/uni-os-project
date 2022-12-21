@@ -1,10 +1,12 @@
 # Order is hardcode (please keep as it is)
+# All number should be positive
 # Everything from # to end line is ignored
-1	# SO_LATO
-10	# SO_DAYS
+
+1	# SO_LATO		(double TODO)
+500	# SO_DAYS
 1	# SO_NAVI
-2	# SO_PORTI
-2	# SO_MERCI
+2	# SO_PORTI		>= 4
+2	# SO_MERCI		>= 2
 1	# SO_STORM_DURATION
 1	# SO_SWELL_DURATION
 1	# SO_MAELSTORM
@@ -15,4 +17,4 @@
 1	# SO_SPEED
 2	# SO_CAPACITY
 4	# SO_MIN_VITA
-16	# SO_MAX_VITA
+16	# SO_MAX_VITA		>= SO_MIN_VITA

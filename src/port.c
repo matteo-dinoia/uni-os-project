@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGSEGV, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
@@ -106,6 +107,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 			}
 
 			tot_exchange -= amount;
+			TEST();
 			status = tot_exchange <= 0 ? STATUS_ACCEPTED : STATUS_PARTIAL;
 			send_to_ship(ship_id, needed_type, amount, expiry_date, status);
 		}
@@ -144,7 +146,7 @@ void supply_demand_update()
 {
 	int rem_offer_tons = _this_port->daily_restock_capacity;
 	int rem_demand_tons = _this_port->daily_restock_capacity;
-	int rand_type;
+	int rand_type, sum_normalized_first_two;
 	bool_t is_demand;
 
 	/* TODO avoid going over the limits */
@@ -159,8 +161,14 @@ void supply_demand_update()
 		}else if (rem_offer_tons > rem_demand_tons){
 			is_demand = FALSE;
 		}else {
-			/* TODO fix this shit */
-			is_demand = RANDOM(0, 2);
+			/* TODO clear this shit */
+			sum_normalized_first_two = GET_SIGN(_this_supply_demand[0].quantity)
+					+ GET_SIGN(_this_supply_demand[0].quantity);
+			if (sum_normalized_first_two > 0){
+				is_demand = TRUE;
+			}else if (sum_normalized_first_two < 0){
+				is_demand = FALSE;
+			}else is_demand = RANDOM(0, 2);
 		}
 
 		if (is_demand && rem_demand_tons > 0){
@@ -174,10 +182,6 @@ void supply_demand_update()
 					_data->today + _data_cargo->shelf_life);
 		}
 	}
-
-	dprintf(1, "Porto %d ha:\n", _this_id);
-	count_cargo(&cargo_hold[0]);
-	count_cargo(&cargo_hold[1]);
 }
 
 void signal_handler(int signal)
@@ -186,14 +190,18 @@ void signal_handler(int signal)
 
 	switch (signal)
 	{
+	case SIGSEGV:
+		dprintf(1, "[SEGMENTATION FAULT] In port (closing)");
 	case SIGINT:
 		close_all();
+		break;
 	case SIGDAY: /* Change of day */
 		supply_demand_update();
 		break;
 	case SIGSWELL: /* Swell */
 		wait_time = get_timespec(_data->SO_SWELL_DURATION/24.0);
 		do {
+			errno = EXIT_SUCCESS;
 			nanosleep(&wait_time, &rem_time);
 			wait_time = rem_time;
 		} while (errno == EINTR);

@@ -103,10 +103,6 @@ int count_cargo(list_cargo *list)
 		current = current->next;
 	}
 
-	/* TEST */
-	_print_cargo(list);
-	dprintf(1, "%d\n", res);
-
 	return res;
 }
 
