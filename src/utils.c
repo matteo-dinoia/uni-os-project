@@ -15,7 +15,7 @@ struct node_cargo{
 void _print_cargo(list_cargo *list){
 	struct node_cargo *el;
 
-	dprintf(1, "[CARGO_LIST_ALIVE]\n[CARGO_LIST %p] ", (void *) list);
+	dprintf(1, "[CARGO_LIST %p] ", (void *) list);
 	if(list == NULL){
 		dprintf(1, "List is null\n");
 		return;
@@ -103,15 +103,16 @@ int count_cargo(list_cargo *list)
 		current = current->next;
 	}
 
+	/* TEST */
+	_print_cargo(list);
+	dprintf(1, "%d\n", res);
+
 	return res;
 }
 
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 {
 	struct node_cargo *tmp;
-
-	/* TEST */
-	_print_cargo(list);
 
 	if(list == NULL){
 		dprintf(1, "Should have controlled NULL in pop cargo (list = %p).\n", (void *) list);
@@ -131,9 +132,6 @@ void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 	tmp = list->first;
 	list->first = list->first->next;
 	free(tmp);
-
-	/* TEST */
-	_print_cargo(list);
 }
 
 struct timespec get_timespec(double interval_sec){

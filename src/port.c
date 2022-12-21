@@ -128,13 +128,16 @@ void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, ship_id,
 			cargo_type, amount, expiry_date, status);
 
+	dprintf(1, "PORT %d SEND TO SHIP %d\n", _this_id, ship_id);
 	send_commerce_msg(_data->id_msg_out_ports, &msg);
 }
 
 void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
+	dprintf(1, "PORT %d LISTEN TO SHIPS\n", _this_id);
 	receive_commerce_msg(_data->id_msg_in_ports, _this_id,
 			ship_id, cargo_type, amount, expiry_date, status);
+	dprintf(1, "PORT %d RECEIVED FROM SHIPS\n", _this_id);
 }
 
 void supply_demand_update()
@@ -149,9 +152,9 @@ void supply_demand_update()
 		rand_type = RANDOM(0, _data->SO_MERCI);
 		if (_this_supply_demand[rand_type].quantity > 0){
 			is_demand = FALSE;
-		} else if (_this_supply_demand[rand_type].quantity < 0) {
+		}else if (_this_supply_demand[rand_type].quantity < 0) {
 			is_demand = TRUE;
-		} else if (rem_offer_tons < rem_demand_tons){
+		}else if (rem_offer_tons < rem_demand_tons){
 			is_demand = TRUE;
 		}else if (rem_offer_tons > rem_demand_tons){
 			is_demand = FALSE;
@@ -167,9 +170,14 @@ void supply_demand_update()
 		else if (!is_demand && rem_offer_tons > 0){
 			_this_supply_demand[rand_type].quantity += 1;
 			rem_offer_tons -= _data_cargo->weight_batch;
-			add_cargo(cargo_hold, _data_cargo->weight_batch, RANDOM(9000, 9999)); /* TODO expiry date*/
+			add_cargo(&cargo_hold[rand_type], _data_cargo->weight_batch,
+					RANDOM(9000, 9999)); /* TODO expiry date*/
 		}
 	}
+
+	dprintf(1, "Porto %d ha:\n", _this_id);
+	count_cargo(&cargo_hold[0]);
+	count_cargo(&cargo_hold[1]);
 }
 
 void signal_handler(int signal)
