@@ -163,7 +163,7 @@ void supply_demand_update()
 		}else {
 			/* TODO clear this shit */
 			sum_normalized_first_two = GET_SIGN(_this_supply_demand[0].quantity)
-					+ GET_SIGN(_this_supply_demand[0].quantity);
+					+ GET_SIGN(_this_supply_demand[1].quantity);
 			if (sum_normalized_first_two > 0){
 				is_demand = TRUE;
 			}else if (sum_normalized_first_two < 0){
