@@ -39,9 +39,9 @@ crunf: _clear-screen recompile _wait-input
 alives:
 	ps -aux | grep -E "/master|/ship|/port|/weather" | grep -v -E "grep|rm" | cat;
 killall-int:
-	killall -s INT master port ship | cat
+	killall -s INT $(_PROCESSES) | cat
 killall-kill:
-	killall -s KILL master port ship | cat
+	killall -s KILL $(_PROCESSES) | cat
 count:
 	printf "\nNumber of lines in project: "; cat src/*.c src/header/*.h Makefile | wc -l
 
