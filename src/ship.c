@@ -157,7 +157,8 @@ void exchange_goods(int port_id)
 int sell(int port_id)
 {
 	struct commerce_msgbuf msg;
-	int i, n_batch, n_requested_port, n_batch_ship, tons_moved, weight;
+	int n_batch, n_requested_port, n_batch_ship;
+	int i, tons_moved, weight, status;
 
 	tons_moved = 0;
 
@@ -171,20 +172,14 @@ int sell(int port_id)
 		if (n_batch <= 0) continue;
 
 		/* Send message */
-		msg = create_commerce_msgbuf(_this_id, port_id);
-		set_commerce_msgbuf(&msg, i, -n_batch, -1, STATUS_REQUEST); /* Not needed expiry date because it is instantly burnt */
-		do{
-			send_commerce_msg(_data->id_msg_in_ports, &msg);
-		}while(errno == EINTR);
+		send_to_port(port_id, i, n_batch, -1, STATUS_REQUEST);
 
 		/* Wait response */
-		do {
-			receive_commerce_msg(_data->id_msg_out_ports, &msg, _this_id);
-		}while(errno == EINTR);
+		receive_from_port(NULL, NULL, &n_batch, NULL, &status);
 
 		/* Change data */
-		if (msg.status == STATUS_ACCEPTED){
-			n_batch = abs(msg.n_cargo_batch);
+		if (status == STATUS_ACCEPTED && n_batch < 0){
+			n_batch = abs(n_batch);
 			remove_cargo(&cargo_hold[i], n_batch);
 			weight = n_batch * _data_cargo[i].weight_batch;
 			tons_moved += weight;
@@ -198,29 +193,23 @@ int sell(int port_id)
 
 int buy(int port_id)
 {
-	int n_batch, weight, tons_moved, type;
-	struct commerce_msgbuf msg;
+	int amount, weight, tons_moved, type, expiry_date, status;
 
 	tons_moved = 0;
-	while (pick_buy(port_id, &type, &n_batch) != -1){
-		msg = create_commerce_msgbuf(_this_id, port_id);
-		set_commerce_msgbuf(&msg, type, n_batch, -1, STATUS_REQUEST);
-		do{
-			send_commerce_msg(_data->id_msg_in_ports, &msg);
-		}while(errno == EINTR);
+	while (pick_buy(port_id, &type, &amount) != -1){
+		send_to_port(port_id, type, amount, -1, STATUS_REQUEST);
 
 		/* Wait response */
 		do {
-			receive_commerce_msg(_data->id_msg_out_ports, &msg, _this_id);
+			receive_from_port(NULL, &type, &amount, &expiry_date, &status);
 			/* Change data */
-			if (errno == EXIT_SUCCESS && msg.status >= STATUS_PARTIAL){
-				n_batch = abs(msg.n_cargo_batch);
-				add_cargo(&cargo_hold[type], n_batch, msg.expiry_date);
-				weight = n_batch * _data_cargo[type].weight_batch;
+			if (status == STATUS_PARTIAL || status == STATUS_ACCEPTED){
+				add_cargo(&cargo_hold[type], amount, expiry_date);
+				weight = amount * _data_cargo[type].weight_batch;
 				tons_moved += weight;
 				_current_capacity -= weight;
 			}
-		}while(errno == EINTR || msg.status == STATUS_PARTIAL);
+		}while(status == STATUS_PARTIAL);
 	}
 
 	return tons_moved;
@@ -238,7 +227,6 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id].quantity;
 		n_cargo_capacity = _current_capacity / _data_cargo[i].weight_batch;
 		n_cargo = MIN(n_cargo_port, n_cargo_capacity);
-		dprintf(1, "!!!S-TEST  min %d my %d port %d !!!\n", n_cargo, n_cargo_capacity, n_cargo_port);
 
 		if (n_cargo > 0){
 			*pick_type = cargo_id;
@@ -250,6 +238,21 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 	}
 
 	return -1; /* If nothing to buy is found */
+}
+
+void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int status)
+{
+	struct commerce_msgbuf msg;
+	create_commerce_msgbuf(&msg, _this_id, port_id,
+			cargo_type, amount, expiry_date, status);
+
+	send_commerce_msg(_data->id_msg_in_ports, &msg);
+}
+
+void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
+{
+	receive_commerce_msg(_data->id_msg_out_ports, _this_id,
+			port_id, cargo_type, amount, expiry_date, status);
 }
 
 void signal_handler(int signal)

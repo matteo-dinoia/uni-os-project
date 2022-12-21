@@ -7,25 +7,15 @@
 #include "header/message.h"
 #include "header/shared_mem.h"
 
-struct commerce_msgbuf create_commerce_msgbuf(long sender, long receiver)
-{
-	struct commerce_msgbuf res;
-	bzero(&res, sizeof(res));
+#define MSG_TYPE(type) ((type) + 1)
+#define MSG_DEC_TYPE(type) ((type) - 1)
 
-	res.receiver = receiver + 1;
-	res.sender = sender + 1;
-
-	return res;
-}
-
-struct commerce_msgbuf respond_commerce_msgbuf(const struct commerce_msgbuf *msg_to_respond)
-{
-	return create_commerce_msgbuf(msg_to_respond->receiver - 1, msg_to_respond->sender - 1);
-}
-
-void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int expiry_date, int status)
+void create_commerce_msgbuf(struct commerce_msgbuf *msg, long sender, long receiver, int type, int amount, int expiry_date, int status)
 {
 	if(msg == NULL) return;
+
+	msg->receiver = MSG_TYPE(receiver);
+	msg->sender = MSG_TYPE(sender);
 
 	msg->cargo_type = type;
 	msg->n_cargo_batch = amount;
@@ -35,19 +25,24 @@ void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int 
 
 void send_commerce_msg(id_shared_t id, const struct commerce_msgbuf *msg)
 {
-	dprintf(1, "[%s %d->%d (%d)] type: %d amount: %d expiry-date: %d status: %d\n",
-			msg->status == STATUS_REQUEST ? "SHIP SENT" : "PORT SENT RESPONSE",
-			msg->sender, msg->receiver, id, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date, msg->status);
-	msgsnd(id, msg, MSG_SIZE(*msg), 0);
+	do {
+		msgsnd(id, msg, MSG_SIZE(*msg), 0);
+	}while (errno == EINTR);
+	/* TODO add control for ERMID */
 }
 
-void receive_commerce_msg(id_shared_t id, struct commerce_msgbuf *msg, int type)
+void receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
-	dprintf(1, "[LISTEN (%d) type %d]\n", id, type + 1);
-	msgrcv(id, msg, MSG_SIZE(*msg), type + 1, 0);
+	struct commerce_msgbuf msg;
 
-	if(errno != EXIT_SUCCESS) return;
-	dprintf(1, "[RECEIVED FROM %s on id %d, from %d to %d] type: %d amount: %d expiry-date: %d status: %d\n",
-			msg->status == STATUS_REQUEST ? "SHIP" : "PORT",
-			id, msg->sender, msg->receiver, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date, msg->status);
+	do {
+		msgrcv(id, &msg, MSG_SIZE(msg), MSG_TYPE(type), 0);
+	}while (errno == EINTR);
+	/* TODO add control for ERMID */
+
+	if(sender_id != NULL) sender_id = MSG_DEC_TYPE(msg.sender);
+	if(cargo_type != NULL) cargo_type = msg.cargo_type;
+	if(amount != NULL) amount = msg.n_cargo_batch;
+	if(expiry_date != NULL) expiry_date = msg.expiry_date;
+	if(status != NULL) status = msg.status;
 }

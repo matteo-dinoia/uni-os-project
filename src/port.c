@@ -26,7 +26,9 @@ struct supply_demand *_this_supply_demand;
 void supply_demand_update();
 void signal_handler(int);
 void loop();
-void respond_msg(struct commerce_msgbuf);
+void respond_msg(int, int, int);
+void send_to_ship(int, int, int, int, int);
+void receive_from_ship(int *, int *, int *, int *, int *);
 void close_all();
 
 
@@ -71,76 +73,68 @@ int main(int argc, char *argv[])
 
 void loop()
 {
-	struct commerce_msgbuf msg;
-
+	int ship_id, needed_type, needed_amount;
 	supply_demand_update();
 
 	while (1){
-		receive_commerce_msg(_data->id_msg_in_ports, &msg, _this_id);
-		if (errno == EXIT_SUCCESS)
-			respond_msg(msg);
+		receive_from_ship(&ship_id, &needed_type, &needed_amount, NULL, NULL);
+		respond_msg(ship_id, needed_type, needed_amount);
 	}
 }
 
-void respond_msg(struct commerce_msgbuf msg_received)
+void respond_msg(int ship_id, int needed_type, int needed_amount)
 {
-	const int needed_type = msg_received.cargo_type;
-	const int needed_supply = msg_received.n_cargo_batch;
-	const int this_supply = _this_supply_demand[needed_type].quantity;
+	const int this_amount = _this_supply_demand[needed_type].quantity;
 
-	struct commerce_msgbuf response;
-	int tot_exchange, amount, expiry_date;
+	int tot_exchange = 0, amount = 0, expiry_date = 0;
+	int status = STATUS_REFUSED;
 
-	response = respond_commerce_msgbuf(&msg_received);
-	response.status = STATUS_REFUSED;
-
-	dprintf(1, "!!!1-TEST  need %d have %d or %d!!!\n", needed_supply, this_supply, _data_supply_demand[_this_id * _data->SO_MERCI + needed_type].quantity);
-
-	if (needed_supply < 0  && this_supply < 0){
-		/* If port is buying respond with how much */
-		response.n_cargo_batch = MAX(needed_supply, this_supply);
-		response.status = STATUS_ACCEPTED;
-		_this_supply_demand[needed_type].quantity -= response.n_cargo_batch;
-	} else if (needed_supply > 0 && this_supply > 0){
+	if (needed_amount > 0 && this_amount > 0){
 		/* If port is selling respond with how much */
-		tot_exchange = MIN(needed_supply, this_supply);
+		tot_exchange = MIN(needed_amount, this_amount);
 		_this_supply_demand[needed_type].quantity -= tot_exchange;
 
 		while (tot_exchange > 0){
 			/* Spamming messages */
 			pop_cargo(&cargo_hold[needed_type], &amount, &expiry_date);
 			if(amount == 0){
-				dprintf(1, "!---[ERROR] Port is responding with 0\n");
-				set_commerce_msgbuf(&response, needed_type, amount, expiry_date, STATUS_ACCEPTED);
-				do{
-					send_commerce_msg(_data->id_msg_out_ports, &response);
-				}while(errno == EINTR);
-				return;
-			}
-			if (amount > tot_exchange){
+				status = STATUS_REFUSED;
+				break;
+			}else if (amount > tot_exchange){
 				add_cargo(&cargo_hold[needed_type], amount - tot_exchange, expiry_date);
 				amount = tot_exchange;
 			}
-			set_commerce_msgbuf(&response, needed_type, amount, expiry_date, STATUS_PARTIAL);
-			tot_exchange -= amount;
-			if (tot_exchange <= 0)
-				response.status = STATUS_ACCEPTED;
-			do{
-				send_commerce_msg(_data->id_msg_out_ports, &response);
-			}while(errno == EINTR);
 
-			if(tot_exchange <= 0)
-				return;
+			tot_exchange -= amount;
+			status = tot_exchange <= 0 ? STATUS_ACCEPTED : STATUS_PARTIAL;
+			send_to_ship(ship_id, needed_type, amount, expiry_date, status);
 		}
-	} else response.status == STATUS_REFUSED;
+		if(tot_exchange <= 0)
+			return;
+	}else if (needed_amount < 0  && this_amount < 0){
+		/* If port is buying respond with how much */
+		amount = MAX(needed_amount, this_amount);
+		_this_supply_demand[needed_type].quantity -= amount;
+		status = STATUS_ACCEPTED;
+	}
 
 	/* Refuse or send message */
-	if(response.status == STATUS_REFUSED){
-		set_commerce_msgbuf(&response, needed_type, amount, expiry_date, STATUS_REFUSED);
-	}
-	do{
-		send_commerce_msg(_data->id_msg_out_ports, &response);
-	}while(errno == EINTR);
+	send_to_ship(ship_id, needed_type, amount, expiry_date, status);
+}
+
+void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int status)
+{
+	struct commerce_msgbuf msg;
+	create_commerce_msgbuf(&msg, _this_id, ship_id,
+			cargo_type, amount, expiry_date, status);
+
+	send_commerce_msg(_data->id_msg_out_ports, &msg);
+}
+
+void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
+{
+	receive_commerce_msg(_data->id_msg_in_ports, _this_id,
+			ship_id, cargo_type, amount, expiry_date, status);
 }
 
 void supply_demand_update()
@@ -169,13 +163,11 @@ void supply_demand_update()
 		if (is_demand && rem_demand_tons > 0){
 			_this_supply_demand[rand_type].quantity -= 1;
 			rem_demand_tons -= _data_cargo->weight_batch;
-			dprintf(1, "[PP DEMAND on %d] type %d new_quant %d rem %d\n", _this_id + 1, rand_type, _this_supply_demand[rand_type].quantity, rem_demand_tons);
 		}
 		else if (!is_demand && rem_offer_tons > 0){
 			_this_supply_demand[rand_type].quantity += 1;
 			rem_offer_tons -= _data_cargo->weight_batch;
 			add_cargo(cargo_hold, _data_cargo->weight_batch, RANDOM(9000, 9999)); /* TODO expiry date*/
-			dprintf(1, "[PP OFFER on %d] type %d new_quant %d rem %d\n", _this_id + 1, rand_type, _this_supply_demand[rand_type].quantity, rem_offer_tons);
 		}
 	}
 }
