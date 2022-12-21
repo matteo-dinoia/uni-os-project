@@ -37,7 +37,7 @@ crunf: _clear-screen recompile _wait-input
 
 #TOOLS
 alives:
-	ps -aux | grep -E "/master|/ship|/port" | grep -v -E "grep|rm" | cat;
+	ps -aux | grep -E "/master|/ship|/port|/weather" | grep -v -E "grep|rm" | cat;
 killall-int:
 	killall -s INT master port ship | cat
 killall-kill:
