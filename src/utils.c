@@ -134,6 +134,29 @@ void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 	free(tmp);
 }
 
+int remove_expired_cargo(list_cargo *list, int today)
+{
+	struct node_cargo *tmp;
+	int amount_removed = 0;
+
+	if(list == NULL){
+		dprintf(1, "Should have controlled NULL in remove expired cargo (list = %p).\n", (void *) list);
+		return;
+	}
+
+	for(tmp = list->first; tmp != NULL; ){
+		if (tmp->expiry_date > today)
+			return;
+
+		amount_removed += tmp->amount;
+		list->first = tmp->next;
+		free(tmp);
+		tmp = list->first;
+	}
+
+	return amount_removed;
+}
+
 struct timespec get_timespec(double interval_sec){
 	struct timespec res;
 
@@ -157,4 +180,18 @@ void timer(double duration_sec){
 
 	ret = setitimer(ITIMER_REAL, &it_val, NULL);
 	dprintf(1, "%d %s", ret, strerror(errno));
+}
+
+void wait_event_duration(double sec)
+{
+	struct timespec rem_time, event_time;
+
+	if (sec <= 0) return;
+
+	event_time = get_timespec(sec);
+	do {
+		errno = EXIT_SUCCESS;
+		nanosleep(&event_time, &rem_time);
+		event_time = rem_time;
+	}while (errno == EINTR);
 }

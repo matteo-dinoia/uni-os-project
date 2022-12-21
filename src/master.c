@@ -102,6 +102,8 @@ void initialize_shared()
 	/* SEM: Start and docks */
 	_id_sem = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
 	_data->id_sem_docks = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
+	_data->id_sem_cargo = semget(IPC_PRIVATE, _data->SO_MERCI, 0600);
+
 }
 
 void print_dump_data()
@@ -109,6 +111,7 @@ void print_dump_data()
 	int port, type;
 	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_data->today);
 
+	dprintf(1, "\n----------------[SHOP]---------------\n", ++_data->today);
 	for(port = 0; port < _data->SO_PORTI; port++){
 		dprintf(1, "PORT %d:", port);
 		for(type = 0; type < _data->SO_MERCI; type++){
@@ -117,7 +120,7 @@ void print_dump_data()
 		}
 		dprintf(1, "\n");
 	}
-
+	dprintf(1, "\n----------------[END SHOP]---------------\n", ++_data->today);
 	if(_data->today >= _data->SO_DAYS)
 		close_all("------------[END SIMULATION]-----------\n", EXIT_SUCCESS);
 }
@@ -177,6 +180,7 @@ void create_children()
 		current_ship->is_moving = FALSE;
 
 		/* Initializing ship dump */
+		current_ship->capacity = _data->SO_CAPACITY;
 		current_ship->dump_is_at_dock = FALSE;
 		current_ship->dump_had_storm = FALSE;
 		current_ship->dump_had_maelstrom = FALSE;
@@ -195,6 +199,9 @@ void create_children()
 		current_cargo->dump_exipered_port = 0;
 		current_cargo->dump_exipered_ship = 0;
 		current_cargo->dump_tot_delivered = 0;
+
+		/* Semaphore */
+		semctl(_data->id_sem_cargo, i, SETVAL, 1);
 	}
 
 	/* Initialize supply and demand */

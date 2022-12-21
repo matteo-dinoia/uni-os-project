@@ -26,9 +26,11 @@ void remove_cargo(list_cargo *list, int amount);
 void add_cargo(list_cargo *list, int amount, int expiry_date);
 int count_cargo(list_cargo *list);
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date);
+int remove_expired_cargo(list_cargo *list, int today);
 
 struct timespec get_timespec(double interval_sec);
 void timer(double interval_sec);
+void wait_event_duration(double sec);
 
 /* MACRO FUNCTION */
 #define TEST() dprintf(1, "TEST ALIVE: is still alive at %d in %s\n", __LINE__, __FILE__)

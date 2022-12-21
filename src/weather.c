@@ -113,9 +113,9 @@ void signal_handler(int signal)
 		/* storm();
 		swell(); */
 		break;
-	case SIGALRM: /* Swell */
-		dprintf(1, "TEST WEATHER\n");
-		/* maelstrom(); */
+	case SIGALRM:
+		/* dprintf(1, "TEST WEATHER\n");
+		maelstrom(); */
 		break;
 	}
 }
