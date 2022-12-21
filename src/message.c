@@ -40,9 +40,9 @@ void receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_t
 	}while (errno == EINTR);
 	/* TODO add control for ERMID */
 
-	if(sender_id != NULL) sender_id = MSG_DEC_TYPE(msg.sender);
-	if(cargo_type != NULL) cargo_type = msg.cargo_type;
-	if(amount != NULL) amount = msg.n_cargo_batch;
-	if(expiry_date != NULL) expiry_date = msg.expiry_date;
-	if(status != NULL) status = msg.status;
+	if(sender_id != NULL) *sender_id = MSG_DEC_TYPE(msg.sender);
+	if(cargo_type != NULL) *cargo_type = msg.cargo_type;
+	if(amount != NULL) *amount = msg.n_cargo_batch;
+	if(expiry_date != NULL) *expiry_date = msg.expiry_date;
+	if(status != NULL) *status = msg.status;
 }
