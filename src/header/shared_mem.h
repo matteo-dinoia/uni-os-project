@@ -29,6 +29,9 @@ struct general{
 
 	/* Semaphores */
 	id_shared_t id_sem_docks;
+
+	/* Today */
+	int today;
 };
 
 struct port{

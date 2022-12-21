@@ -30,7 +30,6 @@
 
 
 /* Global variables */
-int _day = 0;
 int _id_data;
 int _id_sem;
 int _weather_pid = 0;
@@ -81,7 +80,6 @@ int main()
 	execute_single_sem_oper(_id_sem, 0, -1);
 
 	/* Wait forever */
-	/* timer(DAY_SEC); TODO MAKE WORKING */
 	alarm(DAY_SEC);
 	while (1) pause();
 }
@@ -108,9 +106,19 @@ void initialize_shared()
 
 void print_dump_data()
 {
-	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_day);
+	int port, type;
+	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_data->today);
 
-	if(_day >= _data->SO_DAYS)
+	for(port = 0; port < _data->SO_PORTI; port++){
+		dprintf(1, "PORT %d:", port);
+		for(type = 0; type < _data->SO_MERCI; type++){
+			dprintf(1, "(t: %d) %d:", type,
+					_data_supply_demand[_data->SO_PORTI * port + type]);
+		}
+		dprintf(1, "\n");
+	}
+
+	if(_data->today >= _data->SO_DAYS)
 		close_all("------------[END SIMULATION]-----------\n", EXIT_SUCCESS);
 }
 
@@ -269,9 +277,9 @@ void custom_handler(int signal)
 	case SIGALRM:
 		print_dump_data();
 		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT */
-		for (i = 0; i < _data->SO_PORTI; i++)
+		/* for (i = 0; i < _data->SO_PORTI; i++)
 			kill(_data_port[i].pid, SIGDAY);
-		kill(_weather_pid, SIGDAY);
+		kill(_weather_pid, SIGDAY); */
 		alarm(DAY_SEC);
 		break;
 	}

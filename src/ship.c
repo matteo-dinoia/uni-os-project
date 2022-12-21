@@ -178,7 +178,7 @@ int sell(int port_id)
 		if (n_batch <= 0) continue;
 
 		/* Send message */
-		send_to_port(port_id, i, n_batch, -1, STATUS_REQUEST);
+		send_to_port(port_id, i, -n_batch, -1, STATUS_REQUEST);
 
 		/* Wait response */
 		receive_from_port(NULL, NULL, &n_batch, NULL, &status);
@@ -252,13 +252,16 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, port_id,
 			cargo_type, amount, expiry_date, status);
 
+	dprintf(1, "SHIP %d SEND TO PORT %d\n", _this_id, port_id);
 	send_commerce_msg(_data->id_msg_in_ports, &msg);
 }
 
 void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
+	dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id);
 	receive_commerce_msg(_data->id_msg_out_ports, _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
+	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d\n", _this_id, *status);
 }
 
 void signal_handler(int signal)
