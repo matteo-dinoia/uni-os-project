@@ -110,11 +110,12 @@ void signal_handler(int signal)
 	case SIGINT:
 		close_all();
 	case SIGDAY: /* Change of day */
-		storm();
-		swell();
+		/* storm();
+		swell(); */
 		break;
 	case SIGALRM: /* Swell */
-		maelstrom();
+		dprintf(1, "TEST WEATHER\n");
+		/* maelstrom(); */
 		break;
 	}
 }

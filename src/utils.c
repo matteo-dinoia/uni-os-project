@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
+#include <string.h>
+#include <unistd.h>
+#include <signal.h>
+#include <errno.h>
 #include "header/utils.h"
 
 /* Sorted by expiry date */
@@ -139,16 +143,18 @@ struct timespec get_timespec(double interval_sec){
 	return res;
 }
 
-void timer(double interval_sec){
-	struct itimerval interval;
-	long sec, usec;
+void timer(double duration_sec){
+	struct itimerval it_val;
+	int sec, usec, ret;
 
-	sec = (long)interval_sec;
-	usec = (interval_sec - (long)interval_sec) * pow(10, 6);
+	sec = (int) duration_sec;
+	usec = (duration_sec - (int)duration_sec) * pow(10, 6);
+	dprintf(1, "[SEC] sec %d usec %d\n", sec, usec);
 
-	interval.it_interval.tv_sec = sec;
-	interval.it_interval.tv_sec = usec;
-	interval.it_value = interval.it_interval;
+	it_val.it_value.tv_sec = sec;
+	it_val.it_value.tv_usec = usec;
+	it_val.it_interval = it_val.it_value;
 
-	setitimer(ITIMER_REAL, &interval, NULL);
+	ret = setitimer(ITIMER_REAL, &it_val, NULL);
+	dprintf(1, "%d %s", ret, strerror(errno));
 }
