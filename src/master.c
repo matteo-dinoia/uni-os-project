@@ -277,9 +277,11 @@ void custom_handler(int signal)
 	case SIGALRM:
 		print_dump_data();
 		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT */
-		/* for (i = 0; i < _data->SO_PORTI; i++)
-			kill(_data_port[i].pid, SIGDAY);
-		kill(_weather_pid, SIGDAY); */
+		for (i = 0; i < _data->SO_PORTI; i++)
+			SEND_SIGNAL(_data_port[i].pid, SIGDAY);
+		for (i = 0; i < _data->SO_NAVI; i++)
+			SEND_SIGNAL(_data_ship[i].pid, SIGDAY);
+		SEND_SIGNAL(_weather_pid, SIGDAY);
 		alarm(DAY_SEC);
 		break;
 	}
@@ -296,7 +298,7 @@ void close_all(const char *message, int exit_status)
 		SEND_SIGNAL(_data_port[i].pid, SIGINT);
 	for (i = 0; _data_ship != NULL && i<_data->SO_NAVI; i++)
 		SEND_SIGNAL(_data_ship[i].pid, SIGINT);
-	while(wait(NULL) != -1 || errno == EINTR);
+	while(wait(NULL) != -1 || errno == EINTR) errno = EXIT_SUCCESS;
 
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);

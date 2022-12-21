@@ -25,19 +25,23 @@ void create_commerce_msgbuf(struct commerce_msgbuf *msg, long sender, long recei
 
 void send_commerce_msg(id_shared_t id, const struct commerce_msgbuf *msg)
 {
+	int return_value;
 	do {
-		msgsnd(id, msg, MSG_SIZE(*msg), 0);
-	}while (errno == EINTR);
+		return_value = msgsnd(id, msg, MSG_SIZE(*msg), 0);
+	}while (return_value < 0/* && errno == EINTR */);
 	/* TODO add control for ERMID */
 }
 
 void receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
 	struct commerce_msgbuf msg;
+	int return_value;
 
 	do {
-		msgrcv(id, &msg, MSG_SIZE(msg), MSG_TYPE(type), 0);
-	}while (errno == EINTR);
+		return_value = msgrcv(id, &msg, MSG_SIZE(msg), MSG_TYPE(type), 0);
+		dprintf(1, "ret = %d\n", return_value);
+	}while (return_value < 0/* && errno == EINTR */);
+	dprintf(1, "Exited\n");
 	/* TODO add control for ERMID */
 
 	if(sender_id != NULL) *sender_id = MSG_DEC_TYPE(msg.sender);

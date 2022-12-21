@@ -74,6 +74,7 @@ int main(int argc, char *argv[])
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGSEGV, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid()); /* TODO temp */
@@ -125,6 +126,7 @@ void move_to_port(double x_port, double y_port)
 	/* Wait */
 	_this_ship->is_moving = TRUE;
 	do {
+		errno = EXIT_SUCCESS;
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
 	} while (errno == EINTR);
@@ -151,6 +153,7 @@ void exchange_goods(int port_id)
 	/* Wait for every transaction to be "made" */
 	commerce_time = get_timespec(tot_tons_moved / (double)_data->SO_LOADSPEED);
 	do {
+		errno = EXIT_SUCCESS;
 		nanosleep(&commerce_time, &rem_time);
 		commerce_time = rem_time;
 	} while (errno == EINTR);
@@ -261,7 +264,7 @@ void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_d
 	dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id);
 	receive_commerce_msg(_data->id_msg_out_ports, _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
-	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d\n", _this_id, *status);
+	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d\n", _this_id, *status, *amount);
 }
 
 void signal_handler(int signal)
@@ -269,9 +272,13 @@ void signal_handler(int signal)
 	struct timespec rem_time, wait_time;
 
 	switch (signal){
-	case SIGINT: /* Closing for every other reason */
+	case SIGSEGV:
+		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)");
+		close_all();
+		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		_this_ship->dump_had_maelstrom = TRUE;
+	case SIGINT: /* Closing for every other reason */
 		close_all();
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
