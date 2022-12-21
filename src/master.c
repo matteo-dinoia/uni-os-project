@@ -30,7 +30,6 @@
 
 
 /* Global variables */
-int _day = 0;
 int _id_data;
 int _id_sem;
 int _weather_pid = 0;
@@ -108,7 +107,7 @@ void initialize_shared()
 void print_dump_data()
 {
 	int port, type;
-	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_day);
+	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_data->today);
 
 	for(port = 0; port < _data->SO_PORTI; port++){
 		dprintf(1, "PORT %d:", port);
@@ -119,7 +118,7 @@ void print_dump_data()
 		dprintf(1, "\n");
 	}
 
-	if(_day >= _data->SO_DAYS)
+	if(_data->today >= _data->SO_DAYS)
 		close_all("------------[END SIMULATION]-----------\n", EXIT_SUCCESS);
 }
 

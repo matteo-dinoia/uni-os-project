@@ -171,7 +171,7 @@ void supply_demand_update()
 			_this_supply_demand[rand_type].quantity += 1;
 			rem_offer_tons -= _data_cargo->weight_batch;
 			add_cargo(&cargo_hold[rand_type], _data_cargo->weight_batch,
-					RANDOM(9000, 9999)); /* TODO expiry date*/
+					_data->today + _data_cargo->shelf_life);
 		}
 	}
 
