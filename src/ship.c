@@ -34,6 +34,8 @@ void loop();
 int sell(int);
 int buy(int);
 int pick_buy(int, int *, int *);
+void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int status);
+void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status);
 void close_all();
 
 
