@@ -40,6 +40,7 @@ struct port{
 	/* Dump */
 	int dump_dock_used;
 	int dump_dock_tot;
+	int dump_had_swell;
 };
 
 struct ship{
@@ -51,6 +52,8 @@ struct ship{
 	/* Dump */
 	bool_t dump_is_empty;
 	bool_t dump_is_at_dock;
+	int dump_had_storm;
+	int dump_had_maeltrom;
 };
 
 struct cargo{

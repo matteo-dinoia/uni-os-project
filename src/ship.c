@@ -18,10 +18,10 @@ int _this_id;
 int _current_capacity;
 list_cargo *cargo_hold;
 /* shared memory */
-struct port *_this_ship;
+struct ship *_this_ship;
 struct general *_data;
 struct port *_data_port;
-struct port *_data_ship;
+struct ship *_data_ship;
 struct cargo *_data_cargo;
 struct supply_demand *_data_supply_demand;
 
@@ -259,13 +259,16 @@ void signal_handler(int signal)
 	switch (signal){
 	case SIGINT: /* Closing for every other reason */
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
+		_this_ship->dump_had_maeltrom = TRUE;
 		close_all();
+		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		wait_time = get_timespec(_data->SO_STORM_DURATION/24.0);
 		do {
 			nanosleep(&wait_time, &rem_time);
 			wait_time = rem_time;
 		} while (errno == EINTR);
+		_this_ship->dump_had_storm = TRUE;
 		break; /* TODO: receive possile second signal equal */
 	}
 }

@@ -66,7 +66,7 @@ void storm()
 
 	for (i = 0; i < SO_NAVI; i++){
 		if (_data_ship[ship_i].pid != 0 && _data_ship[ship_i].is_moving){
-			kill(_data_ship[ship_i].pid, SIGSTORM); /* TODO: change the signal */
+			kill(_data_ship[ship_i].pid, SIGSTORM);
 			return;
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
@@ -84,7 +84,7 @@ void maelstrom()
 
 	for (i = 0; i < SO_NAVI; i++){
 		if (_data_ship[ship_i].pid != 0){
-			kill(_data_ship[ship_i].pid, SIGMAELSTROM); /* TODO: change the signal */
+			kill(_data_ship[ship_i].pid, SIGMAELSTROM);
 			return;
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
@@ -100,7 +100,7 @@ void swell()
 	const SO_PORTI = _data->SO_PORTI;
 	int port_i = RANDOM(0, SO_PORTI);
 
-	kill(_data_port[port_i].pid, SIGSWELL); /* TODO: change the signal */
+	kill(_data_port[port_i].pid, SIGSWELL);
 }
 
 void signal_handler(int signal)
