@@ -35,19 +35,19 @@ void set_commerce_msgbuf(struct commerce_msgbuf *msg, int type, int amount, int 
 
 void send_commerce_msg(id_shared_t id, const struct commerce_msgbuf *msg)
 {
-	dprintf(1, "[%s (%d) from %d to %d] type: %d amount: %d expiry-date: %d\n",
-			msg->status == STATUS_REQUEST ? "SHIP SENT" : "PORT RESPONDED",
-			id, msg->sender, msg->receiver, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date);
+	dprintf(1, "[%s %d->%d (%d)] type: %d amount: %d expiry-date: %d status: %d\n",
+			msg->status == STATUS_REQUEST ? "SHIP SENT" : "PORT SENT RESPONSE",
+			msg->sender, msg->receiver, id, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date, msg->status);
 	msgsnd(id, msg, MSG_SIZE(*msg), 0);
 }
 
 void receive_commerce_msg(id_shared_t id, struct commerce_msgbuf *msg, int type)
 {
-	/* dprintf(1, "[LISTEN (%d) type %d]\n", id, type + 1); */
+	dprintf(1, "[LISTEN (%d) type %d]\n", id, type + 1);
 	msgrcv(id, msg, MSG_SIZE(*msg), type + 1, 0);
 
 	if(errno != EXIT_SUCCESS) return;
-	dprintf(1, "[RECEIVED FROM %s on id %d, from %d to %d] type: %d amount: %d expiry-date: %d\n",
+	dprintf(1, "[RECEIVED FROM %s on id %d, from %d to %d] type: %d amount: %d expiry-date: %d status: %d\n",
 			msg->status == STATUS_REQUEST ? "SHIP" : "PORT",
-			id, msg->sender, msg->receiver, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date);
+			id, msg->sender, msg->receiver, msg->cargo_type, msg->n_cargo_batch, msg->expiry_date, msg->status);
 }

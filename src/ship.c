@@ -23,7 +23,7 @@ struct general *_data;
 struct port *_data_port;
 struct port *_data_ship;
 struct cargo *_data_cargo;
-int *_data_supply_demand;
+struct supply_demand *_data_supply_demand;
 
 /* Prototypes */
 void find_destiation_port(int *, double *, double *, int);
@@ -160,10 +160,10 @@ int sell(int port_id)
 	int i, n_batch, n_requested_port, n_batch_ship, tons_moved, weight;
 
 	tons_moved = 0;
-	msg = create_commerce_msgbuf(_this_id, port_id);
+
 	for (i = 0; i<_data->SO_MERCI; i++){
 		/* Min i have cargo and ports need it */;
-		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i];
+		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i].quantity;
 
 		n_batch_ship = count_cargo(&cargo_hold[i]);
 		n_batch = MIN(n_batch_ship, n_requested_port);
@@ -171,8 +171,11 @@ int sell(int port_id)
 		if (n_batch <= 0) continue;
 
 		/* Send message */
+		msg = create_commerce_msgbuf(_this_id, port_id);
 		set_commerce_msgbuf(&msg, i, -n_batch, -1, STATUS_REQUEST); /* Not needed expiry date because it is instantly burnt */
-		send_commerce_msg(_data->id_msg_in_ports, &msg);
+		do{
+			send_commerce_msg(_data->id_msg_in_ports, &msg);
+		}while(errno == EINTR);
 
 		/* Wait response */
 		do {
@@ -199,10 +202,12 @@ int buy(int port_id)
 	struct commerce_msgbuf msg;
 
 	tons_moved = 0;
-	msg = create_commerce_msgbuf(_this_id, port_id);
 	while (pick_buy(port_id, &type, &n_batch) != -1){
+		msg = create_commerce_msgbuf(_this_id, port_id);
 		set_commerce_msgbuf(&msg, type, n_batch, -1, STATUS_REQUEST);
-		send_commerce_msg(_data->id_msg_in_ports, &msg);
+		do{
+			send_commerce_msg(_data->id_msg_in_ports, &msg);
+		}while(errno == EINTR);
 
 		/* Wait response */
 		do {
@@ -230,9 +235,10 @@ int pick_buy(int port_id, int *pick_type, int *pick_amount)
 	cargo_id = RANDOM(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
 		/* TODO: make it seriously */
-		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id];
+		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id].quantity;
 		n_cargo_capacity = _current_capacity / _data_cargo[i].weight_batch;
 		n_cargo = MIN(n_cargo_port, n_cargo_capacity);
+		dprintf(1, "!!!S-TEST  min %d my %d port %d !!!\n", n_cargo, n_cargo_capacity, n_cargo_port);
 
 		if (n_cargo > 0){
 			*pick_type = cargo_id;
