@@ -1,5 +1,8 @@
 # Compiled
 bin
 
+# Logs file
+output.log
+
 # VS Code file
 .vscode

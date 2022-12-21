@@ -12,6 +12,20 @@ struct node_cargo{
 	struct node_cargo *next;
 };
 
+void _print_cargo(list_cargo *list){
+	struct node_cargo *el;
+
+	dprintf(1, "[CARGO_LIST_ALIVE]\n[CARGO_LIST %p] ", (void *) list);
+	if(list == NULL){
+		dprintf(1, "List is null\n");
+		return;
+	}
+
+	for(el = list->first; el != NULL; el = el->next)
+		dprintf(1, "q%de%d ", el->amount, el->expiry_date);
+	dprintf(1, "\n");
+}
+
 void remove_cargo(list_cargo *list, int amount)
 {
 	struct node_cargo *current = list->first, *tmp;
@@ -95,17 +109,31 @@ int count_cargo(list_cargo *list)
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 {
 	struct node_cargo *tmp;
-	if(list == NULL || list->first == NULL){
-		dprintf(1, "Should have controlled NULL in pop cargo.\n");
+
+	/* TEST */
+	_print_cargo(list);
+
+	if(list == NULL){
+		dprintf(1, "Should have controlled NULL in pop cargo (list = %p).\n", (void *) list);
+		*amount = 0;
+		*expiry_date = -14;
+		return;
+	}else if(list->first == NULL){
+		dprintf(1, "Should have controlled NOT_EMPTY in pop cargo (list-> first = %p).\n", (void *) list->first);
+		*amount = 0;
+		*expiry_date = -3;
 		return;
 	}
 
 	*amount = list->first->amount;
 	*expiry_date = list->first->expiry_date;
 
-	tmp =list->first;
+	tmp = list->first;
 	list->first = list->first->next;
 	free(tmp);
+
+	/* TEST */
+	_print_cargo(list);
 }
 
 struct timespec get_timespec(double interval_sec){
@@ -115,4 +143,18 @@ struct timespec get_timespec(double interval_sec){
 	res.tv_nsec = (interval_sec - (long)interval_sec) * pow(10, 9);
 
 	return res;
+}
+
+void timer(double interval_sec){
+	struct itimerval interval;
+	long sec, usec;
+
+	sec = (long)interval_sec;
+	usec = (interval_sec - (long)interval_sec) * pow(10, 6);
+
+	interval.it_interval.tv_sec = sec;
+	interval.it_interval.tv_sec = usec;
+	interval.it_value = interval.it_interval;
+
+	setitimer(ITIMER_REAL, &interval, NULL);
 }

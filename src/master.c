@@ -5,6 +5,7 @@
 #include <sys/sem.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <string.h>
 #include <signal.h>
 #include <limits.h>
 #include "header/shared_mem.h"
@@ -13,6 +14,7 @@
 #include "header/utils.h"
 
 /* Macros */
+#define DAY_SEC 1
 #define CREATE_SHM(key, id, pointer, num_elem, extra_flags)\
 		do{\
 			(id) = shmget((key), sizeof(*(pointer))*(num_elem), 0600 | (extra_flags));\
@@ -28,6 +30,7 @@
 
 
 /* Global variables */
+int _day = 0;
 int _id_data;
 int _id_sem;
 int _weather_pid = 0;
@@ -58,25 +61,29 @@ int main()
 	srand(time(NULL) * getpid());
 	sigfillset(&set_masked);
 
+	/* Setting signal handler (need to be done after) */
+	bzero(&sa, sizeof(sa));
+	sa.sa_handler = &custom_handler;
+	sigaction(SIGALRM, &sa, NULL);
+	sa.sa_mask = set_masked;
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
+	sigaction(SIGSEGV, &sa, NULL);
+
 	/* Initializing no error can be inside */
-	sigprocmask(SIG_BLOCK, &set_masked, NULL);
+	/* sigprocmask(SIG_BLOCK, &set_masked, NULL); */
 	initialize_shared();
-	sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
+	/* sigprocmask(SIG_UNBLOCK, &set_masked, NULL); */
 
 	/* Create and start children*/
 	semctl(_id_sem, 0, SETVAL, 1);
 	create_children();
 	execute_single_sem_oper(_id_sem, 0, -1);
 
-	/* Setting signal handler (need to be done after) */
-	bzero(&sa, sizeof(sa));
-	sa.sa_handler = &custom_handler;
-	sa.sa_mask = set_masked;
-	sigaction(SIGTERM, &sa, NULL);
-	sigaction(SIGINT, &sa, NULL);
-
-	/* Start running*/
-	loop();
+	/* Wait forever */
+	/* timer(DAY_SEC); TODO MAKE WORKING */
+	alarm(DAY_SEC);
+	while (1) pause();
 }
 
 void initialize_shared()
@@ -99,14 +106,12 @@ void initialize_shared()
 	_data->id_sem_docks = semget(IPC_PRIVATE, _data->SO_PORTI, 0600);
 }
 
-void loop()
-{
-	/* Wait forever */
-	while (1) pause();
-}
-
 void print_dump_data()
 {
+	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_day);
+
+	if(_day >= _data->SO_DAYS)
+		close_all("------------[END SIMULATION]-----------\n", EXIT_SUCCESS);
 }
 
 void create_children()
@@ -170,7 +175,6 @@ void create_children()
 	}
 
 	/* Initialize supply and demand */
-	/* TODO BZERO TO EVERYTHING UP -> missing base value */
 	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * _data->SO_PORTI * _data->SO_MERCI);
 
 	/* Initialize weather */
@@ -185,8 +189,9 @@ void read_constants_from_file() /* Crashable */
 
 	/* Take file from out of bin directory */
 	FILE *file = fopen("../constants.txt", "r");
-	if(file == NULL)
-		close_all("[FATAL] Could not open file (reading file constant.txt)", EXIT_FAILURE);
+
+	if (file == NULL)
+		close_all("[FATAL] Could not open file constants.txt", EXIT_FAILURE);
 
 	dprintf(1, "[CONST VALUE]");
 	while ((num_read = fscanf(file, "%d", &value)) != EOF){
@@ -195,7 +200,7 @@ void read_constants_from_file() /* Crashable */
 				fclose(file);
 				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
 			}
-			((int*)_data)[counter++] = value;
+			((int *)_data)[counter++] = value;
 			dprintf(1, " %d", value);
 		}
 
@@ -241,16 +246,18 @@ void custom_handler(int signal)
 	int i;
 
 	switch (signal){
+	case SIGSEGV:
+		close_all("[ERROR] Segmentation memory", EXIT_FAILURE);
 	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
-		break;
 	case SIGALRM:
+		print_dump_data();
+		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT
 		for (i = 0; i<_data->SO_PORTI; i++)
 			kill(_data_port[i].pid, SIGDAY);
-		kill(_weather_pid, SIGDAY);
-		break;
-	default:
+		kill(_weather_pid, SIGDAY);*/
+		alarm(DAY_SEC);
 		break;
 	}
 }
@@ -260,6 +267,7 @@ void close_all(const char *message, int exit_status)
 	int i, pid;
 
 	/* Killing and wait child */
+	/* TODO BZERO TO EVERYTHING UP + SECURITY */
 	SEND_SIGNAL(_weather_pid, SIGINT);
 	for (i = 0; _data_port != NULL && i<_data->SO_PORTI; i++)
 		SEND_SIGNAL(_data_port[i].pid, SIGINT);

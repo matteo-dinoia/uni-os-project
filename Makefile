@@ -24,10 +24,12 @@ bin/%: src/%.c $(REQUIRED_O)
 recompile: clear all
 clear:
 	$(RM) -r bin
+debug: all
+	cd bin && gdb $(TARGET)
 run: all
 	cd bin && ./$(TARGET)
 runf: all
-	cd bin && ./$(TARGET) >../output.log
+	cd bin && ./$(TARGET) | tee ../output.log
 crun: _clear-screen recompile _wait-input
 	cd bin && ./$(TARGET); $(RM) -r bin
 crunf: _clear-screen recompile _wait-input
@@ -36,10 +38,12 @@ crunf: _clear-screen recompile _wait-input
 #TOOLS
 alives:
 	ps -aux | grep -E "/master|/ship|/port" | grep -v -E "grep|rm" | cat;
-killall:
+killall-int:
 	killall -s INT master port ship | cat
+killall-kill:
+	killall -s KILL master port ship | cat
 count:
-	printf "\nNumber of lines in project: "; cat *.c header/*.h Makefile | wc -l
+	printf "\nNumber of lines in project: "; cat src/*.c src/header/*.h Makefile | wc -l
 
 #DEPENDENCIES
 _clear-screen:

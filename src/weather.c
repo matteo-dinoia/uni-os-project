@@ -16,11 +16,11 @@ struct port *_data_port;
 struct ship *_data_ship;
 
 /* Prototype */
-void loop();
 void storm();
 void maelstrom();
 void swell();
 void signal_handler(int);
+void close_all();
 
 int main()
 {
@@ -50,17 +50,7 @@ int main()
 
 	/* LAST: Start running */
 	srand(time(NULL) * getpid());
-	loop();
-}
-
-void loop()
-{
-	struct itimerval interval;
-
-	/* Maelstrom clock */
-	interval.it_interval = get_timespec(_data->SO_MAELSTROM);
-	interval.it_value = interval.it_interval;
-	setitimer(ITIMER_REAL, &interval, NULL);
+	timer(_data->SO_MAELSTROM / 24.0);
 
 	/* Wait Forever */
 	dprintf(1, "[Meteo] Wait\n");
@@ -72,7 +62,7 @@ void storm()
 {
 	const SO_NAVI = _data->SO_NAVI;
 	int i;
-	int ship_i = get_random(0, SO_NAVI);
+	int ship_i = RANDOM(0, SO_NAVI);
 
 	for (i = 0; i < SO_NAVI; i++){
 		if (_data_ship[ship_i].pid != 0 && _data_ship[ship_i].is_moving){
@@ -90,7 +80,7 @@ void maelstrom()
 {
 	const SO_NAVI = _data->SO_NAVI;
 	int i;
-	int ship_i = get_random(0, SO_NAVI);
+	int ship_i = RANDOM(0, SO_NAVI);
 
 	for (i = 0; i < SO_NAVI; i++){
 		if (_data_ship[ship_i].pid != 0){
@@ -108,7 +98,7 @@ void maelstrom()
 void swell()
 {
 	const SO_PORTI = _data->SO_PORTI;
-	int port_i = get_random(0, SO_PORTI);
+	int port_i = RANDOM(0, SO_PORTI);
 
 	kill(_data_port[port_i].pid, SIGSWELL); /* TODO: change the signal */
 }
@@ -127,4 +117,13 @@ void signal_handler(int signal)
 		maelstrom();
 		break;
 	}
+}
+
+void close_all()
+{
+	detach(_data);
+	detach(_data_port);
+	detach(_data_ship);
+
+	exit(0);
 }
