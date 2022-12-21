@@ -123,10 +123,12 @@ void move_to_port(double x_port, double y_port)
 	travel_time = get_timespec(distance / _data->SO_SPEED);
 
 	/* Wait */
+	_this_ship->is_moving = TRUE;
 	do {
 		nanosleep(&travel_time, &rem_time);
 		travel_time = rem_time;
 	} while (errno == EINTR);
+	_this_ship->is_moving = FALSE;
 
 	/* Actual move*/
 	_this_ship->x = x_port;
@@ -141,6 +143,7 @@ void exchange_goods(int port_id)
 
 	/* Get dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
+	_this_ship->dump_is_at_dock = TRUE;
 
 	/* Communicate selling and buying request */
 	tot_tons_moved = sell(port_id) + buy(port_id);
@@ -154,6 +157,7 @@ void exchange_goods(int port_id)
 
 	/* Free dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
+	_this_ship->dump_is_at_dock = FALSE;
 }
 
 int sell(int port_id)
@@ -264,7 +268,7 @@ void signal_handler(int signal)
 	switch (signal){
 	case SIGINT: /* Closing for every other reason */
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
-		_this_ship->dump_had_maeltrom = TRUE;
+		_this_ship->dump_had_maelstrom = TRUE;
 		close_all();
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */

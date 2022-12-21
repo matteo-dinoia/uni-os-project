@@ -38,8 +38,7 @@ struct port{
 	int daily_restock_capacity;
 
 	/* Dump */
-	int dump_dock_used;
-	int dump_dock_tot;
+	int dump_dock_tot; /* const value */
 	int dump_had_swell;
 };
 
@@ -53,7 +52,7 @@ struct ship{
 	bool_t dump_is_empty;
 	bool_t dump_is_at_dock;
 	int dump_had_storm;
-	int dump_had_maeltrom;
+	int dump_had_maelstrom;
 };
 
 struct cargo{
@@ -63,9 +62,9 @@ struct cargo{
 	/* Dump */
 	int dump_at_port;
 	int dump_in_ship;
-	int dump_tot_delivered;
-	int dump_exipered_ship;
 	int dump_exipered_port;
+	int dump_exipered_ship;
+	int dump_tot_delivered;
 };
 
 struct supply_demand{
