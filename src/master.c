@@ -253,10 +253,10 @@ void custom_handler(int signal)
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
 	case SIGALRM:
 		print_dump_data();
-		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT
-		for (i = 0; i<_data->SO_PORTI; i++)
+		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT */
+		for (i = 0; i < _data->SO_PORTI; i++)
 			kill(_data_port[i].pid, SIGDAY);
-		kill(_weather_pid, SIGDAY);*/
+		kill(_weather_pid, SIGDAY);
 		alarm(DAY_SEC);
 		break;
 	}

@@ -197,6 +197,7 @@ void signal_handler(int signal)
 			nanosleep(&wait_time, &rem_time);
 			wait_time = rem_time;
 		} while (errno == EINTR);
+		_this_port->dump_had_swell = TRUE;
 		break; /* TODO: receive possile second signal equal */
 	}
 }
