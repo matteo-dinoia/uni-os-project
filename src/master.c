@@ -153,7 +153,10 @@ void create_children()
 		}
 
 		n_docks = RANDOM(1, SO_BANCHINE);
+		current_port->dump_dock_tot = n_docks;
 		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
+
+		current_port->dump_had_swell = FALSE;
 	}
 
 	/* Initialize ships data */
@@ -164,6 +167,11 @@ void create_children()
 		current_ship->x = RANDOM_DOUBLE(0, SO_LATO);
 		current_ship->y = RANDOM_DOUBLE(0, SO_LATO);
 		current_ship->is_moving = FALSE;
+
+		/* Initializing ship dump */
+		current_ship->dump_is_at_dock = FALSE;
+		current_ship->dump_had_storm = FALSE;
+		current_ship->dump_had_maelstrom = FALSE;
 	}
 
 	/* Initialize cargo data */
@@ -172,6 +180,13 @@ void create_children()
 
 		current_cargo->weight_batch = RANDOM(1, SO_SIZE);
 		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
+
+		/* Initializing cargo bump */
+		current_cargo->dump_at_port = 0;
+		current_cargo->dump_in_ship = 0;
+		current_cargo->dump_exipered_port = 0;
+		current_cargo->dump_exipered_ship = 0;
+		current_cargo->dump_tot_delivered = 0;
 	}
 
 	/* Initialize supply and demand */
@@ -220,7 +235,7 @@ void read_constants_from_file() /* Crashable */
 		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
 }
 
-pid_t create_proc(char *name, int index) /* Crashable*/
+pid_t create_proc(char *name, int index)
 {
 	pid_t proc_pid;
 	char *arg[3], *env[]={NULL}, buf[10];
