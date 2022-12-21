@@ -21,7 +21,7 @@ list_cargo *cargo_hold;
 struct ship *_this_ship;
 struct general *_data;
 struct port *_data_port;
-struct port *_data_ship;
+struct ship *_data_ship;
 struct cargo *_data_cargo;
 struct supply_demand *_data_supply_demand;
 
