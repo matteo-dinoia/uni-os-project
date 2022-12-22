@@ -215,29 +215,31 @@ void create_children()
 void read_constants_from_file() /* Crashable */
 {
 	const NUM_VALUE = 16;
-	int num_read, counter;
+	int num_read, counter, ival;
 	double value;
 	char c;
 
 	/* Take file from out of bin directory */
 	FILE *file = fopen("../constants.txt", "r");
-
 	if (file == NULL)
 		close_all("[FATAL] Could not open file constants.txt", EXIT_FAILURE);
 
 	dprintf(1, "[CONST VALUE]");
+	counter = 0;
 	while ((num_read = fscanf(file, "%lf", &value)) != EOF){
 		if (num_read != 0){
 			if (counter >= NUM_VALUE){
 				fclose(file);
 				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
-			}else if (counter == 0){
+			}else if (counter <= 0){
 				_data->SO_LATO = value;
+				dprintf(1, " %lf", value);
 			}else {
-				((int *)(_data->SO_DAYS))[counter] = (int) value;
+				ival = (int) value;
+				((int *)(&_data->SO_DAYS))[counter] = ival;
+				dprintf(1, " %d", ival);
 			}
 			counter++;
-			dprintf(1, " %d", value);
 		}
 
 		fscanf(file, "%*[ \t]");
