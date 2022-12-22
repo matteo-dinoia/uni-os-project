@@ -139,6 +139,7 @@ void create_children()
 	const SO_MIN_VITA = _data->SO_MIN_VITA;
 	const SO_MAX_VITA = _data->SO_MAX_VITA;
 
+	/* TODO BZERO TO EVERYTHING UP + SECURITY */
 	int i, to_add, daily, n_docks;
 	struct port *current_port;
 	struct ship *current_ship;
@@ -283,12 +284,13 @@ void custom_handler(int signal)
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
 	case SIGALRM:
 		print_dump_data();
-		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT */
+
 		for (i = 0; i < _data->SO_PORTI; i++)
 			SEND_SIGNAL(_data_port[i].pid, SIGDAY);
 		for (i = 0; i < _data->SO_NAVI; i++)
 			SEND_SIGNAL(_data_ship[i].pid, SIGDAY);
 		SEND_SIGNAL(_weather_pid, SIGDAY);
+
 		alarm(DAY_SEC);
 		break;
 	}
@@ -299,7 +301,6 @@ void close_all(const char *message, int exit_status)
 	int i, pid;
 
 	/* Killing and wait child */
-	/* TODO BZERO TO EVERYTHING UP + SECURITY */
 	SEND_SIGNAL(_weather_pid, SIGINT);
 	for (i = 0; _data_port != NULL && i<_data->SO_PORTI; i++)
 		SEND_SIGNAL(_data_port[i].pid, SIGINT);

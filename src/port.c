@@ -175,7 +175,6 @@ void supply_demand_update()
 		}else if (rem_offer_tons > rem_demand_tons){
 			is_demand = FALSE;
 		}else {
-			/* TODO clear this shit */
 			sum_normalized_first_two = GET_SIGN(_this_supply_demand[0].quantity)
 					+ GET_SIGN(_this_supply_demand[1].quantity);
 			if (sum_normalized_first_two > 0){
@@ -234,7 +233,7 @@ void signal_handler(int signal)
 			wait_time = rem_time;
 		} while (errno == EINTR);
 		_this_port->dump_had_swell = TRUE;
-		break; /* TODO: receive possile second signal equal */
+		break;
 	}
 }
 

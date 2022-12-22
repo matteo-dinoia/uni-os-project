@@ -2,7 +2,7 @@
 #define _SHARED_MEMORY_H
 
 #include "utils.h"
-#define KEY_SHARED 0xf3 /* TODO choose one */
+#define KEY_SHARED 0xf3
 
 /* Prototype */
 void detach(void *pointer);
