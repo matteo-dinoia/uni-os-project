@@ -12,6 +12,9 @@
 #include "header/semaphore.h"
 #include "header/utils.h"
 
+/* Macro*/
+#define GET_TRAVEL_TIME(this_ship, dest_x, dest_y, speed)\
+	(sqrt(pow((this_ship->x) - (dest_x), 2) + pow((this_ship->y) - (dest_y), 2)) / (double) (speed))
 
 /* Global Variables */
 int _this_id;
@@ -115,32 +118,42 @@ int new_destiation_port(int current_port_id)
 	int offset; /* TODO actually choose */
 
 	if (current_port_id < 0){ /* not in a port */
-		_next_port_destination = RANDOM(0, _data->SO_PORTI);
-	}else { /* in port */
-		offset = RANDOM(1, _data->SO_PORTI);
-		_next_port_destination = (current_port_id + offset) % _data->SO_PORTI;
+		return _next_port_destination = RANDOM(0, _data->SO_PORTI);
 	}
+
+	offset = RANDOM(1, _data->SO_PORTI);
+	_next_port_destination = (current_port_id + offset) % _data->SO_PORTI;
 
 	return _next_port_destination;
 }
 
-void discard_expiring_cargo(int dest_port_id)
+void discard_expiring_cargo(int dest_id)
 {
-	/* Actually do something */
+	const struct port *dest_port = &_data_port[dest_id];
+
+	int days_needed, amount_removed, i;
+
+	/* Time */
+	days_needed= GET_TRAVEL_TIME(_this_ship, dest_port->x, dest_port->x, _data->SO_SPEED);
+
+	/* Remove cargo */
+	for (i = 0; i < _data->SO_MERCI; i++){
+		amount_removed = remove_expired_cargo(&cargo_hold, _data->today + days_needed);
+		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
+		_data_cargo[i].dump_in_ship -= amount_removed;
+		_data_cargo[i].dump_exipered_ship += amount_removed;
+		execute_single_sem_oper(_data->id_sem_cargo, i, 1);
+		_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
+	}
 }
 
 void move_to_port(double x_port, double y_port)
 {
-	const int x = _this_ship->x;
-	const int y = _this_ship->y;
-	double distance;
-
-	/* Distance */
-	distance = sqrt(pow((x - x_port), 2) + pow((y - y_port), 2));
+	double time = GET_TRAVEL_TIME(_this_ship, x_port, y_port, _data->SO_SPEED);
 
 	/* Wait */
 	_this_ship->is_moving = TRUE;
-	wait_event_duration(distance / _data->SO_SPEED);
+	wait_event_duration(time);
 	_this_ship->is_moving = FALSE;
 
 	/* Actual move*/
