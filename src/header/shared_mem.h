@@ -29,12 +29,13 @@ struct general{
 
 	/* Semaphores */
 	id_shared_t id_sem_docks;
+	id_shared_t id_sem_cargo;
 
 	/* Today */
 	int today;
 };
 
-struct port{
+struct port{ /* Writers: port */
 	double x;
 	double y;
 	pid_t pid;
@@ -42,40 +43,40 @@ struct port{
 
 	/* Dump */
 	int dump_dock_tot; /* const value */
-	int dump_had_swell;
+	int dump_had_swell; /* DONE */
 };
 
-struct ship{
+struct ship{ /* Writers: ship */
 	double x;
 	double y;
 	pid_t pid;
 	bool_t is_moving;
 
 	/* Dump */
-	bool_t dump_is_empty;
-	bool_t dump_is_at_dock;
-	int dump_had_storm;
-	int dump_had_maelstrom;
+	bool_t dump_is_at_dock; /* DONE */
+	int capacity; /* DONE -> if equals to SO_CAPACITY is empty*/
+	int dump_had_storm; /* DONE */
+	int dump_had_maelstrom; /* DONE */
 };
 
-struct cargo{
+struct cargo{ /* Writers: port, ship */
 	int weight_batch;
 	int shelf_life;
 
 	/* Dump */
-	int dump_at_port;
-	int dump_in_ship;
-	int dump_exipered_port;
+	int dump_at_port; /* DONE */
+	int dump_in_ship; /* DONE */
+	int dump_exipered_port; /* DONE */
 	int dump_exipered_ship;
-	int dump_tot_delivered;
+	int dump_tot_delivered; /* DONE */
 };
 
-struct supply_demand{
+struct supply_demand{ /* Writers: port */
 	int quantity;
 
 	/* Dump */
-	int dump_tot_sent;
-	int dump_tot_received;
+	int dump_tot_sent; /* DONE */
+	int dump_tot_received; /* DONE */
 };
 
 #endif

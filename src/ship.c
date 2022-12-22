@@ -15,7 +15,7 @@
 
 /* Global Variables */
 int _this_id;
-int _current_capacity;
+int _next_port_destination;
 list_cargo *cargo_hold;
 /* shared memory */
 struct ship *_this_ship;
@@ -26,16 +26,17 @@ struct cargo *_data_cargo;
 struct supply_demand *_data_supply_demand;
 
 /* Prototypes */
-void find_destiation_port(int *, double *, double *, int);
+void get_next_destination_port(int, int *, double *, double *);
+int new_destiation_port(int);
 void move_to_port(double, double);
 void exchange_goods(int);
 void signal_handler(int);
 void loop();
-int sell(int);
-int buy(int);
-int pick_buy(int, int *, int *);
-void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int status);
-void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status);
+int sell(int, int);
+int buy(int, int, int);
+int pick_buy(int, int, int *, int *);
+void send_to_port(int, int, int, int, int);
+void receive_from_port(int *, int *, int *, int *, int *);
 void close_all();
 
 
@@ -61,7 +62,6 @@ int main(int argc, char *argv[])
 	/* This*/
 	_this_id = atoi(argv[1]);
 	_this_ship = &_data_ship[_this_id];
-	_current_capacity = _data->SO_CAPACITY;
 
 	/* Local memory allocation */
 	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
@@ -88,7 +88,7 @@ void loop()
 
 	old_port = -1;
 	while (1){
-		find_destiation_port(&dest_port, &dest_x, &dest_y, old_port);
+		get_next_destination_port(old_port, &dest_port, &dest_x, &dest_y);
 		move_to_port(dest_x, dest_y);
 		dprintf(1, "\t[Ship %d] arrived at %d from %d\n", _this_id, dest_port, old_port);
 		exchange_goods(dest_port);
@@ -96,40 +96,45 @@ void loop()
 	}
 }
 
-void find_destiation_port(int *dest, double *dest_x, double *dest_y, int old_port)
+void get_next_destination_port(int current_port_id, int *dest, double *dest_x, double *dest_y)
 {
-	int offset; /* TODO actually choose */
+	if (_next_port_destination < 0) /* No destination set still */
+		new_destiation_port(current_port_id);
 
-	if (old_port < 0){ /* not in a port */
-		*dest = RANDOM(0, _data->SO_PORTI);
-	}else { /* in port */
-		offset = RANDOM(1, _data->SO_PORTI);
-		*dest = (old_port + offset) % _data->SO_PORTI;
-	}
-
+	/* Set port */
+	*dest = _next_port_destination;
+	_next_port_destination = -1;
 	/* get position */
 	*dest_x = _data_port[*dest].x;
 	*dest_y = _data_port[*dest].y;
 }
 
+int new_destiation_port(int current_port_id)
+{
+	int offset; /* TODO actually choose */
+
+	if (current_port_id < 0){ /* not in a port */
+		_next_port_destination = RANDOM(0, _data->SO_PORTI);
+	}else { /* in port */
+		offset = RANDOM(1, _data->SO_PORTI);
+		_next_port_destination = (current_port_id + offset) % _data->SO_PORTI;
+	}
+
+	return _next_port_destination; /* TODO remove cargo that will expire anyway (+dump)*/
+}
+
 void move_to_port(double x_port, double y_port)
 {
-	struct timespec rem_time, travel_time;
 	const int x = _this_ship->x;
 	const int y = _this_ship->y;
 	double distance;
 
-	/* Time */
+	/* Distance */
 	distance = sqrt(pow((x - x_port), 2) + pow((y - y_port), 2));
-	travel_time = get_timespec(distance / _data->SO_SPEED);
 
 	/* Wait */
 	_this_ship->is_moving = TRUE;
-	do {
-		errno = EXIT_SUCCESS;
-		nanosleep(&travel_time, &rem_time);
-		travel_time = rem_time;
-	} while (errno == EINTR);
+	wait_event_duration(distance / _data->SO_SPEED);
 	_this_ship->is_moving = FALSE;
 
 	/* Actual move*/
@@ -139,102 +144,101 @@ void move_to_port(double x_port, double y_port)
 
 void exchange_goods(int port_id)
 {
+	/* TODO make ship unsinkable while trading */
 	struct sembuf sem_buf;
-	struct timespec rem_time, commerce_time;
-	int tot_tons_moved;
+	int tons_moved, i, type, amount, dest_port_id;
 
 	/* Get dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
 	_this_ship->dump_is_at_dock = TRUE;
 
-	/* Communicate selling and buying request */
-	tot_tons_moved = sell(port_id) + buy(port_id);
+	/* Selling */
+	for (type = 0; type < _data->SO_MERCI; type++){
+		tons_moved = sell(port_id, type);
+		wait_event_duration(tons_moved / (double)_data->SO_LOADSPEED);
+	}
 
-	/* Wait for every transaction to be "made" */
-	commerce_time = get_timespec(tot_tons_moved / (double)_data->SO_LOADSPEED);
-	do {
-		errno = EXIT_SUCCESS;
-		nanosleep(&commerce_time, &rem_time);
-		commerce_time = rem_time;
-	} while (errno == EINTR);
+	/* Buying */
+	dest_port_id = new_destiation_port(port_id);
+	for (i = 0; i < _data->SO_MERCI; i++){
+		if(pick_buy(port_id, dest_port_id, &type, &amount) == -1)
+			break; /* Cannot buy anything */
+
+		tons_moved = buy(port_id, type, amount);
+		wait_event_duration(tons_moved / (double)_data->SO_LOADSPEED);
+	}
 
 	/* Free dock */
 	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
 	_this_ship->dump_is_at_dock = FALSE;
 }
 
-int sell(int port_id)
+int sell(int port_id, int type_to_sell)
 {
-	struct commerce_msgbuf msg;
-	int n_batch, n_requested_port, n_batch_ship;
-	int i, tons_moved, weight, status;
+	int amount, amount_port, amount_ship;
+	int i, weight, status;
 
-	tons_moved = 0;
 
-	for (i = 0; i<_data->SO_MERCI; i++){
-		/* Min i have cargo and ports need it */;
-		n_requested_port = -_data_supply_demand[port_id * _data->SO_MERCI + i].quantity;
+	/* Min i have cargo and ports need it */;
+	amount_port = -_data_supply_demand[port_id * _data->SO_MERCI + i].quantity;
+	amount_ship = count_cargo(&cargo_hold[i]);
+	amount = MIN(amount_ship, amount_port);
+	/* If nothing to be sell then skip this type*/
+	if (amount <= 0) return 0;
 
-		n_batch_ship = count_cargo(&cargo_hold[i]);
-		n_batch = MIN(n_batch_ship, n_requested_port);
-		/* If nothing to be sell then skip this type*/
-		if (n_batch <= 0) continue;
+	/* Send and receive message */
+	send_to_port(port_id, i, -amount, -1, STATUS_REQUEST);
+	receive_from_port(NULL, NULL, &amount, NULL, &status);
 
-		/* Send message */
-		send_to_port(port_id, i, -n_batch, -1, STATUS_REQUEST);
+	/* Change data */
+	if (status == STATUS_ACCEPTED && amount < 0){
+		amount = abs(amount);
+		remove_cargo(&cargo_hold[i], amount);
+		weight = amount * _data_cargo[i].weight_batch;
+		_this_ship->capacity += weight;
 
-		/* Wait response */
-		receive_from_port(NULL, NULL, &n_batch, NULL, &status);
-
-		/* Change data */
-		if (status == STATUS_ACCEPTED && n_batch < 0){
-			n_batch = abs(n_batch);
-			remove_cargo(&cargo_hold[i], n_batch);
-			weight = n_batch * _data_cargo[i].weight_batch;
-			tons_moved += weight;
-			_current_capacity += weight;
-		}
-
+		return weight;
 	}
 
-	return tons_moved;
+	return 0;
 }
 
-int buy(int port_id)
+int buy(int port_id, int type_to_buy, int amount_to_buy)
 {
 	int amount, weight, tons_moved, type, expiry_date, status;
 
-	tons_moved = 0;
-	while (pick_buy(port_id, &type, &amount) != -1){
-		send_to_port(port_id, type, amount, -1, STATUS_REQUEST);
+	/* Send request*/
+	send_to_port(port_id, type_to_buy, amount_to_buy, -1, STATUS_REQUEST);
 
-		/* Wait response */
-		do {
-			receive_from_port(NULL, &type, &amount, &expiry_date, &status);
-			/* Change data */
-			if (status == STATUS_PARTIAL || status == STATUS_ACCEPTED){
-				add_cargo(&cargo_hold[type], amount, expiry_date);
-				weight = amount * _data_cargo[type].weight_batch;
-				tons_moved += weight;
-				_current_capacity -= weight;
-			}
-		}while(status == STATUS_PARTIAL);
-	}
+	/* Wait response */
+	tons_moved = 0;
+	do {
+		receive_from_port(NULL, &type, &amount, &expiry_date, &status);
+		/* Change data */
+		if (status == STATUS_PARTIAL || status == STATUS_ACCEPTED){
+			add_cargo(&cargo_hold[type], amount, expiry_date);
+			weight = amount * _data_cargo[type].weight_batch;
+			tons_moved += weight;
+			_this_ship->capacity -= weight;
+		}
+	}while(status == STATUS_PARTIAL);
 
 	return tons_moved;
 }
 
-int pick_buy(int port_id, int *pick_type, int *pick_amount)
+
+
+int pick_buy(int port_id, int dest_port_id, int *pick_type, int *pick_amount)
 {
 	const int SO_MERCI = _data->SO_MERCI;
 	int i, cargo_id, n_cargo, n_cargo_port, n_cargo_capacity;
 
-	/* TODO should start from last time place */
+	/* TODO should not be random */
 	cargo_id = RANDOM(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
 		/* TODO: make it seriously */
 		n_cargo_port = _data_supply_demand[port_id * _data->SO_MERCI + cargo_id].quantity;
-		n_cargo_capacity = _current_capacity / _data_cargo[i].weight_batch;
+		n_cargo_capacity = _this_ship->capacity / _data_cargo[i].weight_batch;
 		n_cargo = MIN(n_cargo_port, n_cargo_capacity);
 
 		if (n_cargo > 0){
@@ -270,8 +274,19 @@ void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_d
 void signal_handler(int signal)
 {
 	struct timespec rem_time, wait_time;
+	int i, amount_removed;
 
 	switch (signal){
+	case SIGDAY:
+		for (i = 0; i < _data->SO_MERCI; i++){
+			amount_removed = remove_expired_cargo(&cargo_hold, _data->today);
+			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
+			_data_cargo[i].dump_in_ship -= amount_removed;
+			_data_cargo[i].dump_exipered_ship += amount_removed;
+			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
+			_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
+		}
+		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)");
 		close_all();
@@ -294,11 +309,22 @@ void signal_handler(int signal)
 
 void close_all()
 {
+	int i, amount;
+
 	/* Signaling data of death */
 	_this_ship->pid = 0;
-	/* TODO: dump*/
 
 	/* Local memory deallocation */
+	for (i = 0; i < _data->SO_MERCI; i++){
+		amount = count_cargo(&cargo_hold[i]);
+		free_cargo(&cargo_hold[i]);
+
+		/* Dump */
+		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
+		_data_cargo[i].dump_in_ship -= amount;
+		_data_cargo[i].dump_exipered_ship += amount;
+		execute_single_sem_oper(_data->id_sem_cargo, i, 1);
+	}
 	free(cargo_hold);
 
 	/* Detach shared memory */

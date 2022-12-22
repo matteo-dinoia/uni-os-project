@@ -93,7 +93,6 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 	if (needed_amount > 0 && this_amount > 0){
 		/* If port is selling respond with how much */
 		tot_exchange = MIN(needed_amount, this_amount);
-		_this_supply_demand[needed_type].quantity -= tot_exchange;
 
 		while (tot_exchange > 0){
 			/* Spamming messages */
@@ -107,9 +106,17 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 			}
 
 			tot_exchange -= amount;
-			TEST();
+			_this_supply_demand[needed_type].quantity -= amount;
 			status = tot_exchange <= 0 ? STATUS_ACCEPTED : STATUS_PARTIAL;
 			send_to_ship(ship_id, needed_type, amount, expiry_date, status);
+
+			/* Dump */
+			execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
+			_data_cargo[needed_type].dump_at_port -= amount;
+			_data_cargo[needed_type].dump_in_ship += amount;
+			_data_cargo[needed_type].dump_tot_delivered += amount;
+			_this_supply_demand[needed_type].dump_tot_received += amount;
+			execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 		}
 		if(tot_exchange <= 0)
 			return;
@@ -118,6 +125,13 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 		amount = MAX(needed_amount, this_amount);
 		_this_supply_demand[needed_type].quantity -= amount;
 		status = STATUS_ACCEPTED;
+
+		/* Dump */
+		execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
+		_data_cargo[needed_type].dump_at_port += amount;
+		_data_cargo[needed_type].dump_in_ship -= amount;
+		_this_supply_demand[needed_type].dump_tot_sent += amount;
+		execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 	}
 
 	/* Refuse or send message */
@@ -180,12 +194,18 @@ void supply_demand_update()
 			rem_offer_tons -= _data_cargo->weight_batch;
 			add_cargo(&cargo_hold[rand_type], _data_cargo->weight_batch,
 					_data->today + _data_cargo->shelf_life);
+
+			/* Dump */
+			execute_single_sem_oper(_data->id_sem_cargo, rand_type, -1);
+			_data_cargo[rand_type].dump_at_port += 1;
+			execute_single_sem_oper(_data->id_sem_cargo, rand_type, 1);
 		}
 	}
 }
 
 void signal_handler(int signal)
 {
+	int i, amount_removed;
 	struct timespec rem_time, wait_time;
 
 	switch (signal)
@@ -196,6 +216,14 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGDAY: /* Change of day */
+		for (i = 0; i < _data->SO_MERCI; i++){
+			amount_removed = remove_expired_cargo(&cargo_hold, _data->today);
+			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
+			_data_cargo[i].dump_at_port -= amount_removed;
+			_data_cargo[i].dump_exipered_port += amount_removed;
+			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
+			_this_supply_demand[i].quantity -= amount_removed;
+		}
 		supply_demand_update();
 		break;
 	case SIGSWELL: /* Swell */
