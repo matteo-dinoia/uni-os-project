@@ -310,6 +310,7 @@ void close_all(const char *message, int exit_status)
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
 	semctl(_data->id_sem_docks, 0, IPC_RMID);
+	semctl(_data->id_sem_cargo, 0, IPC_RMID);
 	/* Closing message queues */
 	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
