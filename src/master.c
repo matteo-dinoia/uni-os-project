@@ -215,7 +215,8 @@ void create_children()
 void read_constants_from_file() /* Crashable */
 {
 	const NUM_VALUE = 16;
-	int num_read, value, counter;
+	int num_read, counter;
+	double value;
 	char c;
 
 	/* Take file from out of bin directory */
@@ -225,13 +226,17 @@ void read_constants_from_file() /* Crashable */
 		close_all("[FATAL] Could not open file constants.txt", EXIT_FAILURE);
 
 	dprintf(1, "[CONST VALUE]");
-	while ((num_read = fscanf(file, "%d", &value)) != EOF){
+	while ((num_read = fscanf(file, "%lf", &value)) != EOF){
 		if (num_read != 0){
-			if(counter >= NUM_VALUE){
+			if (counter >= NUM_VALUE){
 				fclose(file);
 				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
+			}else if (counter == 0){
+				_data->SO_LATO = value;
+			}else {
+				((int *)(_data->SO_DAYS))[counter] = (int) value;
 			}
-			((int *)_data)[counter++] = value;
+			counter++;
 			dprintf(1, " %d", value);
 		}
 

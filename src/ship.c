@@ -138,7 +138,7 @@ void discard_expiring_cargo(int dest_id)
 
 	/* Remove cargo */
 	for (i = 0; i < _data->SO_MERCI; i++){
-		amount_removed = remove_expired_cargo(&cargo_hold, _data->today + days_needed);
+		amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today + days_needed);
 		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
 		_data_cargo[i].dump_in_ship -= amount_removed;
 		_data_cargo[i].dump_exipered_ship += amount_removed;
@@ -304,7 +304,7 @@ void signal_handler(int signal)
 	switch (signal){
 	case SIGDAY:
 		for (i = 0; i < _data->SO_MERCI; i++){
-			amount_removed = remove_expired_cargo(&cargo_hold, _data->today);
+			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
 			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
 			_data_cargo[i].dump_in_ship -= amount_removed;
 			_data_cargo[i].dump_exipered_ship += amount_removed;

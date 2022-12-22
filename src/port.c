@@ -216,7 +216,7 @@ void signal_handler(int signal)
 		break;
 	case SIGDAY: /* Change of day */
 		for (i = 0; i < _data->SO_MERCI; i++){
-			amount_removed = remove_expired_cargo(&cargo_hold, _data->today);
+			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
 			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
 			_data_cargo[i].dump_at_port -= amount_removed;
 			_data_cargo[i].dump_exipered_port += amount_removed;
