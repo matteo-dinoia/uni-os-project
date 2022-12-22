@@ -157,6 +157,18 @@ int remove_expired_cargo(list_cargo *list, int today)
 	return amount_removed;
 }
 
+void free_cargo(list_cargo *list)
+{
+	struct node_cargo *tmp;
+	if (list == NULL) return;
+
+	for(tmp = list->first; tmp != NULL; ){
+		list->first = tmp->next;
+		free(tmp);
+		tmp = list->first;
+	}
+}
+
 struct timespec get_timespec(double interval_sec){
 	struct timespec res;
 

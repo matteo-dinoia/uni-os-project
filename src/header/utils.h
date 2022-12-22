@@ -27,6 +27,7 @@ void add_cargo(list_cargo *list, int amount, int expiry_date);
 int count_cargo(list_cargo *list);
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date);
 int remove_expired_cargo(list_cargo *list, int today);
+void free_cargo(list_cargo *list);
 
 struct timespec get_timespec(double interval_sec);
 void timer(double interval_sec);
