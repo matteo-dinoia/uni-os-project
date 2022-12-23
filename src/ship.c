@@ -199,7 +199,7 @@ void exchange_cargo(int port_id)
 	_this_ship->dump_is_at_dock = TRUE;
 
 	/* Initialize signal ignored */
-	sigfillset(&set_masked);
+	sigaddset(&set_masked, SIGMAELSTROM);
 
 	/* Selling */
 	for (type = 0; type < SO_MERCI; type++){
