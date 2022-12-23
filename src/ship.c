@@ -118,8 +118,37 @@ int new_destiation_port(int current_port)
 
 	int port, cargo_type, sale, not_expired, request_port, min;
 	int best_port = -1, best_sale;
+	int worst_port = -1, worst_use, use, start_port, i;
 	double best_travel_time, travel_time;
 
+	/* If empty */
+	if (_this_ship->capacity == _data->SO_CAPACITY){
+		start_port = RANDOM(0, SO_PORTI);
+		for (i = 0; i < SO_PORTI; i++){
+			port = (i + start_port) % SO_PORTI;
+
+			/* Skip current port */
+			if (port == current_port) continue;
+
+			/* Calculate use */
+			use = 0;
+			for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
+				use = _data_supply_demand[SO_MERCI * port + cargo_type].dump_tot_sent
+						+ _data_supply_demand[SO_MERCI * port + cargo_type].dump_tot_received;
+			}
+
+			/* Choose worst */
+			if (worst_port == -1 /* still doesn't have a worst port*/
+					|| use < worst_use){ /* or is worst */
+				worst_port = port;
+				worst_use = use;
+			}
+		}
+
+		return (_next_port_destination = worst_port);
+	}
+
+	/* If has already cargo */
 	for (port = 0; port < SO_PORTI; port++){
 		/* Skip current port */
 		if (port == current_port) continue;
@@ -139,8 +168,8 @@ int new_destiation_port(int current_port)
 		}
 
 		/* Check if is new best */
-		if(best_port == -1 /* still doesn't have a best port*/
-				|| sale > best_sale /* or best*/
+		if (best_port == -1 /* still doesn't have a best port */
+				|| sale > best_sale /* or is best */
 				|| (best_sale == sale && travel_time < best_travel_time)){
 			best_port = port;
 			best_sale = sale;
@@ -222,7 +251,7 @@ void exchange_cargo(int port_id)
 		/* Pick how much to buy */
 		type = (type + i) % SO_MERCI;
 		amount = pick_buy(port_id, dest_port_id, type);
-		if(amount < 0) continue; /* Cannot buy anything */
+		if(amount <= 0) continue; /* Cannot buy anything */
 
 		/* Actual buy (unsinkable) */
 		sigprocmask(SIG_BLOCK, &set_masked, NULL);
@@ -311,13 +340,13 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, port_id,
 			cargo_type, amount, expiry_date, status);
 
-	dprintf(1, "SHIP %d SEND TO PORT %d\n", _this_id, port_id);
+	dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type);
 	send_commerce_msg(_data->id_msg_in_ports, &msg);
 }
 
 void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
-	dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id);
+	/* dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id); */
 	receive_commerce_msg(_data->id_msg_out_ports, _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
 	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d\n", _this_id, *status, *amount);
