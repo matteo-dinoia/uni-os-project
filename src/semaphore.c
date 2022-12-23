@@ -8,7 +8,7 @@ struct sembuf create_sembuf(int index, int value)
 
 	res.sem_num = index;
 	res.sem_op = value;
-	res.sem_flg = 0;
+	res.sem_flg = SEM_UNDO; /* For avoiding leaving resource filled when process die*/
 
 	return res;
 }
