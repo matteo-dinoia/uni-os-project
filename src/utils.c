@@ -146,7 +146,7 @@ int remove_expired_cargo(list_cargo *list, int today)
 
 	for(tmp = list->first; tmp != NULL; ){
 		if (tmp->expiry_date > today)
-			break;
+			break; /* if not expired*/
 
 		amount_removed += tmp->amount;
 		list->first = tmp->next;
@@ -155,6 +155,24 @@ int remove_expired_cargo(list_cargo *list, int today)
 	}
 
 	return amount_removed;
+}
+
+int get_not_expired_by_day(list_cargo *list, int day)
+{
+	struct node_cargo *tmp;
+	int res = 0;
+
+	if(list == NULL){
+		dprintf(1, "Should have controlled NULL in get not expired by day (list = %p).\n", (void *) list);
+		return 0;
+	}
+
+	for(tmp = list->first; tmp != NULL; tmp = tmp->next){
+		if (tmp->expiry_date > day) /* if not expired*/
+			res += tmp->amount;
+	}
+
+	return res;
 }
 
 void free_cargo(list_cargo *list)
