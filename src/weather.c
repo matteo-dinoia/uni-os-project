@@ -35,9 +35,9 @@ int main()
 
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
-	_data = attach_shared(id);
-	_data_port = attach_shared(_data->id_port);
-	_data_ship = attach_shared(_data->id_ship);
+	_data = attach_shared(id, SHM_RDONLY);
+	_data_port = attach_shared(_data->id_port, SHM_RDONLY);
+	_data_ship = attach_shared(_data->id_ship, SHM_RDONLY);
 
 	/* LAST: Set signal handler */
 	bzero(&sa, sizeof(sa));

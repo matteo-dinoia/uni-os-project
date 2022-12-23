@@ -45,10 +45,10 @@ int main(int argc, char *argv[])
 
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
-	_data = attach_shared(id);
-	_data_port = attach_shared(_data->id_port);
-	_data_supply_demand = attach_shared(_data->id_supply_demand);
-	_data_cargo = attach_shared(_data->id_cargo);
+	_data = attach_shared(id, SHM_RDONLY);
+	_data_port = attach_shared(_data->id_port, 0);
+	_data_supply_demand = attach_shared(_data->id_supply_demand, 0);
+	_data_cargo = attach_shared(_data->id_cargo, 0);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
@@ -114,23 +114,23 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 			execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
 			_data_cargo[needed_type].dump_at_port -= amount;
 			_data_cargo[needed_type].dump_in_ship += amount;
-			_data_cargo[needed_type].dump_tot_delivered += amount;
-			_this_supply_demand[needed_type].dump_tot_received += amount;
+			_this_supply_demand[needed_type].dump_tot_sent += amount;
 			execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 		}
 		if(tot_exchange <= 0)
 			return;
 	}else if (needed_amount < 0  && this_amount < 0){
 		/* If port is buying respond with how much */
-		amount = MAX(needed_amount, this_amount);
-		_this_supply_demand[needed_type].quantity -= amount;
+		amount = -MIN(-needed_amount, -this_amount);
+		_this_supply_demand[needed_type].quantity += abs(amount);
 		status = STATUS_ACCEPTED;
 
 		/* Dump */
 		execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
 		_data_cargo[needed_type].dump_at_port += amount;
 		_data_cargo[needed_type].dump_in_ship -= amount;
-		_this_supply_demand[needed_type].dump_tot_sent += amount;
+		_data_cargo[needed_type].dump_tot_delivered += amount;
+		_this_supply_demand[needed_type].dump_tot_received += amount;
 		execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 	}
 
@@ -217,11 +217,13 @@ void signal_handler(int signal)
 	case SIGDAY: /* Change of day */
 		for (i = 0; i < _data->SO_MERCI; i++){
 			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
+			_this_supply_demand[i].quantity -= amount_removed;
+
+			/* Bump */
 			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
 			_data_cargo[i].dump_at_port -= amount_removed;
 			_data_cargo[i].dump_exipered_port += amount_removed;
 			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-			_this_supply_demand[i].quantity -= amount_removed;
 		}
 		supply_demand_update();
 		break;

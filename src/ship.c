@@ -57,11 +57,11 @@ int main(int argc, char *argv[])
 
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
-	_data = attach_shared(id);
-	_data_port = attach_shared(_data->id_port);
-	_data_ship = attach_shared(_data->id_ship);
-	_data_supply_demand = attach_shared(_data->id_supply_demand);
-	_data_cargo = attach_shared(_data->id_cargo);
+	_data = attach_shared(id, SHM_RDONLY);
+	_data_port = attach_shared(_data->id_port, SHM_RDONLY);
+	_data_ship = attach_shared(_data->id_ship, 0);
+	_data_supply_demand = attach_shared(_data->id_supply_demand, SHM_RDONLY);
+	_data_cargo = attach_shared(_data->id_cargo, 0);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
