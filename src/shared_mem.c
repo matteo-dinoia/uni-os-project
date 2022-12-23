@@ -23,7 +23,7 @@ id_shared_t get_shared(key_t key, size_t size)
 	return shmget(key, size, 0600 | IPC_CREAT);
 }
 
-void *attach_shared(id_shared_t id)
+void *attach_shared(id_shared_t id, int extra_flags)
 {
-	return shmat(id, NULL, 0);
+	return shmat(id, NULL, 0 | extra_flags);
 }

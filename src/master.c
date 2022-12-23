@@ -47,7 +47,6 @@ void custom_handler(int);
 void close_all(const char *, int);
 void create_children();
 void read_constants_from_file();
-void create_shared_structures();
 void print_dump_data();
 void loop();
 
@@ -111,7 +110,8 @@ void print_dump_data()
 	int port, type, ship, cargo_in_port, quantity;
 	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
 	int tot_port_swell = 0;
-	dprintf(1, "\n----------------[DAY %d]---------------\n", ++_data->today);
+
+	dprintf(1, "\n----------------[DAY %d]---------------\n", _data->today);
 
 	/* Dumps things */
 	dprintf(1, "\n----------------[DUMPS]----------------\n");
@@ -158,7 +158,7 @@ void print_dump_data()
 		dprintf(1, "PORT %d:", port);
 		for (type = 0; type < _data->SO_MERCI; type++){
 			dprintf(1, "(t: %d) %d:", type,
-					_data_supply_demand[_data->SO_PORTI * port + type]);
+					_data_supply_demand[_data->SO_PORTI * port + type].quantity);
 		}
 		dprintf(1, "\n");
 	}
@@ -279,7 +279,7 @@ void read_constants_from_file() /* Crashable */
 				dprintf(1, " %lf", value);
 			}else {
 				ival = (int) value;
-				((int *)(&_data->SO_DAYS))[counter] = ival;
+				((int *)(&_data->SO_DAYS))[counter - 1] = ival;
 				dprintf(1, " %d", ival);
 			}
 			counter++;
@@ -333,6 +333,7 @@ void custom_handler(int signal)
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
 	case SIGALRM:
+		_data->today++;
 		print_dump_data();
 
 		for (i = 0; i < _data->SO_PORTI; i++)
@@ -349,6 +350,10 @@ void custom_handler(int signal)
 void close_all(const char *message, int exit_status)
 {
 	int i, pid;
+
+	/* Messanges and exit */
+	if (exit_status == EXIT_SUCCESS) dprintf(1, "\n%s\n", message);
+	else dprintf(2, "\n%s\n", message);
 
 	/* Killing and wait child */
 	SEND_SIGNAL(_weather_pid, SIGINT);
@@ -373,7 +378,6 @@ void close_all(const char *message, int exit_status)
 	CLOSE_SHM(_id_data, _data); /* must be last */
 
 	/* Messanges and exit */
-	if (exit_status == EXIT_SUCCESS) dprintf(1, "\n%s\n", message);
-	else dprintf(2, "\n%s\n", message);
+	dprintf(1, "[CLOSING OPERATION] Success");
 	exit(exit_status);
 }

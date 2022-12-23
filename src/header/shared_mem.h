@@ -1,13 +1,14 @@
 #ifndef _SHARED_MEMORY_H
 #define _SHARED_MEMORY_H
 
+#include <sys/shm.h>
 #include "utils.h"
 #define KEY_SHARED 0xf3
 
 /* Prototype */
 void detach(void *pointer);
 id_shared_t get_shared(key_t key, size_t size);
-void *attach_shared(id_shared_t id);
+void *attach_shared(id_shared_t id, int extra_flags);
 
 struct general{
 	/* Constants*/
