@@ -141,12 +141,12 @@ int remove_expired_cargo(list_cargo *list, int today)
 
 	if(list == NULL){
 		dprintf(1, "Should have controlled NULL in remove expired cargo (list = %p).\n", (void *) list);
-		return;
+		return 0;
 	}
 
 	for(tmp = list->first; tmp != NULL; ){
 		if (tmp->expiry_date > today)
-			return;
+			break;
 
 		amount_removed += tmp->amount;
 		list->first = tmp->next;
