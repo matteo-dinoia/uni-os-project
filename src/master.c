@@ -76,7 +76,7 @@ int main()
 	/* Create and start children*/
 	semctl(_id_sem, 0, SETVAL, 1);
 	create_children();
-	execute_single_sem_oper(_id_sem, 0, -1);
+	semctl(_id_sem, 0, SETVAL, 0);
 
 	/* Wait forever */
 	alarm(DAY_SEC);

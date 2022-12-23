@@ -28,6 +28,7 @@ debug: all
 	cd bin && gdb $(TARGET)
 run: all
 	cd bin && ./$(TARGET)
+#truncate output when ^c is pressed (bug)
 runf: all
 	cd bin && ./$(TARGET) | tee ../output.log
 crun: _clear-screen recompile _wait-input
