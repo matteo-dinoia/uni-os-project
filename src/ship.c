@@ -241,24 +241,24 @@ void exchange_cargo(int port_id)
 int sell(int port_id, int type_to_sell)
 {
 	int amount, amount_port, amount_ship;
-	int i, weight, status;
+	int weight, status;
 
 	/* Min i have cargo and ports need it */
-	amount_port = -_data_supply_demand[port_id * _data->SO_MERCI + i].quantity;
-	amount_ship = count_cargo(&cargo_hold[i]);
+	amount_port = -_data_supply_demand[port_id * _data->SO_MERCI + type_to_sell].quantity;
+	amount_ship = count_cargo(&cargo_hold[type_to_sell]);
 	amount = MIN(amount_ship, amount_port);
 	/* If nothing to be sell then skip this type*/
 	if (amount <= 0) return 0;
 
 	/* Send and receive message */
-	send_to_port(port_id, i, -amount, -1, STATUS_REQUEST);
+	send_to_port(port_id, type_to_sell, -amount, -1, STATUS_REQUEST);
 	receive_from_port(NULL, NULL, &amount, NULL, &status);
 
 	/* Change data */
 	if (status == STATUS_ACCEPTED && amount < 0){
 		amount = abs(amount);
-		remove_cargo(&cargo_hold[i], amount);
-		weight = amount * _data_cargo[i].weight_batch;
+		remove_cargo(&cargo_hold[type_to_sell], amount);
+		weight = amount * _data_cargo[type_to_sell].weight_batch;
 		_this_ship->capacity += weight;
 
 		return weight;
