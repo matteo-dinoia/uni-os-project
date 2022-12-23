@@ -169,9 +169,9 @@ void print_dump_data()
 	/* Shop things */
 	dprintf(1, "================================[SHOP]====================================\n");
 	for (port = 0; port < _data->SO_PORTI; port++){
-		dprintf(1, "PORT %d:", port);
+		dprintf(1, "PORT %d:   ", port);
 		for (type = 0; type < _data->SO_MERCI; type++){
-			dprintf(1, "(t: %d) %d:", type,
+			dprintf(1, "(t: %d)%d ", type,
 					_data_supply_demand[_data->SO_MERCI * port + type].quantity);
 		}
 		dprintf(1, "\n");
