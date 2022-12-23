@@ -107,38 +107,37 @@ void initialize_shared()
 
 void print_dump_data()
 {
-	int port, type, ship, cargo_in_port, quantity;
-	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
+	int port, type, ship, cargo_type, cargo_in_port, quantity;
 	int tot_port_swell = 0;
+	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
+	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0;
 
-	dprintf(1, "\n----------------[DAY %d]---------------\n", _data->today);
+	dprintf(1, "\n\n================================[DAY %3d]=================================\n", _data->today);
 
 	/* Dumps things */
-	dprintf(1, "\n----------------[DUMPS]----------------\n");
+	dprintf(1, "\n================================[DUMPS]===================================\n");
 
 	dprintf(1, "[PORTS]\n");
-	for (port = 0; port < _data->SO_NAVI; port++){
+	for (port = 0; port < _data->SO_PORTI; port++){
 		cargo_in_port = 0;
-		dprintf(1, "(Port: %d) tot_docks: %d, used_docks: %d, swell: %d\n", port, _data_port[port].dump_dock_tot,
+		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
 				semctl(_data->id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
 		tot_port_swell += _data_port[port].dump_had_swell;
 
-		dprintf(1, "(Port Cargo: %d)\n");
 		for (type = 0; type < _data->SO_MERCI; type++){
 			quantity = _data_supply_demand[_data->SO_PORTI * port + type].quantity;
 			cargo_in_port = quantity > 0 ? quantity : 0;
-			dprintf(1, "(t: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
+			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
 					_data_supply_demand[_data->SO_PORTI * port + type].dump_tot_sent,
 					_data_supply_demand[_data->SO_PORTI * port + type].dump_tot_received);
 		}
+		dprintf(1, "|\n");
 	}
-	dprintf(1, "\n");
-	dprintf(1, "PORTS TOTALS: tot_swell: %d\n", tot_port_swell);
-	dprintf(1, "\n");
+	dprintf(1, "|--PORTS TOTALS: tot_swell: %d\n\n", tot_port_swell);
 
 	dprintf(1, "[SHIPS]\n");
 	for (ship = 0; ship < _data->SO_NAVI; ship++){
-		dprintf(1, "(Ship: %d) dock: %d, storm: %d, maeltrom: %d\n", ship, _data_ship[ship].dump_is_at_dock,
+		dprintf(1, "|----(Ship: %d) is_at_dock: %d, had_storm: %d, had_maeltrom: %d\n", ship, _data_ship[ship].dump_is_at_dock,
 				_data_ship[ship].dump_had_storm, _data_ship[ship].dump_had_maelstrom);
 		if (_data_ship[ship].dump_is_at_dock) tot_ship_dock++;
 		else if (_data_ship[ship].capacity == _data->SO_CAPACITY) tot_ship_empty++;
@@ -146,14 +145,29 @@ void print_dump_data()
 		tot_ship_storm += _data_ship[ship].dump_had_storm;
 		tot_ship_maelstrom += _data_ship[ship].dump_had_maelstrom;
 	}
-	dprintf(1, "\n");
-	dprintf(1, "SHIPS TOTALS: tot_at_dock: %d, tot_cargo: %d, tot_empty: %d, tot_storm: %d, tot_maeltrom: %d\n",
+	dprintf(1, "|\n");
+	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_cargo: %d, tot_empty: %d, tot_storm: %d, tot_maeltrom: %d\n\n",
 			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom);
-	dprintf(1, "\n");
 
+	dprintf(1, "[CARGO]\n");
+	for (cargo_type = 0; cargo_type < _data->SO_MERCI; cargo_type++){
+		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d, tot_in_ships: %d, tot_delivered: %d, tot_expired_port: %d, tot_expired_ship: %d\n",
+				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
+				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship);
+
+				/* Totals */
+				tot_cargo_port += _data_cargo[cargo_type].dump_at_port;
+				tot_cargo_ship += _data_cargo[cargo_type].dump_in_ship;
+				tot_cargo_del += _data_cargo[cargo_type].dump_tot_delivered;
+				tot_cargo_exp_port += _data_cargo[cargo_type].dump_exipered_port;
+				tot_cargo_exp_ship += _data_cargo[cargo_type].dump_exipered_ship;
+	}
+	dprintf(1, "|\n");
+	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d\n\n",
+			tot_cargo_port, tot_cargo_ship, tot_cargo_del, tot_cargo_exp_port, tot_cargo_exp_ship);
 
 	/* Shop things */
-	dprintf(1, "\n----------------[SHOP]-----------------\n");
+	dprintf(1, "================================[SHOP]====================================\n");
 	for (port = 0; port < _data->SO_PORTI; port++){
 		dprintf(1, "PORT %d:", port);
 		for (type = 0; type < _data->SO_MERCI; type++){
@@ -162,10 +176,10 @@ void print_dump_data()
 		}
 		dprintf(1, "\n");
 	}
-	dprintf(1, "\n----------------[END SHOP]-------------\n");
+	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
 
 	if(_data->today >= _data->SO_DAYS)
-		close_all("------------[END SIMULATION]-----------\n", EXIT_SUCCESS);
+		close_all("================================[END SIMULATION]================================\n", EXIT_SUCCESS);
 }
 
 void create_children()
