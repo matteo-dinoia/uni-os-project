@@ -139,6 +139,7 @@ void create_children()
 	const SO_MIN_VITA = _data->SO_MIN_VITA;
 	const SO_MAX_VITA = _data->SO_MAX_VITA;
 
+	/* TODO BZERO TO EVERYTHING UP + SECURITY */
 	int i, to_add, daily, n_docks;
 	struct port *current_port;
 	struct ship *current_ship;
@@ -214,24 +215,31 @@ void create_children()
 void read_constants_from_file() /* Crashable */
 {
 	const NUM_VALUE = 16;
-	int num_read, value, counter;
+	int num_read, counter, ival;
+	double value;
 	char c;
 
 	/* Take file from out of bin directory */
 	FILE *file = fopen("../constants.txt", "r");
-
 	if (file == NULL)
 		close_all("[FATAL] Could not open file constants.txt", EXIT_FAILURE);
 
 	dprintf(1, "[CONST VALUE]");
-	while ((num_read = fscanf(file, "%d", &value)) != EOF){
+	counter = 0;
+	while ((num_read = fscanf(file, "%lf", &value)) != EOF){
 		if (num_read != 0){
-			if(counter >= NUM_VALUE){
+			if (counter >= NUM_VALUE){
 				fclose(file);
 				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
+			}else if (counter <= 0){
+				_data->SO_LATO = value;
+				dprintf(1, " %lf", value);
+			}else {
+				ival = (int) value;
+				((int *)(&_data->SO_DAYS))[counter] = ival;
+				dprintf(1, " %d", ival);
 			}
-			((int *)_data)[counter++] = value;
-			dprintf(1, " %d", value);
+			counter++;
 		}
 
 		fscanf(file, "%*[ \t]");
@@ -283,12 +291,13 @@ void custom_handler(int signal)
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
 	case SIGALRM:
 		print_dump_data();
-		/* TODO DEBUGGO -> BROKE SHIP MOVEMENT */
+
 		for (i = 0; i < _data->SO_PORTI; i++)
 			SEND_SIGNAL(_data_port[i].pid, SIGDAY);
 		for (i = 0; i < _data->SO_NAVI; i++)
 			SEND_SIGNAL(_data_ship[i].pid, SIGDAY);
 		SEND_SIGNAL(_weather_pid, SIGDAY);
+
 		alarm(DAY_SEC);
 		break;
 	}
@@ -299,7 +308,6 @@ void close_all(const char *message, int exit_status)
 	int i, pid;
 
 	/* Killing and wait child */
-	/* TODO BZERO TO EVERYTHING UP + SECURITY */
 	SEND_SIGNAL(_weather_pid, SIGINT);
 	for (i = 0; _data_port != NULL && i<_data->SO_PORTI; i++)
 		SEND_SIGNAL(_data_port[i].pid, SIGINT);

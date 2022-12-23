@@ -16,7 +16,7 @@ typedef int bool_t;
 #define FALSE 0
 typedef int id_shared_t;
 
-/* Cargo list (TODO Move out of here)*/
+/* Cargo list */
 typedef struct{
 	struct node_cargo *first;
 } list_cargo;

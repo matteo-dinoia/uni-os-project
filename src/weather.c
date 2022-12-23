@@ -91,7 +91,7 @@ void maelstrom()
 	}
 
 	/* Comunicate all ship are dead to parent */
-	kill(getppid(), SIGTERM); /* TODO: change signale */
+	kill(getppid(), SIGTERM);
 }
 
 /* Stop a port every day for SO_SWELL_DURATION hours */
