@@ -93,7 +93,7 @@ void loop()
 	while (1){
 		get_next_destination_port(&dest_port, &dest_x, &dest_y);
 		move_to_port(dest_x, dest_y);
-		dprintf(1, "\t[Ship %d] arrived at %d from %d\n", _this_id, dest_port);
+		dprintf(1, "\t[Ship %d] arrived at %d\n", _this_id, dest_port);
 		exchange_cargo(dest_port);
 	}
 }
@@ -132,7 +132,7 @@ int new_destiation_port(int current_port)
 		for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
 			not_expired = get_not_expired_by_day(&cargo_hold[cargo_type],
 					_data->today + (int) travel_time);
-			request_port = -_data_supply_demand[SO_PORTI * port + cargo_type].quantity;
+			request_port = -_data_supply_demand[SO_MERCI * port + cargo_type].quantity;
 
 			min = MIN(not_expired, request_port);
 			sale += min > 0 ? min : 0;
@@ -212,9 +212,11 @@ void exchange_cargo(int port_id)
 		wait_event_duration(tons_moved / (double)_data->SO_LOADSPEED);
 	}
 
-	/* Buying */
+	/* New Dest */
 	dest_port_id = new_destiation_port(port_id);
 	discard_expiring_cargo(dest_port_id);
+
+	/* Buying */
 	start_type = RANDOM(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
 		/* Pick how much to buy */
@@ -241,8 +243,7 @@ int sell(int port_id, int type_to_sell)
 	int amount, amount_port, amount_ship;
 	int i, weight, status;
 
-
-	/* Min i have cargo and ports need it */;
+	/* Min i have cargo and ports need it */
 	amount_port = -_data_supply_demand[port_id * _data->SO_MERCI + i].quantity;
 	amount_ship = count_cargo(&cargo_hold[i]);
 	amount = MIN(amount_ship, amount_port);
