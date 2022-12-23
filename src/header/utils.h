@@ -35,7 +35,7 @@ void timer(double interval_sec);
 void wait_event_duration(double sec);
 
 /* MACRO FUNCTION */
-#define TEST() dprintf(1, "TEST ALIVE: is still alive at %d in %s\n", __LINE__, __FILE__)
+#define TEST() dprintf(1, "TEST ALIVE (pid: %d): is still alive at %d in %s\n", getpid(), __LINE__, __FILE__)
 #define GET_SIGN(number)\
 	((number) == 0 ? 0 : ((number) > 0 ? 1 : -1))
 #define SEND_SIGNAL(pid, signal)\
