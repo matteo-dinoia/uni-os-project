@@ -29,7 +29,7 @@ struct cargo *_data_cargo;
 struct supply_demand *_data_supply_demand;
 
 /* Prototypes */
-void get_next_destination_port(int, int *, double *, double *);
+void get_next_destination_port(int *, double *, double *);
 int new_destiation_port(int);
 void discard_expiring_cargo(int);
 void move_to_port(double, double);
@@ -87,23 +87,21 @@ int main(int argc, char *argv[])
 
 void loop()
 {
-	int dest_port, old_port;
+	int dest_port;
 	double dest_x, dest_y;
 
-	old_port = -1;
 	while (1){
-		get_next_destination_port(old_port, &dest_port, &dest_x, &dest_y);
+		get_next_destination_port(&dest_port, &dest_x, &dest_y);
 		move_to_port(dest_x, dest_y);
-		dprintf(1, "\t[Ship %d] arrived at %d from %d\n", _this_id, dest_port, old_port);
+		dprintf(1, "\t[Ship %d] arrived at %d from %d\n", _this_id, dest_port);
 		exchange_cargo(dest_port);
-		old_port = dest_port;
 	}
 }
 
-void get_next_destination_port(int current_port_id, int *dest, double *dest_x, double *dest_y)
+void get_next_destination_port(int *dest, double *dest_x, double *dest_y)
 {
 	if (_next_port_destination < 0) /* No destination set still */
-		new_destiation_port(current_port_id);
+		new_destiation_port(-1);
 
 	/* Set port */
 	*dest = _next_port_destination;
@@ -113,18 +111,44 @@ void get_next_destination_port(int current_port_id, int *dest, double *dest_x, d
 	*dest_y = _data_port[*dest].y;
 }
 
-int new_destiation_port(int current_port_id)
+int new_destiation_port(int current_port)
 {
-	int offset; /* TODO actually choose */
+	const SO_PORTI = _data->SO_PORTI;
+	const SO_MERCI = _data->SO_MERCI;
 
-	if (current_port_id < 0){ /* not in a port */
-		return _next_port_destination = RANDOM(0, _data->SO_PORTI);
+	int port, cargo_type, sale, not_expired, request_port, min;
+	int best_port = -1, best_sale;
+	double best_travel_time, travel_time;
+
+	for (port = 0; port < SO_PORTI; port++){
+		/* Skip current port */
+		if (port == current_port) continue;
+
+		/* Calculate Travel time */
+		travel_time = GET_TRAVEL_TIME(_this_ship, _data_port[port].x, _data_port[port].y, _data->SO_SPEED);
+
+		/* Calculate Sale */
+		sale = 0;
+		for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
+			not_expired = get_not_expired_by_day(&cargo_hold[cargo_type],
+					_data->today + (int) travel_time);
+			request_port = -_data_supply_demand[SO_PORTI * port + cargo_type].quantity;
+
+			min = MIN(not_expired, request_port);
+			sale += min > 0 ? min : 0;
+		}
+
+		/* Check if is new best */
+		if(best_port == -1 /* still doesn't have a best port*/
+				|| sale > best_sale /* or best*/
+				|| (best_sale == sale && travel_time < best_travel_time)){
+			best_port = port;
+			best_sale = sale;
+			best_travel_time = travel_time;
+		}
 	}
 
-	offset = RANDOM(1, _data->SO_PORTI);
-	_next_port_destination = (current_port_id + offset) % _data->SO_PORTI;
-
-	return _next_port_destination;
+	return (_next_port_destination = best_port);
 }
 
 void discard_expiring_cargo(int dest_id)
@@ -139,11 +163,13 @@ void discard_expiring_cargo(int dest_id)
 	/* Remove cargo */
 	for (i = 0; i < _data->SO_MERCI; i++){
 		amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today + days_needed);
+		_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
+
+		/* Bump*/
 		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
 		_data_cargo[i].dump_in_ship -= amount_removed;
 		_data_cargo[i].dump_exipered_ship += amount_removed;
 		execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-		_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
 	}
 }
 
@@ -305,11 +331,13 @@ void signal_handler(int signal)
 	case SIGDAY:
 		for (i = 0; i < _data->SO_MERCI; i++){
 			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
+			_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
+
+			/* Bump */
 			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
 			_data_cargo[i].dump_in_ship -= amount_removed;
 			_data_cargo[i].dump_exipered_ship += amount_removed;
 			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-			_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
 		}
 		break;
 	case SIGSEGV:
