@@ -14,6 +14,7 @@
 #include "header/utils.h"
 
 /* Macros */
+#define SHM_NULL ((void *)-1)
 #define DAY_SEC 1
 #define CREATE_SHM(key, id, pointer, num_elem, extra_flags)\
 		do{\
@@ -24,7 +25,7 @@
 		do {\
 			if(id >= 0){\
 				shmctl((id), IPC_RMID, NULL);\
-				if(pointer != NULL) detach((pointer));\
+				if(pointer != SHM_NULL) detach((pointer));\
 			} \
 		}while (0)
 
@@ -34,11 +35,11 @@ int _id_data;
 int _id_sem;
 int _weather_pid = 0;
 /* Shared memory */
-struct general *_data;
-struct port *_data_port;
-struct ship *_data_ship;
-struct cargo *_data_cargo;
-struct supply_demand *_data_supply_demand;
+struct general *_data = SHM_NULL;
+struct port *_data_port = SHM_NULL;
+struct ship *_data_ship = SHM_NULL;
+struct cargo *_data_cargo = SHM_NULL;
+struct supply_demand *_data_supply_demand = SHM_NULL;
 
 /* Prototypes */
 void initialize_shared();
@@ -69,9 +70,7 @@ int main()
 	sigaction(SIGSEGV, &sa, NULL);
 
 	/* Initializing no error can be inside */
-	/* sigprocmask(SIG_BLOCK, &set_masked, NULL); */
 	initialize_shared();
-	/* sigprocmask(SIG_UNBLOCK, &set_masked, NULL); */
 
 	/* Create and start children*/
 	semctl(_id_sem, 0, SETVAL, 1);
@@ -87,6 +86,7 @@ void initialize_shared()
 {
 	/* SHM: General */
 	CREATE_SHM(KEY_SHARED, _id_data, _data, 1, IPC_CREAT | IPC_EXCL);
+	/* TODO initialize */
 	read_constants_from_file();
 	CREATE_SHM(IPC_PRIVATE, _data->id_ship, _data_ship, _data->SO_NAVI, 0);
 	CREATE_SHM(IPC_PRIVATE, _data->id_port, _data_port, _data->SO_PORTI, 0);
@@ -196,7 +196,6 @@ void create_children()
 	const SO_MIN_VITA = _data->SO_MIN_VITA;
 	const SO_MAX_VITA = _data->SO_MAX_VITA;
 
-	/* TODO BZERO TO EVERYTHING UP + SECURITY */
 	int i, to_add, daily, n_docks;
 	struct port *current_port;
 	struct ship *current_ship;
