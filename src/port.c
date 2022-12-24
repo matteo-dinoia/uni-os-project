@@ -112,9 +112,9 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 
 			/* Dump */
 			execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
-			_data_cargo[needed_type].dump_at_port -= amount;
-			_data_cargo[needed_type].dump_in_ship += amount;
-			_this_supply_demand[needed_type].dump_tot_sent += amount;
+			_data_cargo[needed_type].dump_at_port -= abs(amount);
+			_data_cargo[needed_type].dump_in_ship += abs(amount);
+			_this_supply_demand[needed_type].dump_tot_sent += abs(amount);
 			execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 		}
 		if(tot_exchange <= 0)
@@ -127,10 +127,10 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 
 		/* Dump */
 		execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
-		_data_cargo[needed_type].dump_at_port += amount;
-		_data_cargo[needed_type].dump_in_ship -= amount;
-		_data_cargo[needed_type].dump_tot_delivered += amount;
-		_this_supply_demand[needed_type].dump_tot_received += amount;
+		_data_cargo[needed_type].dump_at_port += abs(amount);
+		_data_cargo[needed_type].dump_in_ship -= abs(amount);
+		_data_cargo[needed_type].dump_tot_delivered += abs(amount);
+		_this_supply_demand[needed_type].dump_tot_received += abs(amount);
 		execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 	}
 
@@ -144,16 +144,16 @@ void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, ship_id,
 			cargo_type, amount, expiry_date, status);
 
-	dprintf(1, "PORT %d SEND TO SHIP %d\n", _this_id, ship_id);
+	/* dprintf(1, "PORT %d SEND TO SHIP %d\n", _this_id, ship_id); */
 	send_commerce_msg(_data->id_msg_out_ports, &msg);
 }
 
 void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
-	dprintf(1, "PORT %d LISTEN TO SHIPS\n", _this_id);
+	/* dprintf(1, "PORT %d LISTEN TO SHIPS\n", _this_id); */
 	receive_commerce_msg(_data->id_msg_in_ports, _this_id,
 			ship_id, cargo_type, amount, expiry_date, status);
-	dprintf(1, "PORT %d RECEIVED FROM SHIPS\n", _this_id);
+	/* dprintf(1, "PORT %d RECEIVED FROM SHIPS\n", _this_id); */
 }
 
 void supply_demand_update()

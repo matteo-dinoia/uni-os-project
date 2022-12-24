@@ -202,14 +202,12 @@ void timer(double duration_sec){
 
 	sec = (int) duration_sec;
 	usec = (duration_sec - (int)duration_sec) * pow(10, 6);
-	dprintf(1, "[SEC] sec %d usec %d\n", sec, usec);
 
 	it_val.it_value.tv_sec = sec;
 	it_val.it_value.tv_usec = usec;
 	it_val.it_interval = it_val.it_value;
 
 	ret = setitimer(ITIMER_REAL, &it_val, NULL);
-	dprintf(1, "%d %s", ret, strerror(errno));
 }
 
 void wait_event_duration(double sec)

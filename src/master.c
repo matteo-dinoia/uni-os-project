@@ -121,15 +121,15 @@ void print_dump_data()
 	for (port = 0; port < _data->SO_PORTI; port++){
 		cargo_in_port = 0;
 		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
-				semctl(_data->id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
+				_data_port[port].dump_dock_tot - semctl(_data->id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
 		tot_port_swell += _data_port[port].dump_had_swell;
 
 		for (type = 0; type < _data->SO_MERCI; type++){
-			quantity = _data_supply_demand[_data->SO_PORTI * port + type].quantity;
+			quantity = _data_supply_demand[_data->SO_MERCI * port + type].quantity;
 			cargo_in_port = quantity > 0 ? quantity : 0;
 			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
-					_data_supply_demand[_data->SO_PORTI * port + type].dump_tot_sent,
-					_data_supply_demand[_data->SO_PORTI * port + type].dump_tot_received);
+					_data_supply_demand[_data->SO_MERCI * port + type].dump_tot_sent,
+					_data_supply_demand[_data->SO_MERCI * port + type].dump_tot_received);
 		}
 		dprintf(1, "|\n");
 	}
@@ -169,10 +169,10 @@ void print_dump_data()
 	/* Shop things */
 	dprintf(1, "================================[SHOP]====================================\n");
 	for (port = 0; port < _data->SO_PORTI; port++){
-		dprintf(1, "PORT %d:", port);
+		dprintf(1, "PORT %d:   ", port);
 		for (type = 0; type < _data->SO_MERCI; type++){
-			dprintf(1, "(t: %d) %d:", type,
-					_data_supply_demand[_data->SO_PORTI * port + type].quantity);
+			dprintf(1, "(t: %d)%d ", type,
+					_data_supply_demand[_data->SO_MERCI * port + type].quantity);
 		}
 		dprintf(1, "\n");
 	}
