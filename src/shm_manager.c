@@ -1,9 +1,14 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <string.h>
 #include "header/shared_mem.h"
-#include "header/shm_manager.h"
 #include "header/utils.h"
+#include "header/shm_manager.h"
 
+/* Macros */
+/* Default value*/
+#define NULL_SHM ((void *)-1)
+#define NULL_ID -1
 /* Shared memory keys */
 #define KEY_SHM_GENERAL 0x10ff
 #define KEY_SHM_PORT 0x20ff
@@ -11,38 +16,56 @@
 #define KEY_SHM_CARGO 0x40ff
 #define KEY_SHM_SHOP 0x50ff
 
-#define CHECK_EXIST
-
 /* Global variables */
-struct general *_data;
-struct port *_data_port;
-struct ship *_data_ship;
-struct cargo *_data_cargo;
-struct shop *_data_shop;
-id_shared_t _id_data;
-id_shared_t _id_port;
-id_shared_t _id_ship;
-id_shared_t _id_cargo;
-id_shared_t _id_shop;
+struct general *_data = NULL_SHM;
+struct port *_data_port = NULL_SHM;
+struct ship *_data_ship = NULL_SHM;
+struct cargo *_data_cargo = NULL_SHM;
+struct shop *_data_shop = NULL_SHM;
+id_shared_t _id_data = NULL_ID;
+id_shared_t _id_port = NULL_ID;
+id_shared_t _id_ship = NULL_ID;
+id_shared_t _id_cargo = NULL_ID;
+id_shared_t _id_shop = NULL_ID;
 
-
-void initialize_shm_manager(int permissions)
+/* Must be initialized by master before anyone accessing it */
+void initialize_shm_manager(int permissions, const struct general *base_data)
 {
-	/* initialize by key (semaphors and shm) */
-	/* TODO: FIX SIZES OF ID */
+	/* Initialize and attach main */
 	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600);
-	_id_port = shmget(KEY_SHM_PORT, sizeof(*_data_port), 0600);
-	_id_ship = shmget(KEY_SHM_SHIP, sizeof(*_data_ship), 0600);
-	_id_cargo = shmget(KEY_SHM_CARGO, sizeof(*_data_cargo), 0600);
-	_id_shop = shmget(KEY_SHM_SHOP, sizeof(*_data_shop), 0600);
+	_data = shmat(_id_data, NULL, 0);
+	if (base_data != NULL){
+		memcpy(_data, base_data, sizeof(*base_data));
+	}
+
+	/* Initialize by key */
+	_id_port = shmget(KEY_SHM_PORT, sizeof(*_data_port) * SO_PORTI, 0600);
+	_id_ship = shmget(KEY_SHM_SHIP, sizeof(*_data_ship) * SO_NAVI, 0600);
+	_id_cargo = shmget(KEY_SHM_CARGO, sizeof(*_data_cargo) * SO_MERCI, 0600);
+	_id_shop = shmget(KEY_SHM_SHOP, sizeof(*_data_shop) * SO_MERCI * SO_PORTI, 0600);
 
 	/* Attach */
-	_data = shmat(_id_data, NULL, 0);
 	_data_port = shmat(_id_port, NULL, 0);
 	_data_ship = shmat(_id_ship, NULL, 0);
 	_data_cargo = shmat(_id_cargo, NULL, 0);
 	_data_shop = shmat(_id_shop, NULL, 0);
 
+}
+
+void close_shm_manager(){
+	/* Detach */
+	shmdt(_data);
+	shmdt(_data_port);
+	shmdt(_data_ship);
+	shmdt(_data_cargo);
+	shmdt(_data_shop);
+
+	/* Mark for removal shared memory */
+	shmctl(_id_data, IPC_RMID, NULL);
+	shmctl(_id_port, IPC_RMID, NULL);
+	shmctl(_id_ship, IPC_RMID, NULL);
+	shmctl(_id_cargo, IPC_RMID, NULL);
+	shmctl(_id_shop, IPC_RMID, NULL);
 }
 
 double get_constants(int type_const)

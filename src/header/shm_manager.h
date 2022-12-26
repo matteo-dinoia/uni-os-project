@@ -52,21 +52,27 @@ void set_day(int day);
 #define VAR_DUMP_TOT_RECEIVED 18
 
 /* Simulation Constants */
-#define _SO_LATO ((double)get_constants(0))
-#define _SO_DAYS ((int)get_constants(1))
-#define _SO_NAVI ((int)get_constants(2))
-#define _SO_PORTI ((int)get_constants(3))
-#define _SO_MERCI ((int)get_constants(4))
-#define _SO_STORM_DURATION ((int)get_constants(5))
-#define _SO_SWELL_DURATION ((int)get_constants(6))
-#define _SO_MAELSTROM ((int)get_constants(7))
-#define _SO_FILL ((int)get_constants(8))
-#define _SO_BANCHINE ((int)get_constants(9))
-#define _SO_LOADSPEED ((int)get_constants(10))
-#define _SO_SIZE ((int)get_constants(11))
-#define _SO_SPEED ((int)get_constants(12))
-#define _SO_CAPACITY ((int)get_constants(13))
-#define _SO_MIN_VITA ((int)get_constants(14))
-#define _SO_MAX_VITA ((int)get_constants(15))
+#define SO_LATO ((double)get_constants(0))
+#define SO_DAYS ((int)get_constants(1))
+#define SO_NAVI ((int)get_constants(2))
+#define SO_PORTI ((int)get_constants(3))
+#define SO_MERCI ((int)get_constants(4))
+#define SO_STORM_DURATION ((int)get_constants(5))
+#define SO_SWELL_DURATION ((int)get_constants(6))
+#define SO_MAELSTROM ((int)get_constants(7))
+#define SO_FILL ((int)get_constants(8))
+#define SO_BANCHINE ((int)get_constants(9))
+#define SO_LOADSPEED ((int)get_constants(10))
+#define SO_SIZE ((int)get_constants(11))
+#define SO_SPEED ((int)get_constants(12))
+#define SO_CAPACITY ((int)get_constants(13))
+#define SO_MIN_VITA ((int)get_constants(14))
+#define SO_MAX_VITA ((int)get_constants(15))
+
+/* Permissions in binary */
+#define PORT_WRITE 1 /* 0001 */
+#define SHIP_WRITE 2 /* 0010 */
+#define CARGO_WRITE 4 /* 0100 */
+#define SHOP_WRITE 8 /* 1000 */
 
 #endif // SHM_MANAGER_H
