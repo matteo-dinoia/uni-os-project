@@ -1,16 +1,49 @@
+#define _GNU_SOURCE
+#include <stdlib.h>
 #include "header/shared_mem.h"
 #include "header/shm_manager.h"
+#include "header/utils.h"
+
+/* Shared memory keys */
+#define KEY_SHM_GENERAL 0x10ff
+#define KEY_SHM_PORT 0x20ff
+#define KEY_SHM_SHIP 0x30ff
+#define KEY_SHM_CARGO 0x40ff
+#define KEY_SHM_SHOP 0x50ff
 
 
 #define CHECK_EXIST
 
+/* Global variables */
 struct general *_data;
+struct port *_data_port;
+struct ship *_data_ship;
 struct cargo *_data_cargo;
+struct shop *_data_shop;
+id_shared_t _id_data;
+id_shared_t _id_port;
+id_shared_t _id_ship;
+id_shared_t _id_cargo;
+id_shared_t _id_shop;
 
-void initialize_if_needed(){
+
+void initialize_shm_manager(int permissions)
+{
 	/* initialize by key (semaphors and shm) */
+	/* TODO: FIX SIZES OF ID */
+	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600);
+	_id_port = shmget(KEY_SHM_PORT, sizeof(*_data_port), 0600);
+	_id_ship = shmget(KEY_SHM_SHIP, sizeof(*_data_ship), 0600);
+	_id_cargo = shmget(KEY_SHM_CARGO, sizeof(*_data_cargo), 0600);
+	_id_shop = shmget(KEY_SHM_SHOP, sizeof(*_data_shop), 0600);
 
 	/* Attach */
+	_data = shmat(_id_data, NULL, 0);
+	_data_port = shmat(_id_port, NULL, 0);
+	_data_ship = shmat(_id_ship, NULL, 0);
+	_data_cargo = shmat(_id_cargo, NULL, 0);
+	_data_shop = shmat(_id_shop, NULL, 0);
+
 }
 
 double get_constants(int type_const){
