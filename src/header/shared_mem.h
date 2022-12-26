@@ -13,26 +13,12 @@ void *attach_shared(id_shared_t id, int extra_flags);
 
 struct general{
 	/* Constants*/
-	double SO_LATO; /* DO NOT TOUCH ORDER */
-	int SO_DAYS, SO_NAVI, SO_PORTI, SO_MERCI;	/* Generic simulation specifications */
-	int SO_STORM_DURATION, SO_SWELL_DURATION, SO_MAELSTROM; /* Weather events max duration */
-	int SO_FILL, SO_BANCHINE, SO_LOADSPEED;			/* Ports specifications */
-	int SO_SIZE, SO_SPEED, SO_CAPACITY;			/* Ships specifications */
-	int SO_MIN_VITA, SO_MAX_VITA;				/* Cargo specifications */
-
-	/* Shared memory id */
-	id_shared_t id_port;
-	id_shared_t id_ship;
-	id_shared_t id_cargo;
-	id_shared_t id_supply_demand;
-
-	/* Msg id */
-	id_shared_t id_msg_in_ports;
-	id_shared_t id_msg_out_ports;
-
-	/* Semaphores */
-	id_shared_t id_sem_docks;
-	id_shared_t id_sem_cargo;
+	double so_lato; /* DO NOT TOUCH ORDER */
+	int so_days, so_navi, so_porti, so_merci;	/* Generic simulation specifications */
+	int so_storm_duration, so_swell_duration, so_maelstrom; /* Weather events max duration */
+	int so_fill, so_banchine, so_loadspeed;			/* Ports specifications */
+	int so_size, so_speed, so_capacity;			/* Ships specifications */
+	int so_min_vita, so_max_vita;				/* Cargo specifications */
 
 	/* Today */
 	int today;
