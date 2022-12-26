@@ -2,7 +2,22 @@
 #define SHM_MANAGER_H
 
 /* Simulation Constants */
-#define SO_DAYS (_SO_DAYS)
+#define SO_LATO _SO_LATO
+#define SO_DAYS _SO_DAYS
+#define SO_NAVI _SO_NAVI
+#define SO_PORTI _SO_PORTI
+#define SO_MERCI _SO_MERCI
+#define SO_STORM_DURATION _SO_STORM_DURATION
+#define SO_SWELL_DURATION _SO_SWELL_DURATION
+#define SO_MAELSTROM _SO_MAELSTROM
+#define SO_FILL _SO_FILL
+#define SO_BANCHINE _SO_BANCHINE
+#define SO_LOADSPEED _SO_LOADSPEED
+#define SO_SIZE _SO_SIZE
+#define SO_SPEED _SO_SPEED
+#define SO_CAPACITY _SO_CAPACITY
+#define SO_MIN_VITA _SO_MIN_VITA
+#define SO_MAX_VITA _SO_MAX_VITA
 
 /* Type */
 #define PID 0
