@@ -74,7 +74,7 @@ struct cargo{ /* Writers: port, ship */
 	int dump_tot_delivered; /* DONE */
 };
 
-struct supply_demand{ /* Writers: port */
+struct shop{ /* Writers: port */
 	int quantity;
 
 	/* Dump */
