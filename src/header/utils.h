@@ -16,6 +16,12 @@ typedef int bool_t;
 #define FALSE 0
 typedef int id_shared_t;
 
+/* Coordinates */
+struct coord{
+	double x;
+	double y;
+};
+
 /* Cargo list */
 typedef struct{
 	struct node_cargo *first;

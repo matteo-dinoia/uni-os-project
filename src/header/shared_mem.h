@@ -25,8 +25,7 @@ struct general{
 };
 
 struct port{ /* Writers: port */
-	double x;
-	double y;
+	struct coord coordinates;
 	pid_t pid;
 	int daily_restock_capacity;
 
@@ -36,8 +35,7 @@ struct port{ /* Writers: port */
 };
 
 struct ship{ /* Writers: ship */
-	double x;
-	double y;
+	struct coord coordinates;
 	pid_t pid;
 	bool_t is_moving;
 

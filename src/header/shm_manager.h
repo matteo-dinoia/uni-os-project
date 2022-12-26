@@ -1,6 +1,8 @@
 #ifndef SHM_MANAGER_H
 #define SHM_MANAGER_H
 
+#include "utils.h"
+
 /* Simulation Constants */
 #define _SO_LATO ((double)get_constants(0))
 #define _SO_DAYS ((int)get_constants(1))
@@ -24,13 +26,6 @@
 /* Double*/
 #define WHICH_X 0
 #define WHICH_Y 1
-
-/* Struct */
-struct coord{
-	double x;
-	double y;
-};
-
 
 /* Prototype*/
 void initialize_constants();
