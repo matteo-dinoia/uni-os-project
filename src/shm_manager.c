@@ -10,23 +10,7 @@
 #define KEY_SHM_SHIP 0x30ff
 #define KEY_SHM_CARGO 0x40ff
 #define KEY_SHM_SHOP 0x50ff
-/*  */
-#define _SO_LATO ((double)_get_constants(0))
-#define _SO_DAYS ((int)_get_constants(1))
-#define _SO_NAVI (__SO_NAVI)
-#define _SO_PORTI (__SO_PORTI)
-#define _SO_MERCI (__SO_MERCI)
-#define _SO_STORM_DURATION (__SO_STORM_DURATION)
-#define _SO_SWELL_DURATION (__SO_SWELL_DURATION)
-#define _SO_MAELSTROM (__SO_MAELSTROM)
-#define _SO_FILL (__SO_FILL)
-#define _SO_BANCHINE (__SO_BANCHINE)
-#define _SO_LOADSPEED (__SO_LOADSPEED)
-#define _SO_SIZE (__SO_SIZE)
-#define _SO_SPEED (__SO_SPEED)
-#define _SO_CAPACITY (__SO_CAPACITY)
-#define _SO_MIN_VITA (__SO_MIN_VITA)
-#define _SO_MAX_VITA (_SO_MAX_VITA)
+
 
 #define CHECK_EXIST
 
@@ -62,11 +46,52 @@ void initialize_shm_manager(int permissions)
 
 }
 
-double _get_constants(int type_const){
+double get_constants(int type_const){
 	/*Every get and set start with if (struct = Void * -1) initialize shared */
+	/* Check pemissions only in write */
 	/* obtain */
-	switch (type_const){
-		case 0:
-			return _data->
+	switch (type_const % 16){
+		case 0: return _data->so_lato;
+		case 1: return _data->so_days;
+		case 2: return _data->so_navi;
+		case 3: return _data->so_porti;
+		case 4: return _data->so_merci;
+		case 5: return _data->so_storm_duration;
+		case 6: return _data->so_swell_duration;
+		case 7: return _data->so_maelstrom;
+		case 8: return _data->so_fill;
+		case 9: return _data->so_banchine;
+		case 10: return _data->so_loadspeed;
+		case 11: return _data->so_size;
+		case 12: return _data->so_speed;
+		case 13: return _data->so_capacity;
+		case 14: return _data->so_min_vita;
+		case 15: return _data->so_max_vita;
 	}
+}
+
+/* COORD */
+struct coord get_coord_port(int id){
+	/* COntrols */
+	return _data_port->coordinates;
+}
+void set_coord_port(int id, double x, double y){
+	_data_port->coordinates.x = x;
+	_data_port->coordinates.x = y;
+}
+struct coord get_coord_ship(int id){
+	return _data_ship->coordinates;
+}
+void set_coord_ship(int id, double x, double y){
+	_data_ship->coordinates.x = x;
+	_data_ship->coordinates.x = y;
+}
+
+/* DAY */
+int getday(){
+	return _data->today;
+}
+
+void setday(int day){
+	_data->today = day;
 }

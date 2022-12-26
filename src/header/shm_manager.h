@@ -1,23 +1,25 @@
 #ifndef SHM_MANAGER_H
 #define SHM_MANAGER_H
 
+#include "utils.h"
+
 /* Simulation Constants */
-#define SO_LATO _SO_LATO
-#define SO_DAYS _SO_DAYS
-#define SO_NAVI _SO_NAVI
-#define SO_PORTI _SO_PORTI
-#define SO_MERCI _SO_MERCI
-#define SO_STORM_DURATION _SO_STORM_DURATION
-#define SO_SWELL_DURATION _SO_SWELL_DURATION
-#define SO_MAELSTROM _SO_MAELSTROM
-#define SO_FILL _SO_FILL
-#define SO_BANCHINE _SO_BANCHINE
-#define SO_LOADSPEED _SO_LOADSPEED
-#define SO_SIZE _SO_SIZE
-#define SO_SPEED _SO_SPEED
-#define SO_CAPACITY _SO_CAPACITY
-#define SO_MIN_VITA _SO_MIN_VITA
-#define SO_MAX_VITA _SO_MAX_VITA
+#define _SO_LATO ((double)get_constants(0))
+#define _SO_DAYS ((int)get_constants(1))
+#define _SO_NAVI ((int)get_constants(2))
+#define _SO_PORTI ((int)get_constants(3))
+#define _SO_MERCI ((int)get_constants(4))
+#define _SO_STORM_DURATION ((int)get_constants(5))
+#define _SO_SWELL_DURATION ((int)get_constants(6))
+#define _SO_MAELSTROM ((int)get_constants(7))
+#define _SO_FILL ((int)get_constants(8))
+#define _SO_BANCHINE ((int)get_constants(9))
+#define _SO_LOADSPEED ((int)get_constants(10))
+#define _SO_SIZE ((int)get_constants(11))
+#define _SO_SPEED ((int)get_constants(12))
+#define _SO_CAPACITY ((int)get_constants(13))
+#define _SO_MIN_VITA ((int)get_constants(14))
+#define _SO_MAX_VITA ((int)get_constants(15))
 
 /* Type */
 #define PID 0
@@ -29,6 +31,7 @@
 void initialize_constants();
 void close_all();
 /* Getter and setter */
+double get_constants(int index);
 int get_ship(int ship_id, int value_type);
 void set_ship(int ship_id, int value_type, int value);
 int get_port(int port_id, int value_type);
@@ -38,9 +41,12 @@ void set_cargo(int cargo_id, int value_type, int value);
 int get_supply(int port_id, int cargo_id, int value_type);
 void set_supply(int port_id, int cargo_id, int value_type, int value);
 /* Coord */
-double get_coord_port(int id, int which);
+struct coord get_coord_port(int id);
 void set_coord_port(int id, double x, double y);
-double get_coord_ship(int id, int which);
+struct coord get_coord_ship(int id);
 void set_coord_ship(int id, double x, double y);
+/* Day */
+int get_day();
+void set_day(int day);
 
 #endif // SHM_MANAGER_H
