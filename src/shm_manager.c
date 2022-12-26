@@ -15,4 +15,3 @@ int _get_constants(int value){
 	/*Every get and set start with if (struct = Void * -1) initialize shared */
 	/* obtain */
 }
-
