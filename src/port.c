@@ -10,6 +10,7 @@
 #include "header/message.h"
 #include "header/semaphore.h"
 #include "header/utils.h"
+#include "header/shm_manager.h"
 
 /* Global variables */
 int _this_id;
@@ -44,11 +45,7 @@ int main(int argc, char *argv[])
 	execute_single_sem_oper(id, 0, 0);
 
 	/* FIRST: Gain data struct */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
-	_data = attach_shared(id, SHM_RDONLY);
-	_data_port = attach_shared(_data->id_port, 0);
-	_data_supply_demand = attach_shared(_data->id_supply_demand, 0);
-	_data_cargo = attach_shared(_data->id_cargo, 0);
+	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
 
 	/* This*/
 	_this_id = atoi(argv[1]);
