@@ -1,6 +1,7 @@
 #ifndef _SHARED_MEMORY_H
 #define _SHARED_MEMORY_H
 
+#include <sys/types.h>
 #include <sys/shm.h>
 #include "utils.h"
 #define KEY_SHARED 0xf3
