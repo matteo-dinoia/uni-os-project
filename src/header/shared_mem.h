@@ -40,8 +40,8 @@ struct ship{ /* Writers: ship */
 	bool_t is_moving;
 
 	/* Dump */
-	bool_t dump_is_at_dock; /* DONE */
 	int capacity; /* DONE -> if equals to SO_CAPACITY is empty*/
+	bool_t dump_is_at_dock; /* DONE */
 	int dump_had_storm; /* DONE */
 	int dump_had_maelstrom; /* DONE */
 };
