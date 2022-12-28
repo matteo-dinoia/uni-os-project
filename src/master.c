@@ -18,7 +18,8 @@
 #define DAY_SEC 1
 
 /* Global variables */
-int _weather_pid = 0;
+pid_t *childs_pid = NULL;
+int childs_counter = 0;
 
 /* Prototypes */
 void initialize_shared();
@@ -28,6 +29,7 @@ void close_all(const char *, int);
 void create_children();
 struct general read_constants_from_file();
 void print_dump_data();
+void send_to_all_childs();
 void loop();
 
 int main()
@@ -82,159 +84,38 @@ void initialize_shared()
 
 }
 
-void print_dump_data()
-{
-	int port, type, ship, cargo_type, cargo_in_port, quantity;
-	int tot_port_swell = 0;
-	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
-	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0;
-
-	dprintf(1, "\n\n================================[DAY %3d]=================================\n", _data->today);
-
-	/* Dumps things */
-	dprintf(1, "\n================================[DUMPS]===================================\n");
-
-	dprintf(1, "[PORTS]\n");
-	for (port = 0; port < SO_PORTI; port++){
-		cargo_in_port = 0;
-		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
-				_data_port[port].dump_dock_tot - semctl(_data->id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
-		tot_port_swell += _data_port[port].dump_had_swell;
-
-		for (type = 0; type < SO_MERCI; type++){
-			quantity = _data_supply_demand[SO_MERCI * port + type].quantity;
-			cargo_in_port = quantity > 0 ? quantity : 0;
-			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
-					_data_supply_demand[SO_MERCI * port + type].dump_tot_sent,
-					_data_supply_demand[SO_MERCI * port + type].dump_tot_received);
-		}
-		dprintf(1, "|\n");
-	}
-	dprintf(1, "|--PORTS TOTALS: tot_swell: %d\n\n", tot_port_swell);
-
-	dprintf(1, "[SHIPS]\n");
-	for (ship = 0; ship < SO_NAVI; ship++){
-		dprintf(1, "|----(Ship: %d) is_at_dock: %d, had_storm: %d, had_maeltrom: %d\n", ship, _data_ship[ship].dump_is_at_dock,
-				_data_ship[ship].dump_had_storm, _data_ship[ship].dump_had_maelstrom);
-		if (_data_ship[ship].dump_is_at_dock) tot_ship_dock++;
-		else if (_data_ship[ship].capacity == SO_CAPACITY) tot_ship_empty++;
-		else tot_ship_cargo++;
-		tot_ship_storm += _data_ship[ship].dump_had_storm;
-		tot_ship_maelstrom += _data_ship[ship].dump_had_maelstrom;
-	}
-	dprintf(1, "|\n");
-	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_cargo: %d, tot_empty: %d, tot_storm: %d, tot_maeltrom: %d\n\n",
-			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom);
-
-	dprintf(1, "[CARGO]\n");
-	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d, tot_in_ships: %d, tot_delivered: %d, tot_expired_port: %d, tot_expired_ship: %d\n",
-				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
-				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship);
-
-				/* Totals */
-				tot_cargo_port += _data_cargo[cargo_type].dump_at_port;
-				tot_cargo_ship += _data_cargo[cargo_type].dump_in_ship;
-				tot_cargo_del += _data_cargo[cargo_type].dump_tot_delivered;
-				tot_cargo_exp_port += _data_cargo[cargo_type].dump_exipered_port;
-				tot_cargo_exp_ship += _data_cargo[cargo_type].dump_exipered_ship;
-	}
-	dprintf(1, "|\n");
-	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d\n\n",
-			tot_cargo_port, tot_cargo_ship, tot_cargo_del, tot_cargo_exp_port, tot_cargo_exp_ship);
-
-	/* Shop things */
-	dprintf(1, "================================[SHOP]====================================\n");
-	for (port = 0; port < SO_PORTI; port++){
-		dprintf(1, "PORT %d:   ", port);
-		for (type = 0; type < SO_MERCI; type++){
-			dprintf(1, "(t: %d)%d ", type,
-					_data_supply_demand[SO_MERCI * port + type].quantity);
-		}
-		dprintf(1, "\n");
-	}
-	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
-
-	if(_data->today >= SO_DAYS)
-		close_all("================================[END SIMULATION]================================\n", EXIT_SUCCESS);
-}
-
 void create_children()
 {
-	/* Constants for readability */
-	int i, to_add, daily, n_docks;
-	struct port *current_port;
-	struct ship *current_ship;
-	struct cargo *current_cargo;
-
-	/* Initialize ports data */
-	daily = SO_FILL / (SO_DAYS * SO_PORTI);
-	for (i = 0; i < SO_PORTI; i++){
-		current_port = &_data_port[i];
-		current_port->pid = create_proc("./port", i);
-
-		to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
-		current_port->daily_restock_capacity = daily + to_add;
-
-		if (i<4){
-			/* ports in 4 corner */
-			current_port->x = i % 2 != 0 ? SO_LATO : 0;
-			current_port->y = i < 2 ? SO_LATO : 0;
-		}
-		else{
-			current_port->x = RANDOM_DOUBLE(0, SO_LATO);
-			current_port->y = RANDOM_DOUBLE(0, SO_LATO);
-		}
-
-		n_docks = RANDOM(1, SO_BANCHINE);
-		current_port->dump_dock_tot = n_docks;
-		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
-
-		current_port->dump_had_swell = FALSE;
-	}
-
-	/* Initialize ships data */
-	for (i = 0; i < SO_NAVI; i++){
-		current_ship = &_data_ship[i];
-		current_ship->pid = create_proc("./ship", i);
-
-		current_ship->x = RANDOM_DOUBLE(0, SO_LATO);
-		current_ship->y = RANDOM_DOUBLE(0, SO_LATO);
-		current_ship->is_moving = FALSE;
-
-		/* Initializing ship dump */
-		current_ship->capacity = SO_CAPACITY;
-		current_ship->dump_is_at_dock = FALSE;
-		current_ship->dump_had_storm = FALSE;
-		current_ship->dump_had_maelstrom = FALSE;
-	}
-
-	/* Initialize cargo data */
-	for (i = 0; i < SO_MERCI; i++){
-		current_cargo = &_data_cargo[i];
-
-		current_cargo->weight_batch = RANDOM(1, SO_SIZE);
-		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
-
-		/* Initializing cargo bump */
-		current_cargo->dump_at_port = 0;
-		current_cargo->dump_in_ship = 0;
-		current_cargo->dump_exipered_port = 0;
-		current_cargo->dump_exipered_ship = 0;
-		current_cargo->dump_tot_delivered = 0;
-
-		/* Semaphore */
-		semctl(_data->id_sem_cargo, i, SETVAL, 1);
-	}
-
-	/* Initialize supply and demand */
-	bzero(_data_supply_demand, sizeof(*_data_supply_demand) * SO_PORTI * SO_MERCI);
-
-	/* Initialize weather */
-	_weather_pid = create_proc("./weather", -1);
+	int i;
+	for(i = 0; i < SO_PORTI; i++)
+		create_proc("./port", i);
+	for(i = 0; i < SO_NAVI; i++)
+		create_proc("./ship", i);
+	create_proc("./weather", -1);
 }
 
-struct general read_constants_from_file() /* Crashable */
+pid_t create_proc(char *name, int index)
+{
+	pid_t proc_pid;
+	char *arg[3], *env[]={NULL}, buf[10];
+
+	if ((proc_pid = fork()) == -1){
+		close_all("[FATAL] Failed to fork child", EXIT_FAILURE);
+	} else if (proc_pid == 0){
+		sprintf(buf, "%d", index);
+		arg[0] = name;
+		arg[1] = buf;
+		arg[2] = NULL;
+
+		execve(name, arg, env);
+		dprintf(1, "%s\n", strerror(errno));
+		exit(EXIT_FAILURE);
+	}
+
+	return proc_pid;
+}
+
+struct general read_constants_from_file()
 {
 	struct general res;
 	const NUM_VALUE = 16;
@@ -280,27 +161,6 @@ struct general read_constants_from_file() /* Crashable */
 		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
 }
 
-pid_t create_proc(char *name, int index)
-{
-	pid_t proc_pid;
-	char *arg[3], *env[]={NULL}, buf[10];
-
-	if ((proc_pid = fork()) == -1){
-		close_all("[FATAL] Failed to fork child", EXIT_FAILURE);
-	} else if (proc_pid == 0){
-		sprintf(buf, "%d", index);
-		arg[0] = name;
-		arg[1] = buf;
-		arg[2] = NULL;
-
-		execve(name, arg, env);
-		dprintf(1, "%s\n", strerror(errno));
-		exit(EXIT_FAILURE);
-	}
-
-	return proc_pid;
-}
-
 void custom_handler(int signal)
 {
 	int i;
@@ -312,18 +172,20 @@ void custom_handler(int signal)
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
 	case SIGALRM:
-		_data->today++;
 		print_dump_data();
 
-		for (i = 0; i < SO_PORTI; i++)
-			SEND_SIGNAL(_data_port[i].pid, SIGDAY);
-		for (i = 0; i < SO_NAVI; i++)
-			SEND_SIGNAL(_data_ship[i].pid, SIGDAY);
-		SEND_SIGNAL(_weather_pid, SIGDAY);
+		increase_day();
+		send_to_all_childs(SIGDAY);
 
 		alarm(DAY_SEC);
 		break;
 	}
+}
+
+void send_to_all_childs(int signal){
+	int i;
+	for(i = 0; i < childs_counter; i++)
+		SEND_SIGNAL(childs_pid, signal);
 }
 
 void close_all(const char *message, int exit_status)
@@ -335,11 +197,7 @@ void close_all(const char *message, int exit_status)
 	else dprintf(2, "\n%s\n", message);
 
 	/* Killing and wait child */
-	SEND_SIGNAL(_weather_pid, SIGINT);
-	for (i = 0; _data_port != NULL && i<SO_PORTI; i++)
-		SEND_SIGNAL(_data_port[i].pid, SIGINT);
-	for (i = 0; _data_ship != NULL && i<SO_NAVI; i++)
-		SEND_SIGNAL(_data_ship[i].pid, SIGINT);
+	send_to_all_childs(SIGINT);
 	while(wait(NULL) != -1 || errno == EINTR) errno = EXIT_SUCCESS;
 
 	/* Closing semaphors */
@@ -349,12 +207,8 @@ void close_all(const char *message, int exit_status)
 	/* Closing message queues */
 	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
-	/* Closing shared memories */
-	CLOSE_SHM(_data->id_port, _data_port);
-	CLOSE_SHM(_data->id_ship, _data_ship);
-	CLOSE_SHM(_data->id_cargo, _data_cargo);
-	CLOSE_SHM(_data->id_supply_demand, _data_supply_demand);
-	CLOSE_SHM(_id_data, _data); /* must be last */
+
+	close_shm_manager();
 
 	/* Messanges and exit */
 	dprintf(1, "[CLOSING OPERATION] Success");

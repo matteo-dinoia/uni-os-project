@@ -5,12 +5,13 @@
 
 /* Prototype*/
 void initialize_constants();
-void close_all();
+void close_shm_manager();
+void print_dump_data();
 double get_constants(int index);
 /* Setter TODO check permission*/
 void set_coord_port(int id, double x, double y);
 void set_coord_ship(int id, double x, double y);
-void set_day(int day);
+void increase_day();
 
 /* GETTER */
 /* Day */
