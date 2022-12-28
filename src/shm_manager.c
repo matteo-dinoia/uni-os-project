@@ -230,9 +230,6 @@ void print_dump_data()
 		dprintf(1, "\n");
 	}
 	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
-
-	if(_data->today >= SO_DAYS)
-		close_all("================================[END SIMULATION]================================\n", EXIT_SUCCESS);
 }
 
 /* GETTER */

@@ -174,8 +174,9 @@ void custom_handler(int signal)
 		print_dump_data();
 
 		increase_day();
-		send_to_all_childs(SIGDAY);
+		if(get_day() >= SO_DAYS) close_all("================================[END SIMULATION]================================\n", EXIT_SUCCESS);
 
+		send_to_all_childs(SIGDAY);
 		alarm(DAY_SEC);
 		break;
 	}
