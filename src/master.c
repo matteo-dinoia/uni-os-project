@@ -28,7 +28,6 @@ void custom_handler(int);
 void close_all(const char *, int);
 void create_children();
 struct general read_constants_from_file();
-void print_dump_data();
 void send_to_all_childs();
 void loop();
 
