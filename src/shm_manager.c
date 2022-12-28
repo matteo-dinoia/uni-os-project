@@ -53,10 +53,6 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 
 	/* Initialize shm data if needed */
 	if (base_data != NULL){
-		bzero(_data_port, sizeof(*_data_port) * SO_PORTI);
-		bzero(_data_ship, sizeof(*_data_ship) * SO_NAVI);
-		bzero(_data_cargo , sizeof(*_data_cargo) * SO_MERCI);
-		bzero(_data_shop, sizeof(*_data_shop) * SO_MERCI * SO_PORTI);
 		_initialize_data();
 	}
 }
@@ -66,6 +62,12 @@ void _initialize_data(){
 	struct port *current_port;
 	struct ship *current_ship;
 	struct cargo *current_cargo;
+
+	/* Putting to zero everything */
+	bzero(_data_port, sizeof(*_data_port) * SO_PORTI);
+	bzero(_data_ship, sizeof(*_data_ship) * SO_NAVI);
+	bzero(_data_cargo , sizeof(*_data_cargo) * SO_MERCI);
+	bzero(_data_shop, sizeof(*_data_shop) * SO_MERCI * SO_PORTI);
 
 	/* Initialize ports data */
 	daily = SO_FILL / (SO_DAYS * SO_PORTI);
@@ -88,8 +90,6 @@ void _initialize_data(){
 		n_docks = RANDOM(1, SO_BANCHINE);
 		current_port->dump_dock_tot = n_docks;
 		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
-
-		current_port->dump_had_swell = FALSE;
 	}
 
 	/* Initialize ships data */
@@ -113,6 +113,9 @@ void _initialize_data(){
 		/* Semaphore */
 		semctl(_data->id_sem_cargo, i, SETVAL, 1);
 	}
+
+	/* Other */
+	_data->today = 1;
 }
 
 void close_shm_manager(){
