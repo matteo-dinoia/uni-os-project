@@ -114,16 +114,39 @@ void set_coord_ship(int id, double x, double y){
 }
 
 /* DAY */
-int getday()
-{
-	return _data->today;
-}
+int getday(){return _data->today;}
+void setday(int day){_data->today = day;}
 
-void setday(int day){
-	_data->today = day;
-}
-
+/* GETTER */
 /* PORT */
+int get_port_pid(int port_id){return _data_port[port_id].pid;}
+int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
+int get_port_tot_dock(int port_id){return _data_port[port_id].dump_dock_tot;}
+bool_t had_port_swell(int port_id){return _data_port[port_id].dump_had_swell;}
+/* SHIP */
+int get_ship_pid(int ship_id){return _data_ship[ship_id].pid;}
+bool_t is_ship_moving(int ship_id){return _data_ship[ship_id].is_moving;}
+int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
+bool_t is_ship_at_port(int ship_id){return _data_ship[ship_id].dump_is_at_dock;}
+bool_t had_ship_storm(int ship_id){return _data_ship[ship_id].dump_had_storm;}
+bool_t had_ship_maelstrom(int ship_id){return _data_ship[ship_id].dump_had_maelstrom;}
+/* CARGO */
+int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_batch;}
+int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
+int get_cargo_at_port(int cargo_id){return _data_cargo[cargo_id].dump_at_port;}
+int get_cargo_in_ship(int cargo_id){return _data_cargo[cargo_id].dump_in_ship;}
+int get_cargo_expired_port(int cargo_id){return _data_cargo[cargo_id].dump_exipered_port;}
+int get_cargo_expired_ship(int cargo_id){return _data_cargo[cargo_id].dump_exipered_ship;}
+int get_cargo_tot_delivered(int cargo_id){return _data_cargo[cargo_id].dump_tot_delivered;}
+/* SHOP */
+int get_shop_quantity(int port_id, int cargo_id){return _data_shop[port_id].quantity;}
+int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[port_id].dump_tot_sent;}
+int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[port_id].dump_tot_received;}
+
+
+
+
+
 int get_port(int port_id, int var_type)
 {
 	switch(var_type){

@@ -26,30 +26,57 @@ int get_day();
 void set_day(int day);
 
 
-/* Type */
-#define VAR_PID 0
+/* GETTER */
 /* PORT */
+int get_port_pid(int port_id);
+int get_port_daily_restock(int port_id);
+int get_port_tot_dock(int port_id);
+bool_t had_port_swell(int port_id);
+/* SHIP */
+int get_ship_pid(int ship_id);
+bool_t is_ship_moving(int ship_id);
+int get_ship_capacity(int ship_id);
+bool_t is_ship_at_port(int ship_id);
+bool_t had_ship_storm(int ship_id);
+bool_t had_ship_maelstrom(int ship_id);
+/* CARGO */
+int get_cargo_weight_batch(int cargo_id);
+int get_cargo_shelf_life(int cargo_id);
+int get_cargo_at_port(int cargo_id);
+int get_cargo_in_ship(int cargo_id);
+int get_cargo_expired_port(int cargo_id);
+int get_cargo_expired_ship(int cargo_id);
+int get_cargo_tot_delivered(int cargo_id);
+/* SHOP */
+int get_shop_quantity(int port_id, int cargo_id);
+int get_shop_tot_sent(int port_id, int cargo_id);
+int get_shop_tot_received(int port_id, int cargo_id);
+
+
+/* Type *//*
+#define VAR_PID 0*/
+/* PORT *//*
 #define VAR_DAILY_RESTOCK 1
 #define VAR_DUMP_DOCK_TOT 2
-#define VAR_DUMP_HAD_SWELL 3
-/* SHIP */
+#define VAR_DUMP_HAD_SWELL 3*/
+/* SHIP *//*
 #define VAR_IS_MOVING 4
 #define VAR_CAPACITY 5
 #define VAR_DUMP_IS_AT_DOCK 6
 #define VAR_DUMP_HAD_STORM 7
-#define VAR_DUMP_HAD_MAELSTROM 8
-/* CARGO */
+#define VAR_DUMP_HAD_MAELSTROM 8*/
+/* CARGO *//*
 #define VAR_WEIGHT_BATCH 9
 #define VAR_SHELF_LIFE 10
 #define VAR_DUMP_AT_PORT 11
 #define VAR_DUMP_IN_SHIP 12
 #define VAR_DUMP_EXPIRED_PORT 13
 #define VAR_DUMP_EXPIRED_SHIP 14
-#define VAR_DUMP_TOT_DELIVERED 15
-/* SHOP */
+#define VAR_DUMP_TOT_DELIVERED 15*/
+/* SHOP *//*
 #define VAR_QUANTITY 16
 #define VAR_DUMP_TOT_SENT 17
-#define VAR_DUMP_TOT_RECEIVED 18
+#define VAR_DUMP_TOT_RECEIVED 18*/
 
 /* Simulation Constants */
 #define SO_LATO ((double)get_constants(0))
@@ -75,4 +102,4 @@ void set_day(int day);
 #define CARGO_WRITE 4 /* 0100 */
 #define SHOP_WRITE 8 /* 1000 */
 
-#endif // SHM_MANAGER_H
+#endif
