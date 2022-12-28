@@ -7,7 +7,7 @@
 void initialize_constants();
 void close_all();
 double get_constants(int index);
-/* Setter */
+/* Setter TODO check permission*/
 void set_coord_port(int id, double x, double y);
 void set_coord_ship(int id, double x, double y);
 void set_day(int day);
@@ -22,6 +22,7 @@ int get_port_tot_dock(int port_id);
 bool_t had_port_swell(int port_id);
 /* Ship */
 struct coord get_coord_ship(int id);
+bool_t is_ship_dead(int ship_id);
 bool_t is_ship_moving(int ship_id);
 int get_ship_capacity(int ship_id);
 bool_t is_ship_at_port(int ship_id);

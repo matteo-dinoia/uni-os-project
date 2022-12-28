@@ -79,7 +79,6 @@ void close_shm_manager(){
 double get_constants(int type_const)
 {
 	/*Every get and set start with if (struct = Void * -1) initialize shared */
-	/* Check pemissions only in write */
 	/* obtain */
 	switch (type_const % 16){
 		case 0: return _data->so_lato;
@@ -105,12 +104,13 @@ double get_constants(int type_const)
 /* Day */
 int getday(){return _data->today;}
 /* Port */
-struct coord get_coord_port(int id){return _data_port->coordinates;}
+struct coord get_coord_port(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
 int get_port_tot_dock(int port_id){return _data_port[port_id].dump_dock_tot;}
 bool_t had_port_swell(int port_id){return _data_port[port_id].dump_had_swell;}
 /* Ship */
-struct coord get_coord_ship(int id){return _data_ship->coordinates;}
+bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
+struct coord get_coord_ship(int ship_id){return _data_ship[ship_id].coordinates;}
 bool_t is_ship_moving(int ship_id){return _data_ship[ship_id].is_moving;}
 int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
 bool_t is_ship_at_port(int ship_id){return _data_ship[ship_id].dump_is_at_dock;}
@@ -125,9 +125,9 @@ int get_cargo_expired_port(int cargo_id){return _data_cargo[cargo_id].dump_exipe
 int get_cargo_expired_ship(int cargo_id){return _data_cargo[cargo_id].dump_exipered_ship;}
 int get_cargo_tot_delivered(int cargo_id){return _data_cargo[cargo_id].dump_tot_delivered;}
 /* Shop */
-int get_shop_quantity(int port_id, int cargo_id){return _data_shop[port_id].quantity;}
-int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[port_id].dump_tot_sent;}
-int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[port_id].dump_tot_received;}
+int get_shop_quantity(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].quantity;}
+int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_sent;}
+int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_received;}
 
 /* "SETTER" */
 void set_coord_port(int id, double x, double y)

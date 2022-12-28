@@ -26,7 +26,6 @@ struct general{
 
 struct port{ /* Writers: port */
 	struct coord coordinates;
-	pid_t pid;
 	int daily_restock_capacity;
 
 	/* Dump */
@@ -36,8 +35,8 @@ struct port{ /* Writers: port */
 
 struct ship{ /* Writers: ship */
 	struct coord coordinates;
-	pid_t pid;
 	bool_t is_moving;
+	bool_t is_dead;
 
 	/* Dump */
 	int capacity; /* DONE -> if equals to SO_CAPACITY is empty*/
