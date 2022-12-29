@@ -271,13 +271,13 @@ int getday(){return _data->today;}
 /* Port */
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
-void get_ship_pid(int port_id){return _data_port[port_id].pid;}
+int get_port_pid(int port_id){return _data_port[port_id].pid;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
 bool_t is_ship_moving(int ship_id){return _data_ship[ship_id].is_moving;}
 int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
-void get_ship_pid(int ship_id){return _data_ship[ship_id].pid;}
+int get_ship_pid(int ship_id){return _data_ship[ship_id].pid;}
 /* Cargo */
 int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_batch;}
 int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
