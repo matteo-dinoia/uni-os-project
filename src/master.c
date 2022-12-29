@@ -20,6 +20,11 @@
 /* Global variables */
 pid_t *childs_pid = NULL;
 int childs_counter = 0;
+id_shared_t _id_sem = -1;
+id_shared_t _id_sem_cargo = -1;
+id_shared_t _id_sem_docks = -1;
+id_shared_t _id_msg_in_ports = -1;
+id_shared_t _id_msg_out_ports = -1;
 
 /* Prototypes */
 void initialize_shared();
@@ -73,13 +78,13 @@ void initialize_shared()
 	initialize_shm_manager(PORT_WRITE | SHIP_WRITE | CARGO_WRITE | SHOP_WRITE, &constants);
 
 	/* MSG port in and out */
-	_data->id_msg_in_ports = msgget(IPC_PRIVATE, 0600);
-	_data->id_msg_out_ports = msgget(IPC_PRIVATE, 0600);
+	_id_msg_in_ports = msgget(IPC_PRIVATE, 0600);
+	_id_msg_out_ports = msgget(IPC_PRIVATE, 0600);
 
 	/* SEM: Start and docks */
 	_id_sem = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	_data->id_sem_docks = semget(IPC_PRIVATE, SO_PORTI, 0600);
-	_data->id_sem_cargo = semget(IPC_PRIVATE, SO_MERCI, 0600);
+	_id_sem_docks = semget(IPC_PRIVATE, SO_PORTI, 0600);
+	_id_sem_cargo = semget(IPC_PRIVATE, SO_MERCI, 0600);
 
 }
 
@@ -202,11 +207,11 @@ void close_all(const char *message, int exit_status)
 
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
-	semctl(_data->id_sem_docks, 0, IPC_RMID);
-	semctl(_data->id_sem_cargo, 0, IPC_RMID);
+	semctl(_id_sem_docks, 0, IPC_RMID);
+	semctl(_id_sem_cargo, 0, IPC_RMID);
 	/* Closing message queues */
-	msgctl(_data->id_msg_in_ports, IPC_RMID, NULL);
-	msgctl(_data->id_msg_out_ports, IPC_RMID, NULL);
+	msgctl(_id_msg_in_ports, IPC_RMID, NULL);
+	msgctl(_id_msg_out_ports, IPC_RMID, NULL);
 
 	close_shm_manager();
 
