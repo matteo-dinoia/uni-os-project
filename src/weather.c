@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
-#include "header/semaphore.h"
-#include "header/shared_mem.h"
 #include "header/utils.h"
 #include "header/shm_manager.h"
 
@@ -49,16 +47,14 @@ int main()
 /* Adds SO_STORM_DURATION to the ship travel time once per day */
 void storm()
 {
-	int i, rand_ship;
-	rand_ship = RANDOM(0, SO_NAVI);
-	int ship_i = get_ship_pid(rand_ship);
+	int i;
+	int ship_i = RANDOM(0, SO_NAVI);
 	for (i = 0; i < SO_NAVI; i++){
-		if (ship_i != 0 && is_ship_moving(ship_i)){
-			kill(ship_i, SIGSTORM);
+		if (!is_ship_dead(ship_i) && is_ship_moving(ship_i)){
+			SEND_SIGNAL(get_ship_pid(ship_i), SIGSTORM);
 			return;
 		}
-		rand_ship = (rand_ship + 1) % SO_NAVI;
-		ship_i = get_ship_pid(rand_ship);
+		ship_i = (rand_ship + 1) % SO_NAVI;
 	}
 
 	/* TODO: no ship is moving or all are dead */
@@ -67,27 +63,25 @@ void storm()
 /* Sink a ship every SO_MAELSTROM */
 void maelstrom()
 {
-	int i, rand_ship;
-	rand_ship = RANDOM(0, SO_NAVI);
-	int ship_i = get_ship_pid(rand_ship);
+	int i;
+	int ship_i = RANDOM(0, SO_NAVI);
 
 	for (i = 0; i < SO_NAVI; i++){
-		if (ship_i != 0){
-			kill(ship_i, SIGMAELSTROM);
+		if (!is_ship_dead(ship_i)){
+			SEND_SIGNAL(get_ship_pid(ship_i), SIGMAELSTROM);
 			return;
 		}
-		rand_ship = (rand_ship + 1) % SO_NAVI;
-		ship_i = get_ship_pid(rand_ship);
+		ship_i = (rand_ship + 1) % SO_NAVI;
 	}
 
 	/* Comunicate all ship are dead to parent */
-	kill(getppid(), SIGTERM);
+	SEND_SIGNAL(getppid(), SIGTERM);
 }
 
 /* Stop a port every day for SO_SWELL_DURATION hours */
 void swell()
 {
-	kill(get_port_pid(RANDOM(0, SO_PORTI)), SIGSWELL);
+	SEND_SIGNAL(get_port_pid(RANDOM(0, SO_PORTI)), SIGSWELL);
 }
 
 void signal_handler(int signal)
