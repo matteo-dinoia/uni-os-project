@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "header/shared_mem.h"
 #include "header/utils.h"
 #include "header/shm_manager.h"
@@ -50,6 +51,71 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 	_data_cargo = shmat(_id_cargo, NULL, 0);
 	_data_shop = shmat(_id_shop, NULL, 0);
 
+	/* Initialize shm data if needed */
+	if (base_data != NULL){
+		_initialize_data();
+	}
+}
+
+void _initialize_data(){
+	int i, to_add, daily, n_docks;
+	struct port *current_port;
+	struct ship *current_ship;
+	struct cargo *current_cargo;
+
+	/* Putting to zero everything */
+	bzero(_data_port, sizeof(*_data_port) * SO_PORTI);
+	bzero(_data_ship, sizeof(*_data_ship) * SO_NAVI);
+	bzero(_data_cargo , sizeof(*_data_cargo) * SO_MERCI);
+	bzero(_data_shop, sizeof(*_data_shop) * SO_MERCI * SO_PORTI);
+
+	/* Initialize ports data */
+	daily = SO_FILL / (SO_DAYS * SO_PORTI);
+	for (i = 0; i < SO_PORTI; i++){
+		current_port = &_data_port[i];
+
+		to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
+		current_port->daily_restock_capacity = daily + to_add;
+
+		if (i<4){
+			/* ports in 4 corner */
+			current_port->x = i % 2 != 0 ? SO_LATO : 0;
+			current_port->y = i < 2 ? SO_LATO : 0;
+		}
+		else{
+			current_port->x = RANDOM_DOUBLE(0, SO_LATO);
+			current_port->y = RANDOM_DOUBLE(0, SO_LATO);
+		}
+
+		n_docks = RANDOM(1, SO_BANCHINE);
+		current_port->dump_dock_tot = n_docks;
+		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
+	}
+
+	/* Initialize ships data */
+	for (i = 0; i < SO_NAVI; i++){
+		current_ship = &_data_ship[i];
+
+		current_ship->x = RANDOM_DOUBLE(0, SO_LATO);
+		current_ship->y = RANDOM_DOUBLE(0, SO_LATO);
+
+		/* Initializing ship dump */
+		current_ship->capacity = SO_CAPACITY;
+	}
+
+	/* Initialize cargo data */
+	for (i = 0; i < SO_MERCI; i++){
+		current_cargo = &_data_cargo[i];
+
+		current_cargo->weight_batch = RANDOM(1, SO_SIZE);
+		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
+
+		/* Semaphore */
+		semctl(_data->id_sem_cargo, i, SETVAL, 1);
+	}
+
+	/* Other */
+	_data->today = 1;
 }
 
 void close_shm_manager(){
@@ -71,7 +137,6 @@ void close_shm_manager(){
 double get_constants(int type_const)
 {
 	/*Every get and set start with if (struct = Void * -1) initialize shared */
-	/* Check pemissions only in write */
 	/* obtain */
 	switch (type_const % 16){
 		case 0: return _data->so_lato;
@@ -93,168 +158,117 @@ double get_constants(int type_const)
 	}
 }
 
-/* COORD */
-struct coord get_coord_port(int id)
+void print_dump_data()
 {
-	/* COntrols */
-	return _data_port->coordinates;
+	int port, type, ship, cargo_type, cargo_in_port, quantity;
+	int tot_port_swell = 0;
+	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
+	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0;
+
+	dprintf(1, "\n\n================================[DAY %3d]=================================\n", _data->today);
+
+	/* Dumps things */
+	dprintf(1, "\n================================[DUMPS]===================================\n");
+
+	dprintf(1, "[PORTS]\n");
+	for (port = 0; port < SO_PORTI; port++){
+		cargo_in_port = 0;
+		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
+				_data_port[port].dump_dock_tot - semctl(_data->id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
+		tot_port_swell += _data_port[port].dump_had_swell;
+
+		for (type = 0; type < SO_MERCI; type++){
+			quantity = _data_supply_demand[SO_MERCI * port + type].quantity;
+			cargo_in_port = quantity > 0 ? quantity : 0;
+			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
+					_data_supply_demand[SO_MERCI * port + type].dump_tot_sent,
+					_data_supply_demand[SO_MERCI * port + type].dump_tot_received);
+		}
+		dprintf(1, "|\n");
+	}
+	dprintf(1, "|--PORTS TOTALS: tot_swell: %d\n\n", tot_port_swell);
+
+	dprintf(1, "[SHIPS]\n");
+	for (ship = 0; ship < SO_NAVI; ship++){
+		dprintf(1, "|----(Ship: %d) is_at_dock: %d, had_storm: %d, had_maeltrom: %d\n", ship, _data_ship[ship].dump_is_at_dock,
+				_data_ship[ship].dump_had_storm, _data_ship[ship].dump_had_maelstrom);
+		if (_data_ship[ship].dump_is_at_dock) tot_ship_dock++;
+		else if (_data_ship[ship].capacity == SO_CAPACITY) tot_ship_empty++;
+		else tot_ship_cargo++;
+		tot_ship_storm += _data_ship[ship].dump_had_storm;
+		tot_ship_maelstrom += _data_ship[ship].dump_had_maelstrom;
+	}
+	dprintf(1, "|\n");
+	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_cargo: %d, tot_empty: %d, tot_storm: %d, tot_maeltrom: %d\n\n",
+			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom);
+
+	dprintf(1, "[CARGO]\n");
+	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
+		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d, tot_in_ships: %d, tot_delivered: %d, tot_expired_port: %d, tot_expired_ship: %d\n",
+				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
+				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship);
+
+				/* Totals */
+				tot_cargo_port += _data_cargo[cargo_type].dump_at_port;
+				tot_cargo_ship += _data_cargo[cargo_type].dump_in_ship;
+				tot_cargo_del += _data_cargo[cargo_type].dump_tot_delivered;
+				tot_cargo_exp_port += _data_cargo[cargo_type].dump_exipered_port;
+				tot_cargo_exp_ship += _data_cargo[cargo_type].dump_exipered_ship;
+	}
+	dprintf(1, "|\n");
+	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d\n\n",
+			tot_cargo_port, tot_cargo_ship, tot_cargo_del, tot_cargo_exp_port, tot_cargo_exp_ship);
+
+	/* Shop things */
+	dprintf(1, "================================[SHOP]====================================\n");
+	for (port = 0; port < SO_PORTI; port++){
+		dprintf(1, "PORT %d:   ", port);
+		for (type = 0; type < SO_MERCI; type++){
+			dprintf(1, "(t: %d)%d ", type,
+					_data_supply_demand[SO_MERCI * port + type].quantity);
+		}
+		dprintf(1, "\n");
+	}
+	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
 }
+
+/* GETTER */
+/* Day */
+int getday(){return _data->today;}
+/* Port */
+struct coord get_coord_port(int port_id){return _data_port[port_id].coordinates;}
+int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
+int get_port_tot_dock(int port_id){return _data_port[port_id].dump_dock_tot;}
+bool_t had_port_swell(int port_id){return _data_port[port_id].dump_had_swell;}
+/* Ship */
+bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
+struct coord get_coord_ship(int ship_id){return _data_ship[ship_id].coordinates;}
+bool_t is_ship_moving(int ship_id){return _data_ship[ship_id].is_moving;}
+int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
+bool_t is_ship_at_port(int ship_id){return _data_ship[ship_id].dump_is_at_dock;}
+bool_t had_ship_storm(int ship_id){return _data_ship[ship_id].dump_had_storm;}
+bool_t had_ship_maelstrom(int ship_id){return _data_ship[ship_id].dump_had_maelstrom;}
+/* Cargo */
+int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_batch;}
+int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
+int get_cargo_at_port(int cargo_id){return _data_cargo[cargo_id].dump_at_port;}
+int get_cargo_in_ship(int cargo_id){return _data_cargo[cargo_id].dump_in_ship;}
+int get_cargo_expired_port(int cargo_id){return _data_cargo[cargo_id].dump_exipered_port;}
+int get_cargo_expired_ship(int cargo_id){return _data_cargo[cargo_id].dump_exipered_ship;}
+int get_cargo_tot_delivered(int cargo_id){return _data_cargo[cargo_id].dump_tot_delivered;}
+/* Shop */
+int get_shop_quantity(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].quantity;}
+int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_sent;}
+int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_received;}
+
+/* "SETTER" */
 void set_coord_port(int id, double x, double y)
 {
 	_data_port->coordinates.x = x;
 	_data_port->coordinates.x = y;
 }
-struct coord get_coord_ship(int id)
-{
-	return _data_ship->coordinates;
-}
 void set_coord_ship(int id, double x, double y){
 	_data_ship->coordinates.x = x;
 	_data_ship->coordinates.x = y;
 }
-
-/* DAY */
-int getday()
-{
-	return _data->today;
-}
-
-void setday(int day){
-	_data->today = day;
-}
-
-/* PORT */
-int get_port(int port_id, int var_type)
-{
-	switch(var_type){
-		case VAR_PID: return _data_port[port_id].pid;
-		case VAR_DAILY_RESTOCK: return _data_port[port_id].daily_restock_capacity;
-		case VAR_DUMP_DOCK_TOT: return _data_port[port_id].dump_dock_tot;
-		case VAR_DUMP_HAD_SWELL: return _data_port[port_id].dump_had_swell;
-		default: return -1;
-	}
-}
-
-void set_port(int port_id, int var_type, int var)
-{
-	switch(var_type){
-		case VAR_PID:
-			_data_port[port_id].pid = var;
-			break;
-		case VAR_DAILY_RESTOCK:
-			_data_port[port_id].daily_restock_capacity = var;
-			break;
-		case VAR_DUMP_DOCK_TOT:
-			_data_port[port_id].dump_dock_tot = var;
-			break;
-		case VAR_DUMP_HAD_SWELL:
-			_data_port[port_id].dump_had_swell = var;
-			break;
-	}
-}
-
-/* SHIP */
-int get_ship(int ship_id, int var_type)
-{
-	switch(var_type){
-		case VAR_PID: return _data_ship[ship_id].pid;
-		case VAR_IS_MOVING: return _data_ship[ship_id].is_moving;
-		case VAR_CAPACITY: return _data_ship[ship_id].capacity;
-		case VAR_DUMP_IS_AT_DOCK: return _data_ship[ship_id].dump_is_at_dock;
-		case VAR_DUMP_HAD_STORM: return _data_ship[ship_id].dump_had_storm;
-		case VAR_DUMP_HAD_MAELSTROM: return _data_ship[ship_id].dump_had_maelstrom;
-		default: return -1;
-	}
-}
-
-void set_ship(int ship_id, int var_type, int var)
-{
-	switch(var_type){
-		case VAR_PID:
-			_data_ship[ship_id].pid = var;
-			break;
-		case VAR_IS_MOVING:
-			_data_ship[ship_id].is_moving = var;
-			break;
-		case VAR_CAPACITY:
-			_data_ship[ship_id].capacity = var;
-			break;
-		case VAR_DUMP_IS_AT_DOCK:
-			_data_ship[ship_id].dump_is_at_dock = var;
-			break;
-		case VAR_DUMP_HAD_STORM:
-			_data_ship[ship_id].dump_had_storm = var;
-			break;
-		case VAR_DUMP_HAD_MAELSTROM:
-			_data_ship[ship_id].dump_had_maelstrom = var;
-			break;
-	}
-}
-
-/* CARGO */
-int get_cargo(int cargo_id, int var_type)
-{
-	switch(var_type){
-		case VAR_WEIGHT_BATCH: return _data_cargo[cargo_id].weight_batch;
-		case VAR_SHELF_LIFE: return _data_cargo[cargo_id].shelf_life;
-		case VAR_DUMP_AT_PORT: return _data_cargo[cargo_id].dump_at_port;
-		case VAR_DUMP_IN_SHIP: return _data_cargo[cargo_id].dump_in_ship;
-		case VAR_DUMP_EXPIRED_PORT: return _data_cargo[cargo_id].dump_exipered_port;
-		case VAR_DUMP_EXPIRED_SHIP: return _data_cargo[cargo_id].dump_exipered_ship;
-		case VAR_DUMP_TOT_DELIVERED: return _data_cargo[cargo_id].dump_tot_delivered;
-		default: return -1;
-	}
-}
-
-void set_cargo(int cargo_id, int var_type, int var)
-{
-	switch(var_type){
-		case VAR_WEIGHT_BATCH:
-			_data_cargo[cargo_id].weight_batch = var;
-			break;
-		case VAR_SHELF_LIFE:
-			_data_cargo[cargo_id].shelf_life = var;
-			break;
-		case VAR_DUMP_AT_PORT:
-			_data_cargo[cargo_id].dump_at_port = var;
-			break;
-		case VAR_DUMP_IN_SHIP:
-			_data_cargo[cargo_id].dump_in_ship = var;
-			break;
-		case VAR_DUMP_EXPIRED_PORT:
-			_data_cargo[cargo_id].dump_exipered_port = var;
-			break;
-		case VAR_DUMP_EXPIRED_SHIP:
-			_data_cargo[cargo_id].dump_exipered_ship = var;
-			break;
-		case VAR_DUMP_TOT_DELIVERED:
-			_data_cargo[cargo_id].dump_tot_delivered = var;
-			break;
-	}
-}
-
-/* SHOP */
-int get_shop(int port_id, int cargo_id, int var_type)
-{
-	switch(var_type){
-		case VAR_QUANTITY: return _data_shop[port_id].quantity;
-		case VAR_DUMP_TOT_SENT: return _data_shop[port_id].dump_tot_sent;
-		case VAR_DUMP_TOT_RECEIVED: return _data_shop[port_id].dump_tot_received;
-		default: return -1;
-	}
-}
-
-void set_shop(int port_id, int cargo_id, int var_type, int var)
-{
-	switch(var_type){
-		case VAR_QUANTITY:
-			_data_shop[port_id].quantity = var;
-			break;
-		case VAR_DUMP_TOT_SENT:
-			_data_shop[port_id].dump_tot_sent = var;
-			break;
-		case VAR_DUMP_TOT_RECEIVED:
-			_data_shop[port_id].dump_tot_received = var;
-			break;
-	}
-}
+void increase_day(){_data->today++;}
