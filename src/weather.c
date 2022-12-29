@@ -54,7 +54,7 @@ void storm()
 			SEND_SIGNAL(get_ship_pid(ship_i), SIGSTORM);
 			return;
 		}
-		ship_i = (rand_ship + 1) % SO_NAVI;
+		ship_i = (ship_i + 1) % SO_NAVI;
 	}
 
 	/* TODO: no ship is moving or all are dead */
@@ -71,7 +71,7 @@ void maelstrom()
 			SEND_SIGNAL(get_ship_pid(ship_i), SIGMAELSTROM);
 			return;
 		}
-		ship_i = (rand_ship + 1) % SO_NAVI;
+		ship_i = (ship_i + 1) % SO_NAVI;
 	}
 
 	/* Comunicate all ship are dead to parent */
