@@ -25,13 +25,13 @@ void set_port_pid(int port_id, pid_t pid);
 /* Day */
 int get_day();
 /* Port */
-struct coord get_coord_port(int id);
+struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
 int get_port_tot_dock(int port_id);
 bool_t had_port_swell(int port_id);
 void get_ship_pid(int port_id);
 /* Ship */
-struct coord get_coord_ship(int id);
+struct coord get_ship_coord(int id);
 bool_t is_ship_dead(int ship_id);
 bool_t is_ship_moving(int ship_id);
 int get_ship_capacity(int ship_id);

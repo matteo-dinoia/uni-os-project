@@ -269,14 +269,14 @@ void print_dump_data()
 /* Day */
 int getday(){return _data->today;}
 /* Port */
-struct coord get_coord_port(int port_id){return _data_port[port_id].coordinates;}
+struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
 int get_port_tot_dock(int port_id){return _data_port[port_id].dump_dock_tot;}
 bool_t had_port_swell(int port_id){return _data_port[port_id].dump_had_swell;}
 void get_ship_pid(int port_id){return _data_port[port_id].pid;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
-struct coord get_coord_ship(int ship_id){return _data_ship[ship_id].coordinates;}
+struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
 bool_t is_ship_moving(int ship_id){return _data_ship[ship_id].is_moving;}
 int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
 bool_t is_ship_at_port(int ship_id){return _data_ship[ship_id].dump_is_at_dock;}
