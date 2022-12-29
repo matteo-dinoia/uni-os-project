@@ -17,6 +17,7 @@ void set_ship_dead(int ship_id);
 void set_ship_maelstrom(int ship_id);
 void set_ship_storm(int ship_id);
 void set_ship_pid(int ship_id, pid_t pid);
+void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day);
 void set_coord_port(int id, double x, double y);
 void set_port_swell(int port_id);
 void set_port_pid(int port_id, pid_t pid);
@@ -27,13 +28,13 @@ int get_day();
 /* Port */
 struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
-void get_ship_pid(int port_id);
+int get_port_pid(int port_id);
 /* Ship */
 struct coord get_ship_coord(int id);
 bool_t is_ship_dead(int ship_id);
 bool_t is_ship_moving(int ship_id);
 int get_ship_capacity(int ship_id);
-void get_ship_pid(int ship_id);
+int get_ship_pid(int ship_id);
 /* Cargo */
 int get_cargo_weight_batch(int cargo_id);
 int get_cargo_shelf_life(int cargo_id);

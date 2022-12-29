@@ -14,8 +14,8 @@
 #include "header/shm_manager.h"
 
 /* Macro*/
-#define GET_TRAVEL_TIME(this_ship, dest_x, dest_y, speed)\
-	(sqrt(pow((this_ship->x) - (dest_x), 2) + pow((this_ship->y) - (dest_y), 2)) / (double) (speed))
+#define GET_TRAVEL_TIME(this_coord, dest_coord, speed)\
+	(sqrt(pow((this_coord.x) - (dest_coord.x), 2) + pow((this_coord.y) - (dest_coord.y), 2)) / (double) (speed))
 
 /* Global Variables */
 int _this_id;
@@ -23,10 +23,10 @@ int _next_port_destination;
 list_cargo *cargo_hold;
 
 /* Prototypes */
-void get_next_destination_port(int *, double *, double *);
+void get_next_destination_port(int *, struct coord *);
 int new_destiation_port(int);
 void discard_expiring_cargo(int);
-void move_to_port(double, double);
+void move_to_port(struct coord);
 void exchange_cargo(int);
 void signal_handler(int);
 void loop();
@@ -70,17 +70,17 @@ int main(int argc, char *argv[])
 void loop()
 {
 	int dest_port;
-	double dest_x, dest_y;
+	struct coord dest_coord;
 
 	while (1){
-		get_next_destination_port(&dest_port, &dest_x, &dest_y);
-		move_to_port(dest_x, dest_y);
+		get_next_destination_port(&dest_port, &dest_coord);
+		move_to_port(dest_coord);
 		dprintf(1, "\t[Ship %d] arrived at %d\n", _this_id, dest_port);
 		exchange_cargo(dest_port);
 	}
 }
 
-void get_next_destination_port(int *dest, double *dest_x, double *dest_y)
+void get_next_destination_port(int *dest, struct coord *dest_coord)
 {
 	if (_next_port_destination < 0) /* No destination set still */
 		new_destiation_port(-1);
@@ -89,8 +89,7 @@ void get_next_destination_port(int *dest, double *dest_x, double *dest_y)
 	*dest = _next_port_destination;
 	_next_port_destination = -1;
 	/* get position */
-	*dest_x = _data_port[*dest].x;
-	*dest_y = _data_port[*dest].y;
+	*dest_coord = get_port_coord(*dest);
 }
 
 int new_destiation_port(int current_port)
@@ -112,8 +111,8 @@ int new_destiation_port(int current_port)
 			/* Calculate use */
 			use = 0;
 			for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-				use = _data_supply_demand[SO_MERCI * port + cargo_type].dump_tot_sent
-						+ _data_supply_demand[SO_MERCI * port + cargo_type].dump_tot_received;
+				use = _data_shop[SO_MERCI * port + cargo_type].dump_tot_sent
+						+ _data_shop[SO_MERCI * port + cargo_type].dump_tot_received;
 			}
 
 			/* Choose worst */
@@ -133,14 +132,14 @@ int new_destiation_port(int current_port)
 		if (port == current_port) continue;
 
 		/* Calculate Travel time */
-		travel_time = GET_TRAVEL_TIME(_this_ship, _data_port[port].x, _data_port[port].y, SO_SPEED);
+		travel_time = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(port), SO_SPEED);
 
 		/* Calculate Sale */
 		sale = 0;
 		for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
 			not_expired = get_not_expired_by_day(&cargo_hold[cargo_type],
-					_data->today + (int) travel_time);
-			request_port = -_data_supply_demand[SO_MERCI * port + cargo_type].quantity;
+					get_day() + (int) travel_time);
+			request_port = -get_shop_quantity(port, cargo_type);
 
 			min = MIN(not_expired, request_port);
 			sale += min > 0 ? min : 0;
@@ -161,29 +160,16 @@ int new_destiation_port(int current_port)
 
 void discard_expiring_cargo(int dest_id)
 {
-	const struct port *dest_port = &_data_port[dest_id];
-
-	int days_needed, amount_removed, i;
-
 	/* Time */
-	days_needed= GET_TRAVEL_TIME(_this_ship, dest_port->x, dest_port->x, SO_SPEED);
+	int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);
 
 	/* Remove cargo */
-	for (i = 0; i < SO_MERCI; i++){
-		amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today + days_needed);
-		_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
-
-		/* Bump*/
-		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
-		_data_cargo[i].dump_in_ship -= amount_removed;
-		_data_cargo[i].dump_exipered_ship += amount_removed;
-		execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-	}
+	remove_ship_expired(_this_id, cargo_hold, days_needed);
 }
 
-void move_to_port(double x_port, double y_port)
+void move_to_port(struct coord dest_coord)
 {
-	double time = GET_TRAVEL_TIME(_this_ship, x_port, y_port, SO_SPEED);
+	double time = GET_TRAVEL_TIME(get_ship_coord(_this_id), dest_coord, SO_SPEED);
 
 	/* Wait */
 	_this_ship->is_moving = TRUE;
@@ -191,8 +177,7 @@ void move_to_port(double x_port, double y_port)
 	_this_ship->is_moving = FALSE;
 
 	/* Actual move*/
-	_this_ship->x = x_port;
-	_this_ship->y = y_port;
+	set_coord_ship(_this_id, dest_coord.x, dest_coord.y);
 }
 
 void exchange_cargo(int port_id)
@@ -202,7 +187,7 @@ void exchange_cargo(int port_id)
 	int tons_moved, i, type, amount, dest_port_id, start_type;
 
 	/* Get dock */
-	execute_single_sem_oper(_data->id_sem_docks, port_id, -1);
+	execute_single_sem_oper(get_id_sem_docks(), port_id, -1);
 	_this_ship->dump_is_at_dock = TRUE;
 
 	/* Initialize signal ignored */
@@ -241,7 +226,7 @@ void exchange_cargo(int port_id)
 	}
 
 	/* Free dock */
-	execute_single_sem_oper(_data->id_sem_docks, port_id, 1);
+	execute_single_sem_oper(get_id_sem_docks(), port_id, 1);
 	_this_ship->dump_is_at_dock = FALSE;
 }
 
@@ -251,7 +236,7 @@ int sell(int port_id, int type_to_sell)
 	int weight, status;
 
 	/* Min i have cargo and ports need it */
-	amount_port = -_data_supply_demand[port_id * SO_MERCI + type_to_sell].quantity;
+	amount_port = -get_shop_quantity(port_id, type_to_sell);
 	amount_ship = count_cargo(&cargo_hold[type_to_sell]);
 	amount = MIN(amount_ship, amount_port);
 	/* If nothing to be sell then skip this type*/
@@ -265,7 +250,7 @@ int sell(int port_id, int type_to_sell)
 	if (status == STATUS_ACCEPTED && amount < 0){
 		amount = abs(amount);
 		remove_cargo(&cargo_hold[type_to_sell], amount);
-		weight = amount * _data_cargo[type_to_sell].weight_batch;
+		weight = amount * get_cargo_weight_batch(type_to_sell);
 		_this_ship->capacity += weight;
 
 		return weight;
@@ -288,7 +273,7 @@ int buy(int port_id, int type_to_buy, int amount_to_buy)
 		/* Change data */
 		if (status == STATUS_PARTIAL || status == STATUS_ACCEPTED){
 			add_cargo(&cargo_hold[type], amount, expiry_date);
-			weight = amount * _data_cargo[type].weight_batch;
+			weight = amount * get_cargo_weight_batch(type);
 			tons_moved += weight;
 			_this_ship->capacity -= weight;
 		}
@@ -297,15 +282,13 @@ int buy(int port_id, int type_to_buy, int amount_to_buy)
 	return tons_moved;
 }
 
-
-
 int pick_buy(int port_id, int dest_port_id, int type)
 {
 	int n_sell_this_port, n_capacity, n_buy_dest_port;
 
-	n_sell_this_port = _data_supply_demand[port_id * SO_MERCI + type].quantity;
-	n_buy_dest_port = -_data_supply_demand[dest_port_id * SO_MERCI + type].quantity;
-	n_capacity = _this_ship->capacity / _data_cargo[type].weight_batch;
+	n_sell_this_port = get_shop_quantity(port_id, type);
+	n_buy_dest_port = -get_shop_quantity(dest_port_id, type);
+	n_capacity = _this_ship->capacity / get_cargo_weight_batch(type);
 
 	/* Calculate min value */
 	return MIN(MIN(n_sell_this_port, n_buy_dest_port), n_capacity);
@@ -318,13 +301,13 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 			cargo_type, amount, expiry_date, status);
 
 	dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type);
-	send_commerce_msg(_data->id_msg_in_ports, &msg);
+	send_commerce_msg(get_id_msg_in_ports(), &msg);
 }
 
 void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
 	/* dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id); */
-	receive_commerce_msg(_data->id_msg_out_ports, _this_id,
+	receive_commerce_msg(get_id_msg_out_ports(), _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
 	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d\n", _this_id, *status, *amount);
 }
@@ -336,16 +319,7 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		for (i = 0; i < SO_MERCI; i++){
-			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
-			_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
-
-			/* Bump */
-			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
-			_data_cargo[i].dump_in_ship -= amount_removed;
-			_data_cargo[i].dump_exipered_ship += amount_removed;
-			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-		}
+		remove_ship_expired(_this_id, cargo_hold, 0);
 		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)");
@@ -353,6 +327,7 @@ void signal_handler(int signal)
 		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		set_ship_maelstrom(_this_id);
+		remove_ship_expired(_this_id, cargo_hold, 0);
 	case SIGINT: /* Closing for every other reason */
 		close_all();
 		break;
