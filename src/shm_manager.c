@@ -271,26 +271,16 @@ int getday(){return _data->today;}
 /* Port */
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
-int get_port_tot_dock(int port_id){return _data_port[port_id].dump_dock_tot;}
-bool_t had_port_swell(int port_id){return _data_port[port_id].dump_had_swell;}
 void get_ship_pid(int port_id){return _data_port[port_id].pid;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
 bool_t is_ship_moving(int ship_id){return _data_ship[ship_id].is_moving;}
 int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
-bool_t is_ship_at_port(int ship_id){return _data_ship[ship_id].dump_is_at_dock;}
-bool_t had_ship_storm(int ship_id){return _data_ship[ship_id].dump_had_storm;}
-bool_t had_ship_maelstrom(int ship_id){return _data_ship[ship_id].dump_had_maelstrom;}
 void get_ship_pid(int ship_id){return _data_ship[ship_id].pid;}
 /* Cargo */
 int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_batch;}
 int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
-int get_cargo_at_port(int cargo_id){return _data_cargo[cargo_id].dump_at_port;}
-int get_cargo_in_ship(int cargo_id){return _data_cargo[cargo_id].dump_in_ship;}
-int get_cargo_expired_port(int cargo_id){return _data_cargo[cargo_id].dump_exipered_port;}
-int get_cargo_expired_ship(int cargo_id){return _data_cargo[cargo_id].dump_exipered_ship;}
-int get_cargo_tot_delivered(int cargo_id){return _data_cargo[cargo_id].dump_tot_delivered;}
 /* Shop */
 int get_shop_quantity(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].quantity;}
 int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_sent;}

@@ -27,26 +27,16 @@ int get_day();
 /* Port */
 struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
-int get_port_tot_dock(int port_id);
-bool_t had_port_swell(int port_id);
 void get_ship_pid(int port_id);
 /* Ship */
 struct coord get_ship_coord(int id);
 bool_t is_ship_dead(int ship_id);
 bool_t is_ship_moving(int ship_id);
 int get_ship_capacity(int ship_id);
-bool_t is_ship_at_port(int ship_id);
-bool_t had_ship_storm(int ship_id);
-bool_t had_ship_maelstrom(int ship_id);
 void get_ship_pid(int ship_id);
 /* Cargo */
 int get_cargo_weight_batch(int cargo_id);
 int get_cargo_shelf_life(int cargo_id);
-int get_cargo_at_port(int cargo_id);
-int get_cargo_in_ship(int cargo_id);
-int get_cargo_expired_port(int cargo_id);
-int get_cargo_expired_ship(int cargo_id);
-int get_cargo_tot_delivered(int cargo_id);
 /* Shop */
 int get_shop_quantity(int port_id, int cargo_id);
 int get_shop_tot_sent(int port_id, int cargo_id);
