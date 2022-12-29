@@ -63,6 +63,7 @@ struct cargo{ /* Writers: port, ship */
 	int dump_exipered_port; /* DONE */
 	int dump_exipered_ship;
 	int dump_tot_delivered; /* DONE */
+	int dump_delivered_unwanted;
 };
 
 struct shop{ /* Writers: port */

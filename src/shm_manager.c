@@ -298,6 +298,23 @@ void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
 void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
 void set_ship_storm(int ship_id){_data_ship[ship_id].dump_had_storm = TRUE;}
 void set_ship_pid(int ship_id, pid_t pid){_data_ship[ship_id].pid = pid;}
+void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day){
+	int i, amount_removed;
+	for (i = 0; i < SO_MERCI; i++){
+		amount_removed = remove_expired_cargo(&cargo_hold[i], get_day() + increment_day);
+		_data_ship[ship_id].capacity += amount_removed * _data_cargo[i].weight_batch;
+
+		/* Bump*/
+		execute_single_sem_oper(_id_sem_cargo, i, -1);
+		_data_cargo[i].dump_in_ship -= amount_removed;
+		if (increment_day == 0){
+			_data_cargo[i].dump_exipered_ship += amount_removed;
+		}else if (increment_day > 0){
+			_data_cargo[i].dump_delivered_unwanted += amount_removed;
+		}
+		execute_single_sem_oper(_id_sem_cargo, i, 1);
+	}
+}
 /* Port*/
 void set_coord_port(int port_id, double x, double y)
 {
