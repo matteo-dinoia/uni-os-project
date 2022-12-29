@@ -187,7 +187,7 @@ void free_cargo(list_cargo *list)
 	}
 }
 
-struct timespec get_timespec(double interval_sec){
+struct timespec _get_timespec(double interval_sec){
 	struct timespec res;
 
 	res.tv_sec = (long)interval_sec;
@@ -216,7 +216,7 @@ void wait_event_duration(double sec)
 
 	if (sec <= 0) return;
 
-	event_time = get_timespec(sec);
+	event_time = _get_timespec(sec);
 	do {
 		errno = EXIT_SUCCESS;
 		nanosleep(&event_time, &rem_time);
