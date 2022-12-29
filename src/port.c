@@ -15,13 +15,6 @@
 /* Global variables */
 int _this_id;
 list_cargo *cargo_hold;
-/* shared memory */
-struct general *_data;
-struct cargo *_data_cargo;
-struct port *_data_port;
-struct port *_this_port;
-struct supply_demand *_data_supply_demand;
-struct supply_demand *_this_supply_demand;
 
 /* Prototypes */
 void supply_demand_update();
@@ -49,10 +42,9 @@ int main(int argc, char *argv[])
 
 	/* This*/
 	_this_id = atoi(argv[1]);
-	_this_port = &_data_port[_this_id];
-	_this_supply_demand = &_data_supply_demand[_this_id * _data->SO_MERCI];
+
 	/* Local memory allocation */
-	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
+	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -162,7 +154,7 @@ void supply_demand_update()
 
 	/* TODO avoid going over the limits */
 	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
-		rand_type = RANDOM(0, _data->SO_MERCI);
+		rand_type = RANDOM(0, SO_MERCI);
 		if (_this_supply_demand[rand_type].quantity > 0){
 			is_demand = FALSE;
 		}else if (_this_supply_demand[rand_type].quantity < 0) {
@@ -212,7 +204,7 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGDAY: /* Change of day */
-		for (i = 0; i < _data->SO_MERCI; i++){
+		for (i = 0; i < SO_MERCI; i++){
 			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
 			_this_supply_demand[i].quantity -= amount_removed;
 
@@ -225,7 +217,7 @@ void signal_handler(int signal)
 		supply_demand_update();
 		break;
 	case SIGSWELL: /* Swell */
-		wait_time = get_timespec(_data->SO_SWELL_DURATION/24.0);
+		wait_time = get_timespec(SO_SWELL_DURATION/24.0);
 		do {
 			errno = EXIT_SUCCESS;
 			nanosleep(&wait_time, &rem_time);
@@ -242,9 +234,7 @@ void close_all()
 	free(cargo_hold);
 
 	/* Detach shared memory */
-	detach(_data);
-	detach(_data_port);
-	detach(_data_supply_demand);
+	close_shm_manager();
 
 	exit(0);
 }
