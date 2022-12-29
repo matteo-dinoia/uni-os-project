@@ -19,10 +19,6 @@ int main()
 	sigset_t set_masked;
 	int id;
 
-	/* FIRST: Wait for father */
-	id = semget(KEY_SEM, 1, 0600);
-	execute_single_sem_oper(id, 0, 0);
-
 	/* FIRST: Gain data struct */
 	initialize_shm_manager(0, NULL);
 

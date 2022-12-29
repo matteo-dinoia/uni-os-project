@@ -20,14 +20,8 @@
 /* Global variables */
 pid_t *childs_pid = NULL;
 int childs_counter = 0;
-id_shared_t _id_sem = -1;
-id_shared_t _id_sem_cargo = -1;
-id_shared_t _id_sem_docks = -1;
-id_shared_t _id_msg_in_ports = -1;
-id_shared_t _id_msg_out_ports = -1;
 
 /* Prototypes */
-void initialize_shared();
 pid_t create_proc(char *, int);
 void custom_handler(int);
 void close_all(const char *, int);
@@ -40,61 +34,39 @@ int main()
 {
 	struct sigaction sa;
 	sigset_t set_masked;
-	int id_sem;
+	struct general constants;
 
-	/* Initializing Variable*/
+	/* Initializing */
 	srand(time(NULL) * getpid());
-	sigfillset(&set_masked);
+	constants = read_constants_from_file();
+	initialize_shm_manager(PORT_WRITE | SHIP_WRITE | CARGO_WRITE | SHOP_WRITE, &constants);
 
-	/* Setting signal handler (need to be done after) */
+	/* Setting signal handler */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &custom_handler;
 	sigaction(SIGALRM, &sa, NULL);
 	sa.sa_mask = set_masked;
+	sigfillset(&set_masked);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
 
-	/* Initializing no error can be inside */
-	initialize_shared();
-
 	/* Create and start children*/
-	id_sem = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	semctl(id_sem, 0, SETVAL, 1);
 	create_children();
-	semctl(id_sem, 0, SETVAL, 0);
+	start_simulation();
 
 	/* Wait forever */
 	alarm(DAY_SEC);
 	while (1) pause();
 }
 
-void initialize_shared()
-{
-	struct general constants;
-
-	/* Initialize SHM manager */
-	constants = read_constants_from_file();
-	initialize_shm_manager(PORT_WRITE | SHIP_WRITE | CARGO_WRITE | SHOP_WRITE, &constants);
-
-	/* MSG port in and out */
-	_id_msg_in_ports = msgget(IPC_PRIVATE, 0600);
-	_id_msg_out_ports = msgget(IPC_PRIVATE, 0600);
-
-	/* SEM: Start and docks */
-	_id_sem = semget(KEY_SEM, 1, 0600 | IPC_CREAT | IPC_EXCL);
-	_id_sem_docks = semget(IPC_PRIVATE, SO_PORTI, 0600);
-	_id_sem_cargo = semget(IPC_PRIVATE, SO_MERCI, 0600);
-
-}
-
 void create_children()
 {
 	int i;
 	for(i = 0; i < SO_PORTI; i++)
-		create_proc("./port", i);
+		set_port_pid(i, create_proc("./port", i));
 	for(i = 0; i < SO_NAVI; i++)
-		create_proc("./ship", i);
+		set_ship_pid(i, create_proc("./ship", i));
 	create_proc("./weather", -1);
 }
 
@@ -167,8 +139,6 @@ struct general read_constants_from_file()
 
 void custom_handler(int signal)
 {
-	int i;
-
 	switch (signal){
 	case SIGSEGV:
 		close_all("[ERROR] Segmentation memory", EXIT_FAILURE);
@@ -179,7 +149,7 @@ void custom_handler(int signal)
 		print_dump_data();
 
 		increase_day();
-		if(get_day() >= SO_DAYS) close_all("================================[END SIMULATION]================================\n", EXIT_SUCCESS);
+		if(get_day() >= SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
 
 		send_to_all_childs(SIGDAY);
 		alarm(DAY_SEC);
@@ -195,8 +165,6 @@ void send_to_all_childs(int signal){
 
 void close_all(const char *message, int exit_status)
 {
-	int i, pid;
-
 	/* Messanges and exit */
 	if (exit_status == EXIT_SUCCESS) dprintf(1, "\n%s\n", message);
 	else dprintf(2, "\n%s\n", message);
@@ -205,15 +173,9 @@ void close_all(const char *message, int exit_status)
 	send_to_all_childs(SIGINT);
 	while(wait(NULL) != -1 || errno == EINTR) errno = EXIT_SUCCESS;
 
-	/* Closing semaphors */
-	semctl(_id_sem, 0, IPC_RMID);
-	semctl(_id_sem_docks, 0, IPC_RMID);
-	semctl(_id_sem_cargo, 0, IPC_RMID);
-	/* Closing message queues */
-	msgctl(_id_msg_in_ports, IPC_RMID, NULL);
-	msgctl(_id_msg_out_ports, IPC_RMID, NULL);
-
+	/* Closing IPC */
 	close_shm_manager();
+	close_sem_and_msg();
 
 	/* Messanges and exit */
 	dprintf(1, "[CLOSING OPERATION] Success");

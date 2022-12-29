@@ -11,6 +11,7 @@
 #include "header/message.h"
 #include "header/semaphore.h"
 #include "header/utils.h"
+#include "header/shm_manager.h"
 
 /* Macro*/
 #define GET_TRAVEL_TIME(this_ship, dest_x, dest_y, speed)\
@@ -20,13 +21,6 @@
 int _this_id;
 int _next_port_destination;
 list_cargo *cargo_hold;
-/* shared memory */
-struct ship *_this_ship;
-struct general *_data;
-struct port *_data_port;
-struct ship *_data_ship;
-struct cargo *_data_cargo;
-struct supply_demand *_data_supply_demand;
 
 /* Prototypes */
 void get_next_destination_port(int *, double *, double *);
@@ -51,24 +45,12 @@ int main(int argc, char *argv[])
 	struct sigaction sa;
 	sigset_t set_masked;
 
-	/* FIRST: Wait for father */
-	id = semget(KEY_SEM, 1, 0600);
-	execute_single_sem_oper(id, 0, 0);
-
-	/* FIRST: Gain data struct */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
-	_data = attach_shared(id, SHM_RDONLY);
-	_data_port = attach_shared(_data->id_port, SHM_RDONLY);
-	_data_ship = attach_shared(_data->id_ship, 0);
-	_data_supply_demand = attach_shared(_data->id_supply_demand, SHM_RDONLY);
-	_data_cargo = attach_shared(_data->id_cargo, 0);
-
-	/* This*/
+	/* Get id */
 	_this_id = atoi(argv[1]);
-	_this_ship = &_data_ship[_this_id];
 
-	/* Local memory allocation */
-	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
+	/* Get data structures */
+	initialize_shm_manager(SHIP_WRITE | CARGO_WRITE, NULL);
+	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* LAST: Setting signal handler */
 	bzero(&sa, sizeof(sa));
@@ -113,16 +95,13 @@ void get_next_destination_port(int *dest, double *dest_x, double *dest_y)
 
 int new_destiation_port(int current_port)
 {
-	const SO_PORTI = _data->SO_PORTI;
-	const SO_MERCI = _data->SO_MERCI;
-
 	int port, cargo_type, sale, not_expired, request_port, min;
 	int best_port = -1, best_sale;
 	int worst_port = -1, worst_use, use, start_port, i;
 	double best_travel_time, travel_time;
 
 	/* If empty */
-	if (_this_ship->capacity == _data->SO_CAPACITY){
+	if (_this_ship->capacity == SO_CAPACITY){
 		start_port = RANDOM(0, SO_PORTI);
 		for (i = 0; i < SO_PORTI; i++){
 			port = (i + start_port) % SO_PORTI;
@@ -154,7 +133,7 @@ int new_destiation_port(int current_port)
 		if (port == current_port) continue;
 
 		/* Calculate Travel time */
-		travel_time = GET_TRAVEL_TIME(_this_ship, _data_port[port].x, _data_port[port].y, _data->SO_SPEED);
+		travel_time = GET_TRAVEL_TIME(_this_ship, _data_port[port].x, _data_port[port].y, SO_SPEED);
 
 		/* Calculate Sale */
 		sale = 0;
@@ -187,10 +166,10 @@ void discard_expiring_cargo(int dest_id)
 	int days_needed, amount_removed, i;
 
 	/* Time */
-	days_needed= GET_TRAVEL_TIME(_this_ship, dest_port->x, dest_port->x, _data->SO_SPEED);
+	days_needed= GET_TRAVEL_TIME(_this_ship, dest_port->x, dest_port->x, SO_SPEED);
 
 	/* Remove cargo */
-	for (i = 0; i < _data->SO_MERCI; i++){
+	for (i = 0; i < SO_MERCI; i++){
 		amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today + days_needed);
 		_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
 
@@ -204,7 +183,7 @@ void discard_expiring_cargo(int dest_id)
 
 void move_to_port(double x_port, double y_port)
 {
-	double time = GET_TRAVEL_TIME(_this_ship, x_port, y_port, _data->SO_SPEED);
+	double time = GET_TRAVEL_TIME(_this_ship, x_port, y_port, SO_SPEED);
 
 	/* Wait */
 	_this_ship->is_moving = TRUE;
@@ -218,7 +197,6 @@ void move_to_port(double x_port, double y_port)
 
 void exchange_cargo(int port_id)
 {
-	const SO_MERCI = _data->SO_MERCI;
 	struct sembuf sem_buf;
 	sigset_t set_masked;
 	int tons_moved, i, type, amount, dest_port_id, start_type;
@@ -238,7 +216,7 @@ void exchange_cargo(int port_id)
 		sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 		/* Wait */
-		wait_event_duration(tons_moved / (double)_data->SO_LOADSPEED);
+		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
 	}
 
 	/* New Dest */
@@ -259,7 +237,7 @@ void exchange_cargo(int port_id)
 		sigprocmask(SIG_BLOCK, &set_masked, NULL);
 
 		/* Wait */
-		wait_event_duration(tons_moved / (double)_data->SO_LOADSPEED);
+		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
 	}
 
 	/* Free dock */
@@ -273,7 +251,7 @@ int sell(int port_id, int type_to_sell)
 	int weight, status;
 
 	/* Min i have cargo and ports need it */
-	amount_port = -_data_supply_demand[port_id * _data->SO_MERCI + type_to_sell].quantity;
+	amount_port = -_data_supply_demand[port_id * SO_MERCI + type_to_sell].quantity;
 	amount_ship = count_cargo(&cargo_hold[type_to_sell]);
 	amount = MIN(amount_ship, amount_port);
 	/* If nothing to be sell then skip this type*/
@@ -323,7 +301,6 @@ int buy(int port_id, int type_to_buy, int amount_to_buy)
 
 int pick_buy(int port_id, int dest_port_id, int type)
 {
-	const int SO_MERCI = _data->SO_MERCI;
 	int n_sell_this_port, n_capacity, n_buy_dest_port;
 
 	n_sell_this_port = _data_supply_demand[port_id * SO_MERCI + type].quantity;
@@ -359,7 +336,7 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		for (i = 0; i < _data->SO_MERCI; i++){
+		for (i = 0; i < SO_MERCI; i++){
 			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
 			_this_ship->capacity += amount_removed * _data_cargo[i].weight_batch;
 
@@ -375,17 +352,13 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
-		_this_ship->dump_had_maelstrom = TRUE;
+		set_ship_maelstrom(_this_id);
 	case SIGINT: /* Closing for every other reason */
 		close_all();
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
-		wait_time = get_timespec(_data->SO_STORM_DURATION/24.0);
-		do {
-			nanosleep(&wait_time, &rem_time);
-			wait_time = rem_time;
-		} while (errno == EINTR);
-		_this_ship->dump_had_storm = TRUE;
+		set_ship_storm(_this_id);
+		wait_event_duration(SO_STORM_DURATION/24.0);
 		break;
 	}
 }
@@ -395,26 +368,15 @@ void close_all()
 	int i, amount;
 
 	/* Signaling data of death */
-	_this_ship->pid = 0;
+	set_ship_dead(_this_id);
 
 	/* Local memory deallocation */
-	for (i = 0; i < _data->SO_MERCI; i++){
-		amount = count_cargo(&cargo_hold[i]);
+	for (i = 0; i < SO_MERCI; i++)
 		free_cargo(&cargo_hold[i]);
-
-		/* Dump */
-		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
-		_data_cargo[i].dump_in_ship -= amount;
-		_data_cargo[i].dump_exipered_ship += amount;
-		execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-	}
 	free(cargo_hold);
 
 	/* Detach shared memory */
-	detach(_data);
-	detach(_data_port);
-	detach(_data_ship);
-	detach(_data_supply_demand);
+	close_shm_manager();
 
 	exit(0);
 }

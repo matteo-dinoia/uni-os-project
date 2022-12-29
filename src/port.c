@@ -15,13 +15,6 @@
 /* Global variables */
 int _this_id;
 list_cargo *cargo_hold;
-/* shared memory */
-struct general *_data;
-struct cargo *_data_cargo;
-struct port *_data_port;
-struct port *_this_port;
-struct supply_demand *_data_supply_demand;
-struct supply_demand *_this_supply_demand;
 
 /* Prototypes */
 void supply_demand_update();
@@ -40,19 +33,12 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	int id;
 
-	/* FIRST: Wait for father */
-	id = semget(KEY_SEM, 1, 0600);
-	execute_single_sem_oper(id, 0, 0);
-
-	/* FIRST: Gain data struct */
-	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
-
-	/* This*/
+	/* Get id */
 	_this_id = atoi(argv[1]);
-	_this_port = &_data_port[_this_id];
-	_this_supply_demand = &_data_supply_demand[_this_id * _data->SO_MERCI];
-	/* Local memory allocation */
-	cargo_hold = calloc(_data->SO_MERCI, sizeof(*cargo_hold));
+
+	/* Initialize structures */
+	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
+	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* LAST: Setting singal handler */
 	bzero(&sa, sizeof(sa));
@@ -162,7 +148,7 @@ void supply_demand_update()
 
 	/* TODO avoid going over the limits */
 	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
-		rand_type = RANDOM(0, _data->SO_MERCI);
+		rand_type = RANDOM(0, SO_MERCI);
 		if (_this_supply_demand[rand_type].quantity > 0){
 			is_demand = FALSE;
 		}else if (_this_supply_demand[rand_type].quantity < 0) {
@@ -212,7 +198,7 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGDAY: /* Change of day */
-		for (i = 0; i < _data->SO_MERCI; i++){
+		for (i = 0; i < SO_MERCI; i++){
 			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
 			_this_supply_demand[i].quantity -= amount_removed;
 
@@ -225,26 +211,23 @@ void signal_handler(int signal)
 		supply_demand_update();
 		break;
 	case SIGSWELL: /* Swell */
-		wait_time = get_timespec(_data->SO_SWELL_DURATION/24.0);
-		do {
-			errno = EXIT_SUCCESS;
-			nanosleep(&wait_time, &rem_time);
-			wait_time = rem_time;
-		} while (errno == EINTR);
-		_this_port->dump_had_swell = TRUE;
+		set_port_swell(_this_id);
+		wait_event_duration(SO_SWELL_DURATION/24.0);
 		break;
 	}
 }
 
 void close_all()
 {
+	int i;
+
 	/* Local memory deallocation */
+	for (i = 0; i < SO_MERCI; i++)
+		free_cargo(&cargo_hold[i]);
 	free(cargo_hold);
 
 	/* Detach shared memory */
-	detach(_data);
-	detach(_data_port);
-	detach(_data_supply_demand);
+	close_shm_manager();
 
 	exit(0);
 }

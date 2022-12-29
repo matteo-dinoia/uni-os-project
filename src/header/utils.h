@@ -2,6 +2,7 @@
 #define _UTILS_H
 
 #include <signal.h>
+#include <limits.h>
 #include <sys/time.h>
 
 /* User defined signal */
@@ -36,7 +37,6 @@ int remove_expired_cargo(list_cargo *list, int today);
 int get_not_expired_by_day(list_cargo *list, int day);
 void free_cargo(list_cargo *list);
 
-struct timespec get_timespec(double interval_sec);
 void timer(double interval_sec);
 void wait_event_duration(double sec);
 
