@@ -17,7 +17,7 @@ int _this_id;
 list_cargo *cargo_hold;
 
 /* Prototypes */
-void supply_demand_update();
+void shop_update();
 void signal_handler(int);
 void loop();
 void respond_msg(int, int, int);
@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 void loop()
 {
 	int ship_id, needed_type, needed_amount;
-	supply_demand_update();
+	shop_update();
 
 	while (1){
 		receive_from_ship(&ship_id, &needed_type, &needed_amount, NULL, NULL);
@@ -68,7 +68,7 @@ void loop()
 
 void respond_msg(int ship_id, int needed_type, int needed_amount)
 {
-	const int this_amount = _this_supply_demand[needed_type].quantity;
+	const int this_amount = get_shop_quantity(_this_id, needed_type);
 
 	int tot_exchange = 0, amount = 0, expiry_date = 0;
 	int status = STATUS_REFUSED;
@@ -89,7 +89,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 			}
 
 			tot_exchange -= amount;
-			_this_supply_demand[needed_type].quantity -= amount;
+			_this_shop[needed_type].quantity -= amount;
 			status = tot_exchange <= 0 ? STATUS_ACCEPTED : STATUS_PARTIAL;
 			send_to_ship(ship_id, needed_type, amount, expiry_date, status);
 
@@ -97,7 +97,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 			execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
 			_data_cargo[needed_type].dump_at_port -= abs(amount);
 			_data_cargo[needed_type].dump_in_ship += abs(amount);
-			_this_supply_demand[needed_type].dump_tot_sent += abs(amount);
+			_this_shop[needed_type].dump_tot_sent += abs(amount);
 			execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 		}
 		if(tot_exchange <= 0)
@@ -105,7 +105,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 	}else if (needed_amount < 0  && this_amount < 0){
 		/* If port is buying respond with how much */
 		amount = -MIN(-needed_amount, -this_amount);
-		_this_supply_demand[needed_type].quantity += abs(amount);
+		_this_shop[needed_type].quantity += abs(amount);
 		status = STATUS_ACCEPTED;
 
 		/* Dump */
@@ -113,7 +113,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 		_data_cargo[needed_type].dump_at_port += abs(amount);
 		_data_cargo[needed_type].dump_in_ship -= abs(amount);
 		_data_cargo[needed_type].dump_tot_delivered += abs(amount);
-		_this_supply_demand[needed_type].dump_tot_received += abs(amount);
+		_this_shop[needed_type].dump_tot_received += abs(amount);
 		execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 	}
 
@@ -128,38 +128,38 @@ void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int 
 			cargo_type, amount, expiry_date, status);
 
 	/* dprintf(1, "PORT %d SEND TO SHIP %d\n", _this_id, ship_id); */
-	send_commerce_msg(_data->id_msg_out_ports, &msg);
+	send_commerce_msg(get_id_msg_out_ports(), &msg);
 }
 
 void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
 	/* dprintf(1, "PORT %d LISTEN TO SHIPS\n", _this_id); */
-	receive_commerce_msg(_data->id_msg_in_ports, _this_id,
+	receive_commerce_msg(get_id_msg_in_ports(), _this_id,
 			ship_id, cargo_type, amount, expiry_date, status);
 	/* dprintf(1, "PORT %d RECEIVED FROM SHIPS\n", _this_id); */
 }
 
-void supply_demand_update()
+void shop_update()
 {
-	int rem_offer_tons = _this_port->daily_restock_capacity;
-	int rem_demand_tons = _this_port->daily_restock_capacity;
+	int rem_offer_tons = get_port_daily_restock(_this_id);
+	int rem_demand_tons = get_port_daily_restock(_this_id);
 	int rand_type, sum_normalized_first_two;
 	bool_t is_demand;
 
 	/* TODO avoid going over the limits */
 	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
 		rand_type = RANDOM(0, SO_MERCI);
-		if (_this_supply_demand[rand_type].quantity > 0){
+		if (get_shop_quantity(_this_id, rand_type) > 0){
 			is_demand = FALSE;
-		}else if (_this_supply_demand[rand_type].quantity < 0) {
+		}else if (get_shop_quantity(_this_id, rand_type) < 0) {
 			is_demand = TRUE;
 		}else if (rem_offer_tons < rem_demand_tons){
 			is_demand = TRUE;
 		}else if (rem_offer_tons > rem_demand_tons){
 			is_demand = FALSE;
 		}else {
-			sum_normalized_first_two = GET_SIGN(_this_supply_demand[0].quantity)
-					+ GET_SIGN(_this_supply_demand[1].quantity);
+			sum_normalized_first_two = GET_SIGN(get_shop_quantity(_this_id, 0))
+					+ GET_SIGN(get_shop_quantity(_this_id, 1));
 			if (sum_normalized_first_two > 0){
 				is_demand = TRUE;
 			}else if (sum_normalized_first_two < 0){
@@ -168,14 +168,14 @@ void supply_demand_update()
 		}
 
 		if (is_demand && rem_demand_tons > 0){
-			_this_supply_demand[rand_type].quantity -= 1;
-			rem_demand_tons -= _data_cargo->weight_batch;
+			_this_shop[rand_type].quantity -= 1;
+			rem_demand_tons -= get_cargo_weight_batch(rand_type);
 		}
 		else if (!is_demand && rem_offer_tons > 0){
-			_this_supply_demand[rand_type].quantity += 1;
+			_this_shop[rand_type].quantity += 1;
 			rem_offer_tons -= _data_cargo->weight_batch;
 			add_cargo(&cargo_hold[rand_type], _data_cargo->weight_batch,
-					_data->today + _data_cargo->shelf_life);
+					get_day() +  get_cargo_shelf_life(rand_type));
 
 			/* Dump */
 			execute_single_sem_oper(_data->id_sem_cargo, rand_type, -1);
@@ -199,8 +199,8 @@ void signal_handler(int signal)
 		break;
 	case SIGDAY: /* Change of day */
 		for (i = 0; i < SO_MERCI; i++){
-			amount_removed = remove_expired_cargo(&cargo_hold[i], _data->today);
-			_this_supply_demand[i].quantity -= amount_removed;
+			amount_removed = remove_expired_cargo(&cargo_hold[i], get_day());
+			_this_shop[i].quantity -= amount_removed;
 
 			/* Bump */
 			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
@@ -208,7 +208,7 @@ void signal_handler(int signal)
 			_data_cargo[i].dump_exipered_port += amount_removed;
 			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
 		}
-		supply_demand_update();
+		shop_update();
 		break;
 	case SIGSWELL: /* Swell */
 		set_port_swell(_this_id);
