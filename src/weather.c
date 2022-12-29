@@ -3,24 +3,14 @@
 #include <stdio.h>
 #include <signal.h>
 #include <sys/time.h>
-#include "header/semaphore.h"
-#include "header/shared_mem.h"
 #include "header/utils.h"
+#include "header/shm_manager.h"
 
-/* Macros */
-
-/* Global Variables */
-/* Shared Memory */
-struct general *_data;
-struct port *_data_port;
-struct ship *_data_ship;
-
-/* Prototype */
+/* Prototypes */
 void storm();
 void maelstrom();
 void swell();
 void signal_handler(int);
-void close_all();
 
 int main()
 {
@@ -34,10 +24,7 @@ int main()
 	execute_single_sem_oper(id, 0, 0);
 
 	/* FIRST: Gain data struct */
-	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
-	_data = attach_shared(id, SHM_RDONLY);
-	_data_port = attach_shared(_data->id_port, SHM_RDONLY);
-	_data_ship = attach_shared(_data->id_ship, SHM_RDONLY);
+	initialize_shm_manager(0, NULL);
 
 	/* LAST: Set signal handler */
 	bzero(&sa, sizeof(sa));
@@ -50,7 +37,7 @@ int main()
 
 	/* LAST: Start running */
 	srand(time(NULL) * getpid());
-	timer(_data->SO_MAELSTROM / 24.0);
+	timer(SO_MAELSTROM / 24.0);
 
 	/* Wait Forever */
 	dprintf(1, "[Meteo] Wait\n");
@@ -60,13 +47,11 @@ int main()
 /* Adds SO_STORM_DURATION to the ship travel time once per day */
 void storm()
 {
-	const SO_NAVI = _data->SO_NAVI;
 	int i;
 	int ship_i = RANDOM(0, SO_NAVI);
-
 	for (i = 0; i < SO_NAVI; i++){
-		if (_data_ship[ship_i].pid != 0 && _data_ship[ship_i].is_moving){
-			kill(_data_ship[ship_i].pid, SIGSTORM);
+		if (!is_ship_dead(ship_i) && is_ship_moving(ship_i)){
+			SEND_SIGNAL(get_ship_pid(ship_i), SIGSTORM);
 			return;
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
@@ -78,29 +63,25 @@ void storm()
 /* Sink a ship every SO_MAELSTROM */
 void maelstrom()
 {
-	const SO_NAVI = _data->SO_NAVI;
 	int i;
 	int ship_i = RANDOM(0, SO_NAVI);
 
 	for (i = 0; i < SO_NAVI; i++){
-		if (_data_ship[ship_i].pid != 0){
-			kill(_data_ship[ship_i].pid, SIGMAELSTROM);
+		if (!is_ship_dead(ship_i)){
+			SEND_SIGNAL(get_ship_pid(ship_i), SIGMAELSTROM);
 			return;
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
 	}
 
 	/* Comunicate all ship are dead to parent */
-	kill(getppid(), SIGTERM);
+	SEND_SIGNAL(getppid(), SIGTERM);
 }
 
 /* Stop a port every day for SO_SWELL_DURATION hours */
 void swell()
 {
-	const SO_PORTI = _data->SO_PORTI;
-	int port_i = RANDOM(0, SO_PORTI);
-
-	kill(_data_port[port_i].pid, SIGSWELL);
+	SEND_SIGNAL(get_port_pid(RANDOM(0, SO_PORTI)), SIGSWELL);
 }
 
 void signal_handler(int signal)
@@ -108,7 +89,8 @@ void signal_handler(int signal)
 	switch (signal)
 	{
 	case SIGINT:
-		close_all();
+		close_shm_manager();
+		exit(0);
 	case SIGDAY: /* Change of day */
 		storm();
 		swell();
@@ -118,13 +100,4 @@ void signal_handler(int signal)
 		maelstrom();
 		break;
 	}
-}
-
-void close_all()
-{
-	detach(_data);
-	detach(_data_port);
-	detach(_data_ship);
-
-	exit(0);
 }
