@@ -3,6 +3,8 @@
 #include <string.h>
 #include <strings.h>
 #include "header/shared_mem.h"
+#include "header/semaphore.h"
+#include "header/message.h"
 #include "header/utils.h"
 #include "header/shm_manager.h"
 
@@ -10,12 +12,6 @@
 /* Default value*/
 #define NULL_SHM ((void *)-1)
 #define NULL_ID -1
-/* Shared memory keys */
-#define KEY_SHM_GENERAL 0x10ff
-#define KEY_SHM_PORT 0x20ff
-#define KEY_SHM_SHIP 0x30ff
-#define KEY_SHM_CARGO 0x40ff
-#define KEY_SHM_SHOP 0x50ff
 
 /* Global variables */
 struct general *_data = NULL_SHM;
@@ -23,27 +19,47 @@ struct port *_data_port = NULL_SHM;
 struct ship *_data_ship = NULL_SHM;
 struct cargo *_data_cargo = NULL_SHM;
 struct shop *_data_shop = NULL_SHM;
+/* Ids */
 id_shared_t _id_data = NULL_ID;
 id_shared_t _id_port = NULL_ID;
 id_shared_t _id_ship = NULL_ID;
 id_shared_t _id_cargo = NULL_ID;
 id_shared_t _id_shop = NULL_ID;
+/* MSG port in and out */
+id_shared_t _id_msg_in_ports = NULL_ID;
+id_shared_t _id_msg_out_ports = NULL_ID;
+/* SEM: Start and docks */
+id_shared_t _id_sem = NULL_ID;
+id_shared_t _id_sem_docks = NULL_ID;
+id_shared_t _id_sem_cargo = NULL_ID;
 
 /* Must be initialized by master before anyone accessing it */
 void initialize_shm_manager(int permissions, const struct general *base_data)
 {
+	/* Wait master if needed */
+	if(base_data == NULL)
+		execute_single_sem_oper(_id_sem, 0, 0);
+
 	/* Initialize and attach main */
-	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600);
+	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600 | IPC_CREAT);
 	_data = shmat(_id_data, NULL, 0);
-	if (base_data != NULL){
+	if (base_data != NULL)
 		memcpy(_data, base_data, sizeof(*base_data));
-	}
+
 
 	/* Initialize by key */
-	_id_port = shmget(KEY_SHM_PORT, sizeof(*_data_port) * SO_PORTI, 0600);
-	_id_ship = shmget(KEY_SHM_SHIP, sizeof(*_data_ship) * SO_NAVI, 0600);
-	_id_cargo = shmget(KEY_SHM_CARGO, sizeof(*_data_cargo) * SO_MERCI, 0600);
-	_id_shop = shmget(KEY_SHM_SHOP, sizeof(*_data_shop) * SO_MERCI * SO_PORTI, 0600);
+	_id_port = shmget(KEY_SHM_PORT, sizeof(*_data_port) * SO_PORTI, 0600 | IPC_CREAT);
+	_id_ship = shmget(KEY_SHM_SHIP, sizeof(*_data_ship) * SO_NAVI, 0600 | IPC_CREAT);
+	_id_cargo = shmget(KEY_SHM_CARGO, sizeof(*_data_cargo) * SO_MERCI, 0600 | IPC_CREAT);
+	_id_shop = shmget(KEY_SHM_SHOP, sizeof(*_data_shop) * SO_MERCI * SO_PORTI, 0600 | IPC_CREAT);
+
+	/* MSG port in and out */
+	_id_msg_in_ports = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
+	_id_msg_out_ports = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
+	/* SEM: Start and docks */
+	_id_sem = semget(KEY_SEM_START, 1, 0600 | IPC_CREAT);
+	_id_sem_docks = semget(KEY_SEM_DOCKS, SO_PORTI, 0600 | IPC_CREAT);
+	_id_sem_cargo = semget(KEY_SEM_CARGO, SO_MERCI, 0600 | IPC_CREAT);
 
 	/* Attach */
 	_data_port = shmat(_id_port, NULL, 0);
@@ -52,13 +68,13 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 	_data_shop = shmat(_id_shop, NULL, 0);
 
 	/* Initialize shm data if needed */
-	if (base_data != NULL){
+	if (base_data != NULL)
 		_initialize_data();
-	}
 }
 
 void _initialize_data(){
 	int i, to_add, daily, n_docks;
+	double x, y;
 	struct port *current_port;
 	struct ship *current_ship;
 	struct cargo *current_cargo;
@@ -79,25 +95,27 @@ void _initialize_data(){
 
 		if (i<4){
 			/* ports in 4 corner */
-			current_port->x = i % 2 != 0 ? SO_LATO : 0;
-			current_port->y = i < 2 ? SO_LATO : 0;
+			x = i % 2 != 0 ? SO_LATO : 0;
+			y = i < 2 ? SO_LATO : 0;
 		}
 		else{
-			current_port->x = RANDOM_DOUBLE(0, SO_LATO);
-			current_port->y = RANDOM_DOUBLE(0, SO_LATO);
+			x = RANDOM_DOUBLE(0, SO_LATO);
+			y = RANDOM_DOUBLE(0, SO_LATO);
 		}
+		set_coord_port(i, x, y);
 
 		n_docks = RANDOM(1, SO_BANCHINE);
 		current_port->dump_dock_tot = n_docks;
-		semctl(_data->id_sem_docks, i, SETVAL, n_docks);
+		semctl(_id_sem_docks, i, SETVAL, n_docks);
 	}
 
 	/* Initialize ships data */
 	for (i = 0; i < SO_NAVI; i++){
 		current_ship = &_data_ship[i];
 
-		current_ship->x = RANDOM_DOUBLE(0, SO_LATO);
-		current_ship->y = RANDOM_DOUBLE(0, SO_LATO);
+		x = RANDOM_DOUBLE(0, SO_LATO);
+		y = RANDOM_DOUBLE(0, SO_LATO);
+		set_coord_ship(i, x, y);
 
 		/* Initializing ship dump */
 		current_ship->capacity = SO_CAPACITY;
@@ -111,10 +129,11 @@ void _initialize_data(){
 		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
 
 		/* Semaphore */
-		semctl(_data->id_sem_cargo, i, SETVAL, 1);
+		semctl(_id_sem_cargo, i, SETVAL, 1);
 	}
 
 	/* Other */
+	semctl(_id_sem, 0, SETVAL, 1);
 	_data->today = 1;
 }
 
@@ -132,6 +151,17 @@ void close_shm_manager(){
 	shmctl(_id_ship, IPC_RMID, NULL);
 	shmctl(_id_cargo, IPC_RMID, NULL);
 	shmctl(_id_shop, IPC_RMID, NULL);
+}
+
+void close_sem_and_msg(){
+	/* Closing semaphors */
+	semctl(_id_sem, 0, IPC_RMID);
+	semctl(_id_sem_docks, 0, IPC_RMID);
+	semctl(_id_sem_cargo, 0, IPC_RMID);
+
+	/* Closing message queues */
+	msgctl(_id_msg_in_ports, IPC_RMID, NULL);
+	msgctl(_id_msg_out_ports, IPC_RMID, NULL);
 }
 
 double get_constants(int type_const)
@@ -174,15 +204,15 @@ void print_dump_data()
 	for (port = 0; port < SO_PORTI; port++){
 		cargo_in_port = 0;
 		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
-				_data_port[port].dump_dock_tot - semctl(_data->id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
+				_data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
 		tot_port_swell += _data_port[port].dump_had_swell;
 
 		for (type = 0; type < SO_MERCI; type++){
-			quantity = _data_supply_demand[SO_MERCI * port + type].quantity;
+			quantity = _data_shop[SO_MERCI * port + type].quantity;
 			cargo_in_port = quantity > 0 ? quantity : 0;
 			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
-					_data_supply_demand[SO_MERCI * port + type].dump_tot_sent,
-					_data_supply_demand[SO_MERCI * port + type].dump_tot_received);
+					_data_shop[SO_MERCI * port + type].dump_tot_sent,
+					_data_shop[SO_MERCI * port + type].dump_tot_received);
 		}
 		dprintf(1, "|\n");
 	}
@@ -225,11 +255,14 @@ void print_dump_data()
 		dprintf(1, "PORT %d:   ", port);
 		for (type = 0; type < SO_MERCI; type++){
 			dprintf(1, "(t: %d)%d ", type,
-					_data_supply_demand[SO_MERCI * port + type].quantity);
+					_data_shop[SO_MERCI * port + type].quantity);
 		}
 		dprintf(1, "\n");
 	}
 	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
+
+	if(get_day() >= SO_DAYS)
+		dprintf(1, "================================[END SIMULATION]================================\n");
 }
 
 /* GETTER */
@@ -240,6 +273,7 @@ struct coord get_coord_port(int port_id){return _data_port[port_id].coordinates;
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
 int get_port_tot_dock(int port_id){return _data_port[port_id].dump_dock_tot;}
 bool_t had_port_swell(int port_id){return _data_port[port_id].dump_had_swell;}
+void get_ship_pid(int port_id){return _data_port[port_id].pid;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_coord_ship(int ship_id){return _data_ship[ship_id].coordinates;}
@@ -248,6 +282,7 @@ int get_ship_capacity(int ship_id){return _data_ship[ship_id].capacity;}
 bool_t is_ship_at_port(int ship_id){return _data_ship[ship_id].dump_is_at_dock;}
 bool_t had_ship_storm(int ship_id){return _data_ship[ship_id].dump_had_storm;}
 bool_t had_ship_maelstrom(int ship_id){return _data_ship[ship_id].dump_had_maelstrom;}
+void get_ship_pid(int ship_id){return _data_ship[ship_id].pid;}
 /* Cargo */
 int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_batch;}
 int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
@@ -262,13 +297,22 @@ int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * po
 int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_received;}
 
 /* "SETTER" */
-void set_coord_port(int id, double x, double y)
-{
-	_data_port->coordinates.x = x;
-	_data_port->coordinates.x = y;
-}
-void set_coord_ship(int id, double x, double y){
-	_data_ship->coordinates.x = x;
-	_data_ship->coordinates.x = y;
-}
+void start_simulation(){semctl(_id_sem, 0, SETVAL, 0);}
 void increase_day(){_data->today++;}
+/* Ship */
+void set_coord_ship(int ship_id, double x, double y){
+	_data_ship[ship_id].coordinates.x = x;
+	_data_ship[ship_id].coordinates.x = y;
+}
+void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
+void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
+void set_ship_storm(int ship_id){_data_ship[ship_id].dump_had_storm = TRUE;}
+void set_ship_pid(int ship_id, pid_t pid){_data_ship[ship_id].pid = pid;}
+/* Port*/
+void set_coord_port(int port_id, double x, double y)
+{
+	_data_port[port_id].coordinates.x = x;
+	_data_port[port_id].coordinates.x = y;
+}
+void set_port_swell(int port_id){_data_port[port_id].dump_had_swell = TRUE;}
+void set_port_pid(int port_id, pid_t pid){_data_port[port_id].pid = pid;}

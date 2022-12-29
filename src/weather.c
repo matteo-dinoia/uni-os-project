@@ -29,10 +29,6 @@ int main()
 	sigset_t set_masked;
 	int id;
 
-	/* FIRST: Wait for father */
-	id = semget(KEY_SEM, 1, 0600);
-	execute_single_sem_oper(id, 0, 0);
-
 	/* FIRST: Gain data struct */
 	id = shmget(KEY_SHARED, sizeof(*_data), 0600);
 	_data = attach_shared(id, SHM_RDONLY);

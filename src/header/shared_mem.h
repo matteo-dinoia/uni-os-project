@@ -4,7 +4,13 @@
 #include <sys/types.h>
 #include <sys/shm.h>
 #include "utils.h"
-#define KEY_SHARED 0xf3
+
+/* Shared memory keys */
+#define KEY_SHM_GENERAL 0x10ff
+#define KEY_SHM_PORT 0x20ff
+#define KEY_SHM_SHIP 0x30ff
+#define KEY_SHM_CARGO 0x40ff
+#define KEY_SHM_SHOP 0x50ff
 
 /* Prototype */
 void detach(void *pointer);
@@ -27,6 +33,7 @@ struct general{
 struct port{ /* Writers: port */
 	struct coord coordinates;
 	int daily_restock_capacity;
+	pid_t pid;
 
 	/* Dump */
 	int dump_dock_tot; /* const value */
@@ -37,6 +44,7 @@ struct ship{ /* Writers: ship */
 	struct coord coordinates;
 	bool_t is_moving;
 	bool_t is_dead;
+	pid_t pid;
 
 	/* Dump */
 	int capacity; /* DONE -> if equals to SO_CAPACITY is empty*/

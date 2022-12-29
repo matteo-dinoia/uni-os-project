@@ -45,17 +45,11 @@ int main(int argc, char *argv[])
 	struct sigaction sa;
 	sigset_t set_masked;
 
-	/* FIRST: Wait for father */
-	id = semget(KEY_SEM, 1, 0600);
-	execute_single_sem_oper(id, 0, 0);
-
-	/* FIRST: Gain data struct */
-	initialize_shm_manager(SHIP_WRITE | CARGO_WRITE, NULL);
-
-	/* This*/
+	/* Get id */
 	_this_id = atoi(argv[1]);
 
-	/* Local memory allocation */
+	/* Get data structures */
+	initialize_shm_manager(SHIP_WRITE | CARGO_WRITE, NULL);
 	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* LAST: Setting signal handler */
@@ -358,17 +352,13 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
-		_this_ship->dump_had_maelstrom = TRUE;
+		set_ship_maelstrom(_this_id);
 	case SIGINT: /* Closing for every other reason */
 		close_all();
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
-		wait_time = get_timespec(SO_STORM_DURATION/24.0);
-		do {
-			nanosleep(&wait_time, &rem_time);
-			wait_time = rem_time;
-		} while (errno == EINTR);
-		_this_ship->dump_had_storm = TRUE;
+		set_ship_storm(_this_id);
+		wait_event_duration(SO_STORM_DURATION/24.0);
 		break;
 	}
 }
@@ -378,19 +368,11 @@ void close_all()
 	int i, amount;
 
 	/* Signaling data of death */
-	_this_ship->is_dead = TRUE;
+	set_ship_dead(_this_id);
 
 	/* Local memory deallocation */
-	for (i = 0; i < SO_MERCI; i++){
-		amount = count_cargo(&cargo_hold[i]);
+	for (i = 0; i < SO_MERCI; i++)
 		free_cargo(&cargo_hold[i]);
-
-		/* Dump */
-		execute_single_sem_oper(_data->id_sem_cargo, i, -1);
-		_data_cargo[i].dump_in_ship -= amount;
-		_data_cargo[i].dump_exipered_ship += amount;
-		execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-	}
 	free(cargo_hold);
 
 	/* Detach shared memory */

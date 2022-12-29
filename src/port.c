@@ -33,17 +33,11 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	int id;
 
-	/* FIRST: Wait for father */
-	id = semget(KEY_SEM, 1, 0600);
-	execute_single_sem_oper(id, 0, 0);
-
-	/* FIRST: Gain data struct */
-	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
-
-	/* This*/
+	/* Get id */
 	_this_id = atoi(argv[1]);
 
-	/* Local memory allocation */
+	/* Initialize structures */
+	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
 	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* LAST: Setting singal handler */
@@ -217,20 +211,19 @@ void signal_handler(int signal)
 		supply_demand_update();
 		break;
 	case SIGSWELL: /* Swell */
-		wait_time = get_timespec(SO_SWELL_DURATION/24.0);
-		do {
-			errno = EXIT_SUCCESS;
-			nanosleep(&wait_time, &rem_time);
-			wait_time = rem_time;
-		} while (errno == EINTR);
-		_this_port->dump_had_swell = TRUE;
+		set_port_swell(_this_id);
+		wait_event_duration(SO_SWELL_DURATION/24.0);
 		break;
 	}
 }
 
 void close_all()
 {
+	int i;
+
 	/* Local memory deallocation */
+	for (i = 0; i < SO_MERCI; i++)
+		free_cargo(&cargo_hold[i]);
 	free(cargo_hold);
 
 	/* Detach shared memory */

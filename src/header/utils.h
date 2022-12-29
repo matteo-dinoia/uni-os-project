@@ -2,6 +2,7 @@
 #define _UTILS_H
 
 #include <signal.h>
+#include <limits.h>
 #include <sys/time.h>
 
 /* User defined signal */
