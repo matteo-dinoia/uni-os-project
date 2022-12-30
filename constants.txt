@@ -3,14 +3,14 @@
 # Everything from # to end line is ignored
 
 1	# SO_LATO		(double TODO)
-10	# SO_DAYS
+50	# SO_DAYS
 10	# SO_NAVI
 10	# SO_PORTI		>= 4
-100	# SO_MERCI		>= 2
+20	# SO_MERCI		>= 2
 
 0	# SO_STORM_DURATION
 0	# SO_SWELL_DURATION
-1200000	# SO_MAELSTORM
+1200000	# SO_MAELSTROM
 
 12	# SO_FILL
 10	# SO_BANCHINE
