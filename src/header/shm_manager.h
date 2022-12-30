@@ -27,6 +27,8 @@ void set_port_swell(int port_id);
 void set_port_pid(int port_id, pid_t pid);
 void port_buy(int port_id, int amount, int type);
 int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type);
+void add_port_demand(int port_id, int amount, int type);
+void add_port_supply(int port_id, list_cargo *cargo_hold, int amount, int type);
 void remove_port_expired(int port_id, list_cargo *cargo_hold);
 
 /* GETTER */
@@ -36,7 +38,7 @@ int get_day();
 struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
 int get_port_pid(int port_id);
-int get_port_use(int port_id)
+int get_port_use(int port_id);
 /* Ship */
 struct coord get_ship_coord(int id);
 bool_t is_ship_dead(int ship_id);

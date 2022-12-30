@@ -384,10 +384,10 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 		add_cargo(&cargo_hold[type], amount - tot_amount, expiry_date);
 		amount = tot_amount;
 	}
-	
+
 	amount = abs(amount);
 	DATA_SHOP(port_id, type).quantity -= amount;
-	
+
 	/* Dump */
 	execute_single_sem_oper(_id_sem_cargo, type, -1);
 	_data_cargo[type].dump_at_port -= amount;
@@ -396,6 +396,24 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 	DATA_SHOP(port_id, type).dump_tot_sent += amount;
 
 	return amount;
+}
+
+void add_port_demand(int port_id, int amount, int type)
+{
+	DATA_SHOP(port_id, type).quantity -= amount;
+}
+
+void add_port_supply(int port_id, list_cargo *cargo_hold, int amount, int type)
+{
+	DATA_SHOP(port_id, type).quantity += amount;
+
+	add_cargo(&cargo_hold[type], amount,
+			get_day() +  get_cargo_shelf_life(type));
+
+	/* Dump */
+	execute_single_sem_oper(_id_sem_cargo, type, -1);
+	_data_cargo[type].dump_at_port += amount;
+	execute_single_sem_oper(_id_sem_cargo, type, 1);
 }
 
 void remove_port_expired(int port_id, list_cargo *cargo_hold)
