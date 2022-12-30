@@ -285,9 +285,9 @@ int get_ship_pid(int ship_id){return _data_ship[ship_id].pid;}
 int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_batch;}
 int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
 /* Shop */
-int get_shop_quantity(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].quantity;}
-int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_sent;}
-int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id+ cargo_id].dump_tot_received;}
+int get_shop_quantity(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id + cargo_id].quantity;}
+int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id + cargo_id].dump_tot_sent;}
+int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id + cargo_id].dump_tot_received;}
 
 /* "SETTER" */
 void start_simulation(){semctl(_id_sem, 0, SETVAL, 0);}
@@ -328,6 +328,44 @@ void set_coord_port(int port_id, double x, double y)
 }
 void set_port_swell(int port_id){_data_port[port_id].dump_had_swell = TRUE;}
 void set_port_pid(int port_id, pid_t pid){_data_port[port_id].pid = pid;}
+
+void port_buy(int port_id, int amount, int type)
+{
+	amount = abs(amount);
+	DATA_SHOP(port_id, type).quantity += amount;
+
+	/* Dump */
+	execute_single_sem_oper(_id_sem_cargo, type, -1);
+	_data_cargo[type].dump_in_ship -= amount;
+	_data_cargo[type].dump_tot_delivered += amount;
+	execute_single_sem_oper(_id_sem_cargo, type, 1);
+
+	DATA_SHOP(port_id, type).dump_tot_received += amount;
+}
+
+int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
+{
+	int amount, expiry_date;
+	pop_cargo(&cargo_hold[type], &amount, &expiry_date);
+	if (amount == 0){
+		return 0;
+	} else if (amount > tot_amount){
+		add_cargo(&cargo_hold[type], amount - tot_amount, expiry_date);
+		amount = tot_amount;
+	}
+	amount = abs(amount);
+
+	DATA_SHOP(port_id, type).quantity -= amount;
+	/* Dump */
+	execute_single_sem_oper(_id_sem_cargo, type, -1);
+	_data_cargo[type].dump_at_port -= amount;
+	_data_cargo[type].dump_in_ship += amount;
+	execute_single_sem_oper(_id_sem_cargo, type, 1);
+	DATA_SHOP(port_id, type).dump_tot_sent += amount;
+
+	return amount;
+}
+
 void remove_port_expired(int port_id, list_cargo *cargo_hold)
 {
 	int i, amount_removed;

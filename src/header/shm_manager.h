@@ -29,6 +29,8 @@ int get_day();
 struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
 int get_port_pid(int port_id);
+void port_buy(int port_id, int amount, int type);
+int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type);
 void remove_port_expired(int port_id, list_cargo *cargo_hold);
 
 /* Ship */
