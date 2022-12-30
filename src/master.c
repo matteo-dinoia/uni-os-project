@@ -52,6 +52,7 @@ int main()
 	sigaction(SIGSEGV, &sa, NULL);
 
 	/* Create and start children*/
+	childs_pid = calloc(SO_NAVI + SO_PORTI + 1, sizeof(*childs_pid));
 	create_children();
 	start_simulation();
 
@@ -87,6 +88,8 @@ pid_t create_proc(char *name, int index)
 		dprintf(1, "%s\n", strerror(errno));
 		exit(EXIT_FAILURE);
 	}
+
+	childs_pid[childs_counter++] = proc_pid;
 
 	return proc_pid;
 }
@@ -151,7 +154,7 @@ void custom_handler(int signal)
 		print_dump_data();
 
 		increase_day();
-		if(get_day() >= SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
+		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
 
 		send_to_all_childs(SIGDAY);
 		alarm(DAY_SEC);
@@ -171,13 +174,16 @@ void close_all(const char *message, int exit_status)
 	if (exit_status == EXIT_SUCCESS) dprintf(1, "\n%s\n", message);
 	else dprintf(2, "\n%s\n", message);
 
-	/* Killing and wait child */
+	/* Killing childs */
 	send_to_all_childs(SIGINT);
-	while(wait(NULL) != -1 || errno == EINTR) errno = EXIT_SUCCESS;
 
-	/* Closing IPC */
+	/* Closing IPC and local */
 	close_shm_manager();
 	close_sem_and_msg();
+	free(childs_pid);
+
+	/* Waiting childs */
+	while(wait(NULL) != -1 || errno == EINTR) errno = EXIT_SUCCESS;
 
 	/* Messanges and exit */
 	dprintf(1, "[CLOSING OPERATION] Success");
