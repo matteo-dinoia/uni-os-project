@@ -9,6 +9,7 @@
 #include "header/shm_manager.h"
 
 /* Macros */
+#define DATA_SHOP(port_id, cargo_type) (_data_shop[(port_id) * SO_MERCI + (cargo_type)])
 /* Default value*/
 #define NULL_SHM ((void *)-1)
 #define NULL_ID -1
@@ -208,11 +209,11 @@ void print_dump_data()
 		tot_port_swell += _data_port[port].dump_had_swell;
 
 		for (type = 0; type < SO_MERCI; type++){
-			quantity = _data_shop[SO_MERCI * port + type].quantity;
+			quantity = DATA_SHOP(port, type).quantity;
 			cargo_in_port = quantity > 0 ? quantity : 0;
 			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
-					_data_shop[SO_MERCI * port + type].dump_tot_sent,
-					_data_shop[SO_MERCI * port + type].dump_tot_received);
+					DATA_SHOP(port, type).dump_tot_sent,
+					DATA_SHOP(port, type).dump_tot_received);
 		}
 		dprintf(1, "|\n");
 	}
@@ -272,6 +273,16 @@ int getday(){return _data->today;}
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
 int get_port_pid(int port_id){return _data_port[port_id].pid;}
+int get_port_use(int port_id){
+	int cargo_type;
+	int use = 0;
+
+	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
+		use += DATA_SHOP(port_id, cargo_type).dump_tot_received
+				+ DATA_SHOP(port_id, cargo_type).dump_tot_sent;
+	}
+	return use;
+}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
@@ -298,6 +309,28 @@ void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
 void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
 void set_ship_storm(int ship_id){_data_ship[ship_id].dump_had_storm = TRUE;}
 void set_ship_pid(int ship_id, pid_t pid){_data_ship[ship_id].pid = pid;}
+void set_ship_at_dock(int ship_id, bool_t value){_data_ship[ship_id].dump_is_at_dock = value;}
+void set_ship_moving(int ship_id, bool_t value){_data_ship[ship_id].is_moving = value;}
+int ship_sell(int ship_id, list_cargo *cargo_hold, int amount, int type){ /* return weight moved*/
+	int weight;
+	/* TODO what to do with cargo hold */
+	amount = abs(amount);
+	remove_cargo(&cargo_hold[type], amount);
+
+	weight = amount * get_cargo_weight_batch(type);
+	_data_ship[ship_id].capacity += weight;
+	return weight;
+}
+int ship_buy(int ship_id, list_cargo *cargo_hold, int amount, int type, int expiry_date){ /* Return weight moved */
+	int weight;
+
+	amount = abs(amount);
+	add_cargo(&cargo_hold[type], amount, expiry_date);
+
+	weight = amount * get_cargo_weight_batch(type);
+	_data_ship[ship_id].capacity += weight;
+	return weight;
+}
 void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day){
 	int i, amount_removed;
 	for (i = 0; i < SO_MERCI; i++){
@@ -307,11 +340,10 @@ void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
 		/* Bump*/
 		execute_single_sem_oper(_id_sem_cargo, i, -1);
 		_data_cargo[i].dump_in_ship -= amount_removed;
-		if (increment_day == 0){
+		if (increment_day == 0)
 			_data_cargo[i].dump_exipered_ship += amount_removed;
-		}else if (increment_day > 0){
+		else if (increment_day > 0)
 			_data_cargo[i].dump_delivered_unwanted += amount_removed;
-		}
 		execute_single_sem_oper(_id_sem_cargo, i, 1);
 	}
 }
