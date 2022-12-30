@@ -145,19 +145,13 @@ void shop_update()
 		}
 
 		if (is_demand && rem_demand_tons > 0){
-			_this_shop[rand_type].quantity -= 1;
+			add_port_demand(_this_id, 1, rand_type);
 			rem_demand_tons -= get_cargo_weight_batch(rand_type);
 		}
 		else if (!is_demand && rem_offer_tons > 0){
-			_this_shop[rand_type].quantity += 1;
-			rem_offer_tons -= _data_cargo->weight_batch;
-			add_cargo(&cargo_hold[rand_type], _data_cargo->weight_batch,
-					get_day() +  get_cargo_shelf_life(rand_type));
+			add_port_supply(_this_id, cargo_hold, 1, rand_type);
+			rem_offer_tons -= get_cargo_weight_batch(rand_type);
 
-			/* Dump */
-			execute_single_sem_oper(_data->id_sem_cargo, rand_type, -1);
-			_data_cargo[rand_type].dump_at_port += 1;
-			execute_single_sem_oper(_data->id_sem_cargo, rand_type, 1);
 		}
 	}
 }
