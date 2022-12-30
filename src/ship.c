@@ -100,7 +100,7 @@ int new_destiation_port(int current_port)
 	double best_travel_time, travel_time;
 
 	/* If empty */
-	if (_this_ship->capacity == SO_CAPACITY){
+	if (get_ship_capacity(_this_id) == SO_CAPACITY){
 		start_port = RANDOM(0, SO_PORTI);
 		for (i = 0; i < SO_PORTI; i++){
 			port = (i + start_port) % SO_PORTI;
@@ -108,14 +108,8 @@ int new_destiation_port(int current_port)
 			/* Skip current port */
 			if (port == current_port) continue;
 
-			/* Calculate use */
-			use = 0;
-			for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-				use = _data_shop[SO_MERCI * port + cargo_type].dump_tot_sent
-						+ _data_shop[SO_MERCI * port + cargo_type].dump_tot_received;
-			}
-
-			/* Choose worst */
+			/* Calculate use and choose worst */
+			use = get_port_use(port);
 			if (worst_port == -1 /* still doesn't have a worst port*/
 					|| use < worst_use){ /* or is worst */
 				worst_port = port;
@@ -172,9 +166,9 @@ void move_to_port(struct coord dest_coord)
 	double time = GET_TRAVEL_TIME(get_ship_coord(_this_id), dest_coord, SO_SPEED);
 
 	/* Wait */
-	_this_ship->is_moving = TRUE;
+	set_ship_moving(_this_id, TRUE);
 	wait_event_duration(time);
-	_this_ship->is_moving = FALSE;
+	set_ship_moving(_this_id, FALSE);
 
 	/* Actual move*/
 	set_coord_ship(_this_id, dest_coord.x, dest_coord.y);
@@ -188,7 +182,7 @@ void exchange_cargo(int port_id)
 
 	/* Get dock */
 	execute_single_sem_oper(get_id_sem_docks(), port_id, -1);
-	_this_ship->dump_is_at_dock = TRUE;
+	set_ship_at_dock(_this_id, TRUE);
 
 	/* Initialize signal ignored */
 	sigaddset(&set_masked, SIGMAELSTROM);
@@ -227,7 +221,7 @@ void exchange_cargo(int port_id)
 
 	/* Free dock */
 	execute_single_sem_oper(get_id_sem_docks(), port_id, 1);
-	_this_ship->dump_is_at_dock = FALSE;
+	set_ship_at_dock(_this_id, FALSE);
 }
 
 int sell(int port_id, int type_to_sell)
@@ -248,12 +242,8 @@ int sell(int port_id, int type_to_sell)
 
 	/* Change data */
 	if (status == STATUS_ACCEPTED && amount < 0){
-		amount = abs(amount);
-		remove_cargo(&cargo_hold[type_to_sell], amount);
-		weight = amount * get_cargo_weight_batch(type_to_sell);
-		_this_ship->capacity += weight;
-
-		return weight;
+		/* Return the WEIGHT of quantity sold */
+		return ship_sell(_this_id, cargo_hold, amount, type_to_sell);
 	}
 
 	return 0;
@@ -272,10 +262,8 @@ int buy(int port_id, int type_to_buy, int amount_to_buy)
 		receive_from_port(NULL, &type, &amount, &expiry_date, &status);
 		/* Change data */
 		if (status == STATUS_PARTIAL || status == STATUS_ACCEPTED){
-			add_cargo(&cargo_hold[type], amount, expiry_date);
-			weight = amount * get_cargo_weight_batch(type);
-			tons_moved += weight;
-			_this_ship->capacity -= weight;
+			/* Return the WEIGHT of quantity buougt */
+			tons_moved += ship_buy(_this_id, cargo_hold, amount, type, expiry_date);
 		}
 	}while(status == STATUS_PARTIAL);
 
@@ -288,7 +276,7 @@ int pick_buy(int port_id, int dest_port_id, int type)
 
 	n_sell_this_port = get_shop_quantity(port_id, type);
 	n_buy_dest_port = -get_shop_quantity(dest_port_id, type);
-	n_capacity = _this_ship->capacity / get_cargo_weight_batch(type);
+	n_capacity = get_ship_capacity(_this_id) / get_cargo_weight_batch(type);
 
 	/* Calculate min value */
 	return MIN(MIN(n_sell_this_port, n_buy_dest_port), n_capacity);
