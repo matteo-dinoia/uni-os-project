@@ -412,7 +412,7 @@ void add_port_supply(int port_id, list_cargo *cargo_hold, int amount, int type)
 
 	/* Dump */
 	execute_single_sem_oper(_id_sem_cargo, type, -1);
-	_data_cargo[type].dump_at_port += 1;
+	_data_cargo[type].dump_at_port += amount;
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 }
 
