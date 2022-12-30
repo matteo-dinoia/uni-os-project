@@ -339,7 +339,6 @@ void port_buy(int port_id, int amount, int type)
 	_data_cargo[type].dump_in_ship -= amount;
 	_data_cargo[type].dump_tot_delivered += amount;
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
-
 	DATA_SHOP(port_id, type).dump_tot_received += amount;
 }
 
@@ -353,9 +352,10 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 		add_cargo(&cargo_hold[type], amount - tot_amount, expiry_date);
 		amount = tot_amount;
 	}
+	
 	amount = abs(amount);
-
 	DATA_SHOP(port_id, type).quantity -= amount;
+	
 	/* Dump */
 	execute_single_sem_oper(_id_sem_cargo, type, -1);
 	_data_cargo[type].dump_at_port -= amount;
