@@ -25,6 +25,9 @@ void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
 void set_coord_port(int id, double x, double y);
 void set_port_swell(int port_id);
 void set_port_pid(int port_id, pid_t pid);
+void port_buy(int port_id, int amount, int type);
+int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type);
+void remove_port_expired(int port_id, list_cargo *cargo_hold);
 
 /* GETTER */
 /* Day */

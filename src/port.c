@@ -78,47 +78,24 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 		tot_exchange = MIN(needed_amount, this_amount);
 
 		while (tot_exchange > 0){
-			/* Spamming messages */
-			pop_cargo(&cargo_hold[needed_type], &amount, &expiry_date);
-			if(amount == 0){
-				status = STATUS_REFUSED;
+			amount = port_sell(_this_id, cargo_hold, tot_exchange, needed_type);
+			if (amount <= 0) {
+				send_to_ship(ship_id, needed_type, 0, -1, STATUS_REFUSED);
 				break;
-			}else if (amount > tot_exchange){
-				add_cargo(&cargo_hold[needed_type], amount - tot_exchange, expiry_date);
-				amount = tot_exchange;
 			}
 
 			tot_exchange -= amount;
-			_this_shop[needed_type].quantity -= amount;
 			status = tot_exchange <= 0 ? STATUS_ACCEPTED : STATUS_PARTIAL;
 			send_to_ship(ship_id, needed_type, amount, expiry_date, status);
-
-			/* Dump */
-			execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
-			_data_cargo[needed_type].dump_at_port -= abs(amount);
-			_data_cargo[needed_type].dump_in_ship += abs(amount);
-			_this_shop[needed_type].dump_tot_sent += abs(amount);
-			execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
 		}
-		if(tot_exchange <= 0)
-			return;
 	}else if (needed_amount < 0  && this_amount < 0){
 		/* If port is buying respond with how much */
-		amount = -MIN(-needed_amount, -this_amount);
-		_this_shop[needed_type].quantity += abs(amount);
-		status = STATUS_ACCEPTED;
-
-		/* Dump */
-		execute_single_sem_oper(_data->id_sem_cargo, needed_type, -1);
-		_data_cargo[needed_type].dump_at_port += abs(amount);
-		_data_cargo[needed_type].dump_in_ship -= abs(amount);
-		_data_cargo[needed_type].dump_tot_delivered += abs(amount);
-		_this_shop[needed_type].dump_tot_received += abs(amount);
-		execute_single_sem_oper(_data->id_sem_cargo, needed_type, 1);
+		amount = MIN(-needed_amount, -this_amount);
+		port_buy(_this_id, amount, needed_type);
+		send_to_ship(ship_id, needed_type, amount, -1, STATUS_ACCEPTED);
+	}else {
+		send_to_ship(ship_id, needed_type, 0, -1, STATUS_REFUSED);
 	}
-
-	/* Refuse or send message */
-	send_to_ship(ship_id, needed_type, amount, expiry_date, status);
 }
 
 void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int status)
@@ -198,16 +175,7 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGDAY: /* Change of day */
-		for (i = 0; i < SO_MERCI; i++){
-			amount_removed = remove_expired_cargo(&cargo_hold[i], get_day());
-			_this_shop[i].quantity -= amount_removed;
-
-			/* Bump */
-			execute_single_sem_oper(_data->id_sem_cargo, i, -1);
-			_data_cargo[i].dump_at_port -= amount_removed;
-			_data_cargo[i].dump_exipered_port += amount_removed;
-			execute_single_sem_oper(_data->id_sem_cargo, i, 1);
-		}
+		remove_port_expired(_this_id, cargo_hold);
 		shop_update();
 		break;
 	case SIGSWELL: /* Swell */
