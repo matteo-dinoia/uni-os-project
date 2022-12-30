@@ -16,8 +16,10 @@ bin:
 	mkdir -p $@
 bin/%.o: src/%.c | bin
 	$(CCOMPILE) -c $< -o $@
-bin/%: src/%.c $(REQUIRED_O)
-	$(CCOMPILE) $(REQUIRED_O) $< -o $@ -lm
+bin/shm_manager.o: src/shm_manager.c | bin
+	$(CCOMPILE) -c $< -o $@
+bin/%: src/%.c $(REQUIRED_O) bin/shm_manager.o
+	$(CCOMPILE) $(REQUIRED_O) bin/shm_manager.o $< -o $@ -lm
 
 
 #GENERAL USE

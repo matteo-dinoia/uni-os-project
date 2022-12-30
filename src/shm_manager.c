@@ -34,6 +34,9 @@ id_shared_t _id_sem = NULL_ID;
 id_shared_t _id_sem_docks = NULL_ID;
 id_shared_t _id_sem_cargo = NULL_ID;
 
+/* Prototype private */
+void _initialize_data();
+
 /* Must be initialized by master before anyone accessing it */
 void initialize_shm_manager(int permissions, const struct general *base_data)
 {
@@ -41,7 +44,7 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 	if(base_data == NULL)
 		execute_single_sem_oper(_id_sem, 0, 0);
 
-	/* Initialize and attach main */
+	/* Initialize and attach data */
 	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600 | IPC_CREAT);
 	_data = shmat(_id_data, NULL, 0);
 	if (base_data != NULL)
@@ -199,7 +202,7 @@ void print_dump_data()
 	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
 	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0;
 
-	dprintf(1, "\n\n================================[DAY %3d]=================================\n", _data->today);
+	dprintf(1, "\n\n================================[DAY %3d]=================================\n", get_day());
 
 	/* Dumps things */
 	dprintf(1, "\n================================[DUMPS]===================================\n");
@@ -270,8 +273,11 @@ void print_dump_data()
 }
 
 /* GETTER */
-/* Day */
-int getday(){return _data->today;}
+/* Other */
+int get_day(){return _data->today;}
+id_shared_t get_id_sem_docks(){return _id_sem_docks;}
+id_shared_t get_id_msg_in_ports(){return _id_msg_in_ports;}
+id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}
 /* Port */
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}

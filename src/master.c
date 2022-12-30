@@ -160,7 +160,7 @@ void custom_handler(int signal)
 void send_to_all_childs(int signal){
 	int i;
 	for(i = 0; i < childs_counter; i++)
-		SEND_SIGNAL(childs_pid, signal);
+		SEND_SIGNAL(childs_pid[i], signal);
 }
 
 void close_all(const char *message, int exit_status)
