@@ -107,7 +107,8 @@ void _initialize_data()
 			x = RANDOM_DOUBLE(0, SO_LATO);
 			y = RANDOM_DOUBLE(0, SO_LATO);
 		}
-		set_coord_port(i, x, y);
+		current_port->coordinates.x = x;
+		current_port->coordinates.y = y;
 
 		n_docks = RANDOM(1, SO_BANCHINE);
 		current_port->dump_dock_tot = n_docks;
@@ -120,7 +121,7 @@ void _initialize_data()
 
 		x = RANDOM_DOUBLE(0, SO_LATO);
 		y = RANDOM_DOUBLE(0, SO_LATO);
-		set_coord_ship(i, x, y);
+		set_ship_coord(i, x, y);
 
 		/* Initializing ship dump */
 		current_ship->capacity = SO_CAPACITY;
@@ -310,10 +311,10 @@ int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI 
 void start_simulation(){semctl(_id_sem, 0, SETVAL, 0);}
 void increase_day(){_data->today++;}
 /* Ship */
-void set_coord_ship(int ship_id, double x, double y)
+void set_ship_coord(int ship_id, double x, double y)
 {
 	_data_ship[ship_id].coordinates.x = x;
-	_data_ship[ship_id].coordinates.x = y;
+	_data_ship[ship_id].coordinates.y = y;
 }
 void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
 void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
@@ -359,11 +360,6 @@ void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
 	}
 }
 /* Port*/
-void set_coord_port(int port_id, double x, double y)
-{
-	_data_port[port_id].coordinates.x = x;
-	_data_port[port_id].coordinates.x = y;
-}
 void set_port_swell(int port_id){_data_port[port_id].dump_had_swell = TRUE;}
 void set_port_pid(int port_id, pid_t pid){_data_port[port_id].pid = pid;}
 
