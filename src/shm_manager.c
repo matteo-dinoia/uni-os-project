@@ -72,7 +72,8 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 		_initialize_data();
 }
 
-void _initialize_data(){
+void _initialize_data()
+{
 	int i, to_add, daily, n_docks;
 	double x, y;
 	struct port *current_port;
@@ -137,7 +138,8 @@ void _initialize_data(){
 	_data->today = 1;
 }
 
-void close_shm_manager(){
+void close_shm_manager()
+{
 	/* Detach */
 	shmdt(_data);
 	shmdt(_data_port);
@@ -153,7 +155,8 @@ void close_shm_manager(){
 	shmctl(_id_shop, IPC_RMID, NULL);
 }
 
-void close_sem_and_msg(){
+void close_sem_and_msg()
+{
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
 	semctl(_id_sem_docks, 0, IPC_RMID);
@@ -290,7 +293,8 @@ int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI 
 void start_simulation(){semctl(_id_sem, 0, SETVAL, 0);}
 void increase_day(){_data->today++;}
 /* Ship */
-void set_coord_ship(int ship_id, double x, double y){
+void set_coord_ship(int ship_id, double x, double y)
+{
 	_data_ship[ship_id].coordinates.x = x;
 	_data_ship[ship_id].coordinates.x = y;
 }
@@ -298,7 +302,8 @@ void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
 void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
 void set_ship_storm(int ship_id){_data_ship[ship_id].dump_had_storm = TRUE;}
 void set_ship_pid(int ship_id, pid_t pid){_data_ship[ship_id].pid = pid;}
-void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day){
+void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
+{
 	int i, amount_removed;
 	for (i = 0; i < SO_MERCI; i++){
 		amount_removed = remove_expired_cargo(&cargo_hold[i], get_day() + increment_day);
@@ -323,3 +328,17 @@ void set_coord_port(int port_id, double x, double y)
 }
 void set_port_swell(int port_id){_data_port[port_id].dump_had_swell = TRUE;}
 void set_port_pid(int port_id, pid_t pid){_data_port[port_id].pid = pid;}
+void remove_port_expired(int port_id, list_cargo *cargo_hold)
+{
+	int i, amount_removed;
+	for (i = 0; i < SO_MERCI; i++){
+		amount_removed = remove_expired_cargo(&cargo_hold[i], get_day());
+		_data_shop[port_id].quantity -= amount_removed;
+
+		/* Bump */
+		execute_single_sem_oper(_id_sem_cargo, i, -1);
+		_data_cargo[i].dump_at_port -= amount_removed;
+		_data_cargo[i].dump_exipered_port += amount_removed;
+		execute_single_sem_oper(_id_sem_cargo, i, 1);
+	}
+}

@@ -29,6 +29,8 @@ int get_day();
 struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
 int get_port_pid(int port_id);
+void remove_port_expired(int port_id, list_cargo *cargo_hold);
+
 /* Ship */
 struct coord get_ship_coord(int id);
 bool_t is_ship_dead(int ship_id);
