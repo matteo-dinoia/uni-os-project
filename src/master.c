@@ -131,10 +131,12 @@ struct general read_constants_from_file()
 	}
 	dprintf(1, "\n");
 
-	fclose(file);
 
+	fclose(file);
 	if(counter < NUM_VALUE)
 		close_all("[FATAL] Found too few number (reading file constant.txt)", EXIT_FAILURE);
+
+	return res;
 }
 
 void custom_handler(int signal)
