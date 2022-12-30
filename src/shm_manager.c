@@ -58,8 +58,8 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 	_id_shop = shmget(KEY_SHM_SHOP, sizeof(*_data_shop) * SO_MERCI * SO_PORTI, 0600 | IPC_CREAT);
 
 	/* MSG port in and out */
-	_id_msg_in_ports = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
-	_id_msg_out_ports = msgget(IPC_PRIVATE, 0600 | IPC_CREAT);
+	_id_msg_in_ports = msgget(KEY_MSG_IN_PORT, 0600 | IPC_CREAT);
+	_id_msg_out_ports = msgget(KEY_MSG_OUT_PORT, 0600 | IPC_CREAT);
 	/* SEM: Start and docks */
 	_id_sem = semget(KEY_SEM_START, 1, 0600 | IPC_CREAT);
 	_id_sem_docks = semget(KEY_SEM_DOCKS, SO_PORTI, 0600 | IPC_CREAT);
