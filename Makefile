@@ -14,9 +14,9 @@ all: $(PROCESSES_OUT)
 #COMPILING SPECIFIC FILES
 bin:
 	mkdir -p $@
-bin/%.o: src/%.c | bin
+bin/%.o: src/%.c src/header/%.h| bin
 	$(CCOMPILE) -c $< -o $@
-bin/shm_manager.o: src/shm_manager.c | bin
+bin/shm_manager.o: src/shm_manager.c src/header/shm_manager.h| bin
 	$(CCOMPILE) -c $< -o $@
 bin/%: src/%.c $(REQUIRED_O) bin/shm_manager.o
 	$(CCOMPILE) $(REQUIRED_O) bin/shm_manager.o $< -o $@ -lm
