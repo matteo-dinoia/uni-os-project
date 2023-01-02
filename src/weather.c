@@ -36,7 +36,6 @@ int main()
 	timer(SO_MAELSTROM / 24.0);
 
 	/* Wait Forever */
-	dprintf(1, "[Meteo] Wait\n");
 	while (1) pause();
 }
 
@@ -92,7 +91,6 @@ void signal_handler(int signal)
 		swell();
 		break;
 	case SIGALRM:
-		dprintf(1, "TEST WEATHER\n");
 		maelstrom();
 		break;
 	}
