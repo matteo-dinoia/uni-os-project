@@ -47,6 +47,7 @@ int main()
 	sigaction(SIGALRM, &sa, NULL);
 	sa.sa_mask = set_masked;
 	sigfillset(&set_masked);
+	sigaction(SIGALLDEAD, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
@@ -145,6 +146,8 @@ struct general read_constants_from_file()
 void custom_handler(int signal)
 {
 	switch (signal){
+	case SIGALLDEAD:
+		close_all("[INFO] All ship died to maelstroms", EXIT_SUCCESS);
 	case SIGSEGV:
 		close_all("[ERROR] Segmentation memory", EXIT_FAILURE);
 	case SIGTERM:

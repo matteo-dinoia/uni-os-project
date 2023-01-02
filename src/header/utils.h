@@ -10,6 +10,7 @@
 #define SIGSWELL SIGUSR1
 #define SIGSTORM SIGUSR1
 #define SIGMAELSTROM SIGUSR2
+#define SIGALLDEAD SIGUSR2
 
 /* Type (boolean and id) */
 typedef int bool_t;

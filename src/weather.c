@@ -71,7 +71,7 @@ void maelstrom()
 	}
 
 	/* Comunicate all ship are dead to parent */
-	SEND_SIGNAL(getppid(), SIGTERM);
+	SEND_SIGNAL(getppid(), SIGALLDEAD);
 }
 
 /* Stop a port every day for SO_SWELL_DURATION hours */
