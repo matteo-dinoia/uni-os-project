@@ -214,7 +214,7 @@ void exchange_cargo(int port_id)
 		/* Actual buy (unsinkable) */
 		sigprocmask(SIG_BLOCK, &set_masked, NULL);
 		tons_moved = buy(port_id, type, amount);
-		sigprocmask(SIG_BLOCK, &set_masked, NULL);
+		sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 		/* Wait */
 		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
