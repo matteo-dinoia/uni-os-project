@@ -423,7 +423,7 @@ void remove_port_expired(int port_id, list_cargo *cargo_hold)
 	int i, amount_removed;
 	for (i = 0; i < SO_MERCI; i++){
 		amount_removed = remove_expired_cargo(&cargo_hold[i], get_day());
-		_data_shop[port_id].quantity -= amount_removed;
+		DATA_SHOP(port_id, i).quantity -= amount_removed;
 
 		/* Bump */
 		execute_single_sem_oper(_id_sem_cargo, i, -1);
