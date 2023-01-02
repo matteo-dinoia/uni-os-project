@@ -146,15 +146,16 @@ struct general read_constants_from_file()
 void custom_handler(int signal)
 {
 	switch (signal){
-	case SIGALLDEAD:
-		close_all("[INFO] All ship died to maelstroms", EXIT_SUCCESS);
 	case SIGSEGV:
 		close_all("[ERROR] Segmentation memory", EXIT_FAILURE);
 	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
-	case SIGALRM:
+	case SIGALLDEAD:
 		print_dump_data();
+		close_all("[INFO] All ship died to maelstroms", EXIT_SUCCESS);
+	case SIGALRM:
+		if(get_day() == SO_DAYS) print_dump_data();
 
 		increase_day();
 		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
