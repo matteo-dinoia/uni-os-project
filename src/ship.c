@@ -75,7 +75,7 @@ void loop()
 	while (1){
 		get_next_destination_port(&dest_port, &dest_coord);
 		move_to_port(dest_coord);
-		dprintf(1, "\t[Ship %d] arrived at %d\n", _this_id, dest_port);
+		dprintf(1, "\t[Ship %d] arrived at %d (x: %lf, y: %lf)\n", _this_id, dest_port, dest_coord.x, dest_coord.y);
 		exchange_cargo(dest_port);
 	}
 }
@@ -171,7 +171,7 @@ void move_to_port(struct coord dest_coord)
 	set_ship_moving(_this_id, FALSE);
 
 	/* Actual move*/
-	set_coord_ship(_this_id, dest_coord.x, dest_coord.y);
+	set_ship_coord(_this_id, dest_coord.x, dest_coord.y);
 }
 
 void exchange_cargo(int port_id)
@@ -184,7 +184,8 @@ void exchange_cargo(int port_id)
 	execute_single_sem_oper(get_id_sem_docks(), port_id, -1);
 	set_ship_at_dock(_this_id, TRUE);
 
-	/* Initialize signal ignored */
+	/* Initialize signal ignored TODO move inside*/
+	sigemptyset(&set_masked);
 	sigaddset(&set_masked, SIGMAELSTROM);
 
 	/* Selling */

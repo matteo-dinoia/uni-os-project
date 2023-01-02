@@ -1,6 +1,9 @@
 #ifndef _MESSAGE_H
 #define _MESSAGE_H
 
+#define KEY_MSG_IN_PORT 0x210fff
+#define KEY_MSG_OUT_PORT 0x220fff
+
 #define MSG_SIZE(msg) (sizeof(msg) - 8)
 #define STATUS_REFUSED -1
 #define STATUS_REQUEST 0

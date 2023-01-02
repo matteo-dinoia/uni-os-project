@@ -92,7 +92,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 		/* If port is buying respond with how much */
 		amount = MIN(-needed_amount, -this_amount);
 		port_buy(_this_id, amount, needed_type);
-		send_to_ship(ship_id, needed_type, amount, -1, STATUS_ACCEPTED);
+		send_to_ship(ship_id, needed_type, -amount, -1, STATUS_ACCEPTED);
 	}else {
 		send_to_ship(ship_id, needed_type, 0, -1, STATUS_REFUSED);
 	}
