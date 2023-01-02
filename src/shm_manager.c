@@ -201,7 +201,7 @@ void print_dump_data()
 	int port, type, ship, cargo_type, cargo_in_port, quantity;
 	int tot_port_swell = 0;
 	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
-	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0;
+	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0, tot_cargo_del_unwanted = 0;
 
 	dprintf(1, "\n\n================================[DAY %3d]=================================\n", get_day());
 
@@ -242,9 +242,9 @@ void print_dump_data()
 
 	dprintf(1, "[CARGO]\n");
 	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d, tot_in_ships: %d, tot_delivered: %d, tot_expired_port: %d, tot_expired_ship: %d\n",
+		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d, tot_in_ships: %d, tot_delivered: %d, tot_expired_port: %d, tot_expired_ship: %d tot_delivered_unwanted: %d\n",
 				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
-				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship);
+				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship, _data_cargo[cargo_type].dump_delivered_unwanted);
 
 				/* Totals */
 				tot_cargo_port += _data_cargo[cargo_type].dump_at_port;
@@ -252,10 +252,11 @@ void print_dump_data()
 				tot_cargo_del += _data_cargo[cargo_type].dump_tot_delivered;
 				tot_cargo_exp_port += _data_cargo[cargo_type].dump_exipered_port;
 				tot_cargo_exp_ship += _data_cargo[cargo_type].dump_exipered_ship;
+				tot_cargo_del_unwanted += _data_cargo[cargo_type].dump_delivered_unwanted;
 	}
 	dprintf(1, "|\n");
-	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d\n\n",
-			tot_cargo_port, tot_cargo_ship, tot_cargo_del, tot_cargo_exp_port, tot_cargo_exp_ship);
+	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d, tot_cargo_delivered_unwanted: %d\n\n",
+			tot_cargo_port, tot_cargo_ship, tot_cargo_del, tot_cargo_exp_port, tot_cargo_exp_ship, tot_cargo_del_unwanted);
 
 	/* Shop things */
 	dprintf(1, "================================[SHOP]====================================\n");
