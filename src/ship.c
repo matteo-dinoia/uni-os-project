@@ -280,7 +280,7 @@ int pick_buy(int port_id, int dest_port_id, int type)
 	n_capacity = get_ship_capacity(_this_id) / get_cargo_weight_batch(type);
 
 	/* Calculate min value */
-	return MIN(MIN(n_sell_this_port, n_buy_dest_port), n_capacity);
+	return MIN(MIN(n_sell_this_port, n_buy_dest_port + RANDOM(0, ROUNDUP(n_capacity/4))), n_capacity);
 }
 
 void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int status)
