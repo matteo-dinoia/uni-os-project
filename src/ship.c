@@ -75,7 +75,9 @@ void loop()
 	while (1){
 		get_next_destination_port(&dest_port, &dest_coord);
 		move_to_port(dest_coord);
+#ifdef DEBUG
 		dprintf(1, "\t[Ship %d] arrived at %d (x: %lf, y: %lf)\n", _this_id, dest_port, dest_coord.x, dest_coord.y);
+#endif
 		exchange_cargo(dest_port);
 	}
 }
@@ -214,7 +216,7 @@ void exchange_cargo(int port_id)
 		/* Actual buy (unsinkable) */
 		sigprocmask(SIG_BLOCK, &set_masked, NULL);
 		tons_moved = buy(port_id, type, amount);
-		sigprocmask(SIG_BLOCK, &set_masked, NULL);
+		sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 		/* Wait */
 		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
@@ -280,7 +282,7 @@ int pick_buy(int port_id, int dest_port_id, int type)
 	n_capacity = get_ship_capacity(_this_id) / get_cargo_weight_batch(type);
 
 	/* Calculate min value */
-	return MIN(MIN(n_sell_this_port, n_buy_dest_port), n_capacity);
+	return MIN(MIN(n_sell_this_port, n_buy_dest_port + RANDOM(0, ROUNDUP(n_capacity/4))), n_capacity);
 }
 
 void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int status)
@@ -289,7 +291,9 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, port_id,
 			cargo_type, amount, expiry_date, status);
 
+#ifdef DEBUG
 	dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type);
+#endif
 	send_commerce_msg(get_id_msg_in_ports(), &msg);
 }
 
@@ -298,7 +302,9 @@ void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_d
 	/* dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id); */
 	receive_commerce_msg(get_id_msg_out_ports(), _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
+#ifdef DEBUG
 	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d\n", _this_id, *status, *amount);
+#endif
 }
 
 void signal_handler(int signal)

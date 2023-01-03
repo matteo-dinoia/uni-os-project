@@ -47,6 +47,7 @@ int main()
 	sigaction(SIGALRM, &sa, NULL);
 	sa.sa_mask = set_masked;
 	sigfillset(&set_masked);
+	sigaction(SIGALLDEAD, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
@@ -150,8 +151,11 @@ void custom_handler(int signal)
 	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
-	case SIGALRM:
+	case SIGALLDEAD:
 		print_dump_data();
+		close_all("[INFO] All ship died to maelstroms", EXIT_SUCCESS);
+	case SIGALRM:
+		if(get_day() == SO_DAYS) print_dump_data();
 
 		increase_day();
 		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
