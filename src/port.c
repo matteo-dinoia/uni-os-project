@@ -164,7 +164,7 @@ void signal_handler(int signal)
 	switch (signal)
 	{
 	case SIGSEGV:
-		dprintf(1, "[SEGMENTATION FAULT] In port (closing)");
+		dprintf(1, "[SEGMENTATION FAULT] In port (closing)\n");
 	case SIGINT:
 		close_all();
 		break;
