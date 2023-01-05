@@ -200,7 +200,7 @@ void print_dump_data()
 {
 	int port, type, ship, cargo_type, cargo_in_port, quantity;
 	int tot_port_swell = 0;
-	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0;
+	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0, tot_ship_dead = 0;
 	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0, tot_cargo_del_unwanted = 0;
 
 	dprintf(1, "\n\n================================[DAY %3d]=================================\n", get_day());
@@ -211,8 +211,8 @@ void print_dump_data()
 	dprintf(1, "[PORTS]\n");
 	for (port = 0; port < SO_PORTI; port++){
 		cargo_in_port = 0;
-		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
-				_data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
+		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL),
+				_data_port[port].dump_dock_tot, _data_port[port].dump_had_swell);
 		tot_port_swell += _data_port[port].dump_had_swell;
 	}
 	dprintf(1, "|\n");
@@ -220,17 +220,16 @@ void print_dump_data()
 
 	dprintf(1, "[SHIPS]\n");
 	for (ship = 0; ship < SO_NAVI; ship++){
-		dprintf(1, "|----(Ship: %d) is_at_dock: %d, had_storm: %d, had_maeltrom: %d\n", ship, _data_ship[ship].dump_is_at_dock,
-				_data_ship[ship].dump_had_storm, _data_ship[ship].dump_had_maelstrom);
-		if (_data_ship[ship].dump_is_at_dock) tot_ship_dock++;
+		if (_data_ship[ship].is_dead) tot_ship_dead++;
+		else if (_data_ship[ship].dump_is_at_dock) tot_ship_dock++;
 		else if (_data_ship[ship].capacity == SO_CAPACITY) tot_ship_empty++;
 		else tot_ship_cargo++;
 		tot_ship_storm += _data_ship[ship].dump_had_storm;
 		tot_ship_maelstrom += _data_ship[ship].dump_had_maelstrom;
 	}
 	dprintf(1, "|\n");
-	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_cargo: %d, tot_empty: %d, tot_storm: %d, tot_maeltrom: %d\n\n",
-			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom);
+	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_at_sea_with_cargo: %d, tot_at_sea_empty: %d, tot_storm: %d, tot_maeltrom: %d, tot_dead: %d\n\n",
+			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom, tot_ship_dead);
 
 	dprintf(1, "[CARGO]\n");
 	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
@@ -333,11 +332,11 @@ void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
 
 		/* Bump*/
 		execute_single_sem_oper(_id_sem_cargo, i, -1);
-		_data_cargo[i].dump_in_ship -= amount_removed;
+		_data_cargo[i].dump_in_ship -= amount_removed * get_cargo_weight_batch(i);
 		if (increment_day == 0)
-			_data_cargo[i].dump_exipered_ship += amount_removed;
+			_data_cargo[i].dump_exipered_ship += amount_removed * get_cargo_weight_batch(i);
 		else if (increment_day > 0)
-			_data_cargo[i].dump_delivered_unwanted += amount_removed;
+			_data_cargo[i].dump_delivered_unwanted += amount_removed * get_cargo_weight_batch(i);
 		execute_single_sem_oper(_id_sem_cargo, i, 1);
 	}
 }
@@ -352,8 +351,8 @@ void port_buy(int port_id, int amount, int type)
 
 	/* Dump */
 	execute_single_sem_oper(_id_sem_cargo, type, -1);
-	_data_cargo[type].dump_in_ship -= amount;
-	_data_cargo[type].dump_tot_delivered += amount;
+	_data_cargo[type].dump_in_ship -= amount * get_cargo_weight_batch(type);
+	_data_cargo[type].dump_tot_delivered += amount * get_cargo_weight_batch(type);
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 	_data_port[port_id].dump_tot_tons_received += amount * get_cargo_weight_batch(type);
 }
@@ -374,8 +373,8 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 
 	/* Dump */
 	execute_single_sem_oper(_id_sem_cargo, type, -1);
-	_data_cargo[type].dump_at_port -= amount;
-	_data_cargo[type].dump_in_ship += amount;
+	_data_cargo[type].dump_at_port -= amount * get_cargo_weight_batch(type);
+	_data_cargo[type].dump_in_ship += amount * get_cargo_weight_batch(type);
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 	_data_port[port_id].dump_tot_tons_sent += amount * get_cargo_weight_batch(type);
 
@@ -396,7 +395,7 @@ void add_port_supply(int port_id, list_cargo *cargo_hold, int amount, int type)
 
 	/* Dump */
 	execute_single_sem_oper(_id_sem_cargo, type, -1);
-	_data_cargo[type].dump_at_port += amount;
+	_data_cargo[type].dump_at_port += amount * get_cargo_weight_batch(type);
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 }
 
@@ -409,8 +408,8 @@ void remove_port_expired(int port_id, list_cargo *cargo_hold)
 
 		/* Bump */
 		execute_single_sem_oper(_id_sem_cargo, i, -1);
-		_data_cargo[i].dump_at_port -= amount_removed;
-		_data_cargo[i].dump_exipered_port += amount_removed;
+		_data_cargo[i].dump_at_port -= amount_removed * get_cargo_weight_batch(i);
+		_data_cargo[i].dump_exipered_port += amount_removed * get_cargo_weight_batch(i);
 		execute_single_sem_oper(_id_sem_cargo, i, 1);
 	}
 }
