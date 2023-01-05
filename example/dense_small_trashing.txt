@@ -4,7 +4,7 @@
 
 1000	# SO_LATO		(double TODO)
 10	# SO_DAYS
-1000	# SO_NAVI
+1000	# SO_NAVI		(not to much because of process number restrains)
 100	# SO_PORTI		>= 4
 10	# SO_MERCI		>= 2
 
