@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
 #include "header/semaphore.h"
+#include "errno.h"
+#include "string.h"
 
 struct sembuf create_sembuf(int index, int value)
 {
@@ -16,5 +18,5 @@ void execute_single_sem_oper(int id, int index, int value){
 	struct sembuf operation;
 
 	operation = create_sembuf(index, value);
-	semop(id, &operation, 1);
+	while(semop(id, &operation, 1) == -1);
 }

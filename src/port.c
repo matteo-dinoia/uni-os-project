@@ -33,22 +33,28 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	int id;
 
-	/* Get id */
-	_this_id = atoi(argv[1]);
-
-	/* Initialize structures */
-	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
-	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
-
-	/* LAST: Setting singal handler */
+	/* Initialize sigaction */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
-	sigaction(SIGDAY, &sa, NULL);
-	sigaction(SIGSWELL, &sa, NULL);
+
+	/* Important signal handler */
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
+
+	/* Get id and data structures */
+	_this_id = atoi(argv[1]);
+	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
+	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
+
+	/* Less important signal handler */
+	sigemptyset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGDAY, &sa, NULL);
+	sigaction(SIGSWELL, &sa, NULL);
+
+
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());

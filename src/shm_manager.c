@@ -15,6 +15,8 @@
 #define NULL_ID -1
 
 /* Global variables */
+bool_t is_initialized = FALSE;
+/* SHM */
 struct general *_data = NULL_SHM;
 struct port *_data_port = NULL_SHM;
 struct ship *_data_ship = NULL_SHM;
@@ -41,8 +43,10 @@ void _initialize_data();
 void initialize_shm_manager(int permissions, const struct general *base_data)
 {
 	/* Wait master if needed */
-	if(base_data == NULL)
+	if(base_data == NULL){
+		_id_sem = semget(KEY_SEM_START, 1, 0600 | IPC_CREAT);
 		execute_single_sem_oper(_id_sem, 0, 0);
+	}
 
 	/* Initialize and attach data */
 	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600 | IPC_CREAT);
@@ -74,6 +78,8 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 	/* Initialize shm data if needed */
 	if (base_data != NULL)
 		_initialize_data();
+
+	is_initialized = TRUE;
 }
 
 void _initialize_data()
@@ -282,6 +288,7 @@ void print_dump_data()
 /* GETTER */
 /* Other */
 int get_day(){return _data->today;}
+bool_t is_shm_initialized(){return is_initialized;}
 id_shared_t get_id_sem_docks(){return _id_sem_docks;}
 id_shared_t get_id_msg_in_ports(){return _id_msg_in_ports;}
 id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}
