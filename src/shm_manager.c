@@ -111,8 +111,6 @@ void _initialize_data()
 			current_port->daily_restock_supply = daily + to_add;
 			current_port->daily_restock_demand = daily + to_add;
 		}
-		dprintf(1, "[PORT-QUANTITY %d] %d, %d\n", i, current_port->daily_restock_supply, current_port->daily_restock_demand);
-
 
 		if (i<4){
 			/* ports in 4 corner */
