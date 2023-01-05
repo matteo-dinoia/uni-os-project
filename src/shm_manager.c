@@ -276,9 +276,7 @@ id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
 int get_port_pid(int port_id){return _data_port[port_id].pid;}
-int get_port_tot_tons_sent(int port_id){return _data_port[port_id].dump_tot_tons_sent;}
-int get_port_tot_tons_received(int port_id){return _data_port[port_id].dump_tot_tons_received;}
-int get_port_use(int port_id){return get_port_tot_tons_sent(port_id) + get_port_tot_tons_received(port_id);}
+int get_port_use(int port_id){return _data_port[port_id].dump_tot_tons_sent + _data_port[port_id].dump_tot_tons_received;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
@@ -357,7 +355,7 @@ void port_buy(int port_id, int amount, int type)
 	_data_cargo[type].dump_in_ship -= amount;
 	_data_cargo[type].dump_tot_delivered += amount;
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
-	_data_port[port_id].dump_tot_tons_received += (amount * get_cargo_weight_batch(type));
+	_data_port[port_id].dump_tot_tons_received += amount * get_cargo_weight_batch(type);
 }
 
 int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
@@ -379,7 +377,7 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 	_data_cargo[type].dump_at_port -= amount;
 	_data_cargo[type].dump_in_ship += amount;
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
-	_data_port[port_id].dump_tot_tons_sent += (amount * get_cargo_weight_batch(type));
+	_data_port[port_id].dump_tot_tons_sent += amount * get_cargo_weight_batch(type);
 
 	return amount;
 }
