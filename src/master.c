@@ -115,6 +115,9 @@ struct general read_constants_from_file()
 			if (counter >= NUM_VALUE){
 				fclose(file);
 				close_all("[FATAL] Found too many number (reading file constant.txt)", EXIT_FAILURE);
+			}else if (value <= 0){
+				fclose(file);
+				close_all("[FATAL] Invalid number [<= 0] (reading file constant.txt)", EXIT_FAILURE);
 			}else if (counter <= 0){
 				res.so_lato = value;
 				dprintf(1, " %lf", value);
@@ -155,8 +158,7 @@ void custom_handler(int signal)
 		print_dump_data();
 		close_all("[INFO] All ship died to maelstroms", EXIT_SUCCESS);
 	case SIGALRM:
-		if(get_day() == SO_DAYS) print_dump_data();
-
+		print_dump_data();
 		increase_day();
 		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
 
@@ -175,8 +177,7 @@ void send_to_all_childs(int signal){
 void close_all(const char *message, int exit_status)
 {
 	/* Messanges and exit */
-	if (exit_status == EXIT_SUCCESS) dprintf(1, "\n%s\n", message);
-	else dprintf(2, "\n%s\n", message);
+	dprintf(1, "\n\n%s\n", message);
 
 	/* Killing childs */
 	send_to_all_childs(SIGINT);
@@ -190,6 +191,6 @@ void close_all(const char *message, int exit_status)
 	while(wait(NULL) != -1 || errno == EINTR) errno = EXIT_SUCCESS;
 
 	/* Messanges and exit */
-	dprintf(1, "[CLOSING OPERATION] Success");
+	dprintf(1, "[CLOSING OPERATION] Success\n");
 	exit(exit_status);
 }
