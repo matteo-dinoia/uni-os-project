@@ -39,6 +39,8 @@ struct port{ /* Writers: port */
 	/* Dump */
 	int dump_dock_tot; /* const value */
 	int dump_had_swell; /* DONE */
+	int dump_tot_tons_sent;
+	int dump_tot_tons_received;
 };
 
 struct ship{ /* Writers: ship */
@@ -69,10 +71,6 @@ struct cargo{ /* Writers: port, ship */
 
 struct shop{ /* Writers: port */
 	int quantity;
-
-	/* Dump */
-	int dump_tot_sent; /* DONE */
-	int dump_tot_received; /* DONE */
 };
 
 #endif
