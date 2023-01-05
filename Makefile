@@ -46,7 +46,7 @@ killall-int:
 killall-kill:
 	killall -s KILL $(_PROCESSES) | cat
 count:
-	printf "\nNumber of lines in project: "; cat src/*.c src/header/*.h Makefile | wc -l
+	printf "\nNumber of lines in project: "; wc -l src/*.c src/header/*.h Makefile
 
 #DEPENDENCIES
 _clear-screen:
