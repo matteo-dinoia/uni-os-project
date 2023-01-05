@@ -214,16 +214,8 @@ void print_dump_data()
 		dprintf(1, "|----(Port: %d) tot_docks: %d, used_docks: %d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot,
 				_data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_had_swell);
 		tot_port_swell += _data_port[port].dump_had_swell;
-
-		for (type = 0; type < SO_MERCI; type++){
-			quantity = DATA_SHOP(port, type).quantity;
-			cargo_in_port = quantity > 0 ? quantity : 0;
-			dprintf(1, "|    |----(Cargo type: %d) in_port: %d, sent: %d, received: %d\n", type, cargo_in_port,
-					DATA_SHOP(port, type).dump_tot_sent,
-					DATA_SHOP(port, type).dump_tot_received);
-		}
-		dprintf(1, "|\n");
 	}
+	dprintf(1, "|\n");
 	dprintf(1, "|--PORTS TOTALS: tot_swell: %d\n\n", tot_port_swell);
 
 	dprintf(1, "[SHIPS]\n");
@@ -242,7 +234,7 @@ void print_dump_data()
 
 	dprintf(1, "[CARGO]\n");
 	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d, tot_in_ships: %d, tot_delivered: %d, tot_expired_port: %d, tot_expired_ship: %d tot_delivered_unwanted: %d\n",
+		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d tons, tot_in_ships: %d tons, tot_delivered: %d tons, tot_expired_port: %d tons, tot_expired_ship: %d tons, tot_delivered_unwanted: %d tons\n",
 				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
 				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship, _data_cargo[cargo_type].dump_delivered_unwanted);
 
@@ -284,16 +276,9 @@ id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
 int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
 int get_port_pid(int port_id){return _data_port[port_id].pid;}
-int get_port_use(int port_id){
-	int cargo_type;
-	int use = 0;
-
-	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-		use += DATA_SHOP(port_id, cargo_type).dump_tot_received
-				+ DATA_SHOP(port_id, cargo_type).dump_tot_sent;
-	}
-	return use;
-}
+int get_port_tot_tons_sent(int port_id){return _data_port[port_id].dump_tot_tons_sent;}
+int get_port_tot_tons_received(int port_id){return _data_port[port_id].dump_tot_tons_received;}
+int get_port_use(int port_id){return get_port_tot_tons_sent(port_id) + get_port_tot_tons_received(port_id);}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
@@ -305,8 +290,6 @@ int get_cargo_weight_batch(int cargo_id){return _data_cargo[cargo_id].weight_bat
 int get_cargo_shelf_life(int cargo_id){return _data_cargo[cargo_id].shelf_life;}
 /* Shop */
 int get_shop_quantity(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id + cargo_id].quantity;}
-int get_shop_tot_sent(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id + cargo_id].dump_tot_sent;}
-int get_shop_tot_received(int port_id, int cargo_id){return _data_shop[SO_MERCI * port_id + cargo_id].dump_tot_received;}
 
 /* "SETTER" */
 void start_simulation(){semctl(_id_sem, 0, SETVAL, 0);}
@@ -374,7 +357,7 @@ void port_buy(int port_id, int amount, int type)
 	_data_cargo[type].dump_in_ship -= amount;
 	_data_cargo[type].dump_tot_delivered += amount;
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
-	DATA_SHOP(port_id, type).dump_tot_received += amount;
+	_data_port[port_id].dump_tot_tons_received += (amount * get_cargo_weight_batch(type));
 }
 
 int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
@@ -396,7 +379,7 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 	_data_cargo[type].dump_at_port -= amount;
 	_data_cargo[type].dump_in_ship += amount;
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
-	DATA_SHOP(port_id, type).dump_tot_sent += amount;
+	_data_port[port_id].dump_tot_tons_sent += (amount * get_cargo_weight_batch(type));
 
 	return amount;
 }

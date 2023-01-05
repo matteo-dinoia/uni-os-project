@@ -40,6 +40,8 @@ id_shared_t get_id_msg_out_ports();
 struct coord get_port_coord(int id);
 int get_port_daily_restock(int port_id);
 int get_port_pid(int port_id);
+int get_port_tot_tons_sent(int port_id);
+int get_port_tot_tons_received(int port_id);
 int get_port_use(int port_id);
 /* Ship */
 struct coord get_ship_coord(int id);
@@ -52,8 +54,6 @@ int get_cargo_weight_batch(int cargo_id);
 int get_cargo_shelf_life(int cargo_id);
 /* Shop */
 int get_shop_quantity(int port_id, int cargo_id);
-int get_shop_tot_sent(int port_id, int cargo_id);
-int get_shop_tot_received(int port_id, int cargo_id);
 
 /* Simulation Constants */
 #define SO_LATO ((double)get_constants(0))
