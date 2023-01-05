@@ -78,7 +78,7 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 
 void _initialize_data()
 {
-	int i, to_add, daily, n_docks;
+	int i, to_add, daily, n_docks, daily_temp;
 	double x, y;
 	struct port *current_port;
 	struct ship *current_ship;
@@ -95,8 +95,22 @@ void _initialize_data()
 	for (i = 0; i < SO_PORTI; i++){
 		current_port = &_data_port[i];
 
-		to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
-		current_port->daily_restock_capacity = daily + to_add;
+		if (SO_MERCI == 1 && i % 2 == 0){ /* Port even request if only one type */
+			daily_temp = SO_FILL / (SO_DAYS * ((SO_PORTI + 1) / 2));
+			to_add = (((int)(i / 2)) < (SO_FILL % (SO_DAYS * (SO_PORTI + 1) / 2))) ? 1 : 0;
+			current_port->daily_restock_demand = daily_temp + to_add;
+			current_port->daily_restock_supply = 0;
+
+		}else if (SO_MERCI == 1 && i % 2 != 0){ /* Port odd sell if only one type */
+			daily_temp = SO_FILL / (SO_DAYS * (SO_PORTI / 2));
+			to_add = ((int)(i / 2) < SO_FILL % (SO_DAYS * (SO_PORTI / 2))) ? 1 : 0;
+			current_port->daily_restock_supply = daily_temp + to_add;
+			current_port->daily_restock_demand = 0;
+		}else {
+			to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
+			current_port->daily_restock_supply = daily + to_add;
+			current_port->daily_restock_demand = daily + to_add;
+		}
 
 		if (i<4){
 			/* ports in 4 corner */
@@ -237,13 +251,13 @@ void print_dump_data()
 				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
 				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship, _data_cargo[cargo_type].dump_delivered_unwanted);
 
-				/* Totals */
-				tot_cargo_port += _data_cargo[cargo_type].dump_at_port;
-				tot_cargo_ship += _data_cargo[cargo_type].dump_in_ship;
-				tot_cargo_del += _data_cargo[cargo_type].dump_tot_delivered;
-				tot_cargo_exp_port += _data_cargo[cargo_type].dump_exipered_port;
-				tot_cargo_exp_ship += _data_cargo[cargo_type].dump_exipered_ship;
-				tot_cargo_del_unwanted += _data_cargo[cargo_type].dump_delivered_unwanted;
+		/* Totals */
+		tot_cargo_port += _data_cargo[cargo_type].dump_at_port;
+		tot_cargo_ship += _data_cargo[cargo_type].dump_in_ship;
+		tot_cargo_del += _data_cargo[cargo_type].dump_tot_delivered;
+		tot_cargo_exp_port += _data_cargo[cargo_type].dump_exipered_port;
+		tot_cargo_exp_ship += _data_cargo[cargo_type].dump_exipered_ship;
+		tot_cargo_del_unwanted += _data_cargo[cargo_type].dump_delivered_unwanted;
 	}
 	dprintf(1, "|\n");
 	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d, tot_cargo_delivered_unwanted: %d\n\n",
@@ -273,7 +287,8 @@ id_shared_t get_id_msg_in_ports(){return _id_msg_in_ports;}
 id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}
 /* Port */
 struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;}
-int get_port_daily_restock(int port_id){return _data_port[port_id].daily_restock_capacity;}
+int get_port_daily_restock_supply(int port_id){return _data_port[port_id].daily_restock_supply;}
+int get_port_daily_restock_demand(int port_id){return _data_port[port_id].daily_restock_demand;}
 int get_port_pid(int port_id){return _data_port[port_id].pid;}
 int get_port_use(int port_id){return _data_port[port_id].dump_tot_tons_sent + _data_port[port_id].dump_tot_tons_received;}
 /* Ship */

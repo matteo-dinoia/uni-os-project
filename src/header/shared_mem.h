@@ -32,7 +32,8 @@ struct general{
 
 struct port{ /* Writers: port */
 	struct coord coordinates;
-	int daily_restock_capacity;
+	int daily_restock_supply;
+	int daily_restock_demand;
 	pid_t pid;
 
 	/* Dump */

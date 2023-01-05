@@ -38,7 +38,8 @@ id_shared_t get_id_msg_in_ports();
 id_shared_t get_id_msg_out_ports();
 /* Port */
 struct coord get_port_coord(int id);
-int get_port_daily_restock(int port_id);
+int get_port_daily_restock_supply(int port_id);
+int get_port_daily_restock_demand(int port_id);
 int get_port_pid(int port_id);
 int get_port_use(int port_id);
 /* Ship */

@@ -118,21 +118,21 @@ void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_d
 
 void shop_update()
 {
-	int rem_offer_tons = get_port_daily_restock(_this_id);
-	int rem_demand_tons = get_port_daily_restock(_this_id);
+	int rem_supply_tons = get_port_daily_restock_supply(_this_id);
+	int rem_demand_tons = get_port_daily_restock_demand(_this_id);
 	int rand_type, sum_normalized_first_two;
 	bool_t is_demand;
 
 	/* TODO avoid going over the limits */
-	while (rem_offer_tons > 0 || rem_demand_tons > 0) {
+	while (rem_supply_tons > 0 || rem_demand_tons > 0) {
 		rand_type = RANDOM(0, SO_MERCI);
 		if (get_shop_quantity(_this_id, rand_type) > 0){
 			is_demand = FALSE;
 		}else if (get_shop_quantity(_this_id, rand_type) < 0) {
 			is_demand = TRUE;
-		}else if (rem_offer_tons < rem_demand_tons){
+		}else if (rem_supply_tons < rem_demand_tons){
 			is_demand = TRUE;
-		}else if (rem_offer_tons > rem_demand_tons){
+		}else if (rem_supply_tons > rem_demand_tons){
 			is_demand = FALSE;
 		}else {
 			sum_normalized_first_two = GET_SIGN(get_shop_quantity(_this_id, 0))
@@ -144,14 +144,14 @@ void shop_update()
 			}else is_demand = RANDOM(0, 2);
 		}
 
+		/* Apply the demand or supply if enought tons remains */
 		if (is_demand && rem_demand_tons > 0){
 			add_port_demand(_this_id, 1, rand_type);
 			rem_demand_tons -= get_cargo_weight_batch(rand_type);
 		}
-		else if (!is_demand && rem_offer_tons > 0){
+		else if (!is_demand && rem_supply_tons > 0){
 			add_port_supply(_this_id, cargo_hold, 1, rand_type);
-			rem_offer_tons -= get_cargo_weight_batch(rand_type);
-
+			rem_supply_tons -= get_cargo_weight_batch(rand_type);
 		}
 	}
 }
