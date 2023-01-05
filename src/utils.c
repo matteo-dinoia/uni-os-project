@@ -191,7 +191,7 @@ struct timespec _get_timespec(double interval_sec){
 	struct timespec res;
 
 	res.tv_sec = (long)interval_sec;
-	res.tv_nsec = (interval_sec - (long)interval_sec) * pow(10, 9);
+	res.tv_nsec = (interval_sec - (long)interval_sec) * 1e9;
 
 	return res;
 }
@@ -201,7 +201,7 @@ void timer(double duration_sec){
 	int sec, usec, ret;
 
 	sec = (int) duration_sec;
-	usec = (duration_sec - (int)duration_sec) * pow(10, 6);
+	usec = (duration_sec - (int)duration_sec) * 1e6;
 
 	it_val.it_value.tv_sec = sec;
 	it_val.it_value.tv_usec = usec;
