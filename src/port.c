@@ -15,6 +15,8 @@
 /* Global variables */
 int _this_id;
 list_cargo *cargo_hold;
+int extra_supply_created = 0;
+int extra_demand_created = 0;
 
 /* Prototypes */
 void shop_update();
@@ -124,8 +126,8 @@ void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_d
 
 void shop_update()
 {
-	int rem_supply_tons = get_port_daily_restock_supply(_this_id);
-	int rem_demand_tons = get_port_daily_restock_demand(_this_id);
+	int rem_supply_tons = get_port_daily_restock_supply(_this_id) - extra_supply_created;
+	int rem_demand_tons = get_port_daily_restock_demand(_this_id) - extra_demand_created;
 	int rand_type, sum_normalized_first_two, amount;
 	bool_t is_demand;
 	bool_t is_last_index_used = TRUE;
@@ -165,6 +167,10 @@ void shop_update()
 			rem_supply_tons -= amount * get_cargo_weight_batch(rand_type);
 		}else is_last_index_used = FALSE;
 	}
+
+	/* Remember how much i did produced more for compensating */
+	extra_demand_created = -rem_demand_tons;
+	extra_supply_created = -rem_supply_tons;
 }
 
 void signal_handler(int signal)
