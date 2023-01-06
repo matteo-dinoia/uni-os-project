@@ -37,6 +37,7 @@ void pop_cargo(list_cargo *list, int *amount, int *expiry_date);
 int remove_expired_cargo(list_cargo *list, int today);
 int get_not_expired_by_day(list_cargo *list, int day);
 void free_cargo(list_cargo *list);
+void print_cargo(list_cargo *list);
 
 void timer(double interval_sec);
 void wait_event_duration(double sec);
