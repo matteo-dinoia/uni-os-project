@@ -47,6 +47,8 @@ int main()
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &custom_handler;
 	sigaction(SIGALRM, &sa, NULL);
+	/* Important handler */
+	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigfillset(&set_masked);
 	sigaction(SIGTERM, &sa, NULL);
@@ -77,10 +79,16 @@ pid_t create_proc(char *name, int index)
 {
 	pid_t proc_pid;
 	char *arg[3], *env[]={NULL}, buf[10];
+	void *to_free;
 
 	if ((proc_pid = fork()) == -1){
 		close_all("[FATAL] Failed to fork child", EXIT_FAILURE);
 	} else if (proc_pid == 0){
+		/* Free TODO not perfect*/
+		/* to_free = childs_pid;
+		childs_pid = NULL;
+		free(to_free);*/
+
 		sprintf(buf, "%d", index);
 		arg[0] = name;
 		arg[1] = buf;
@@ -182,7 +190,7 @@ void close_all(const char *message, int exit_status)
 	if(getpid() != master_pid){
 		/* If is child which has not yet done the execve */
 		close_shm_manager();
-		/* free(childs_pid); */
+		free(childs_pid);
 		return;
 	}
 
