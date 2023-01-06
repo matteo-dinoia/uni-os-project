@@ -19,7 +19,7 @@
 
 /* Global Variables */
 int _this_id;
-int _next_port_destination;
+int _next_port_destination = -1;
 list_cargo *cargo_hold;
 
 /* Prototypes */
@@ -80,9 +80,7 @@ void loop()
 	while (1){
 		get_next_destination_port(&dest_port, &dest_coord);
 		move_to_port(dest_coord);
-#ifdef DEBUG
-		dprintf(1, "\t[Ship %d] arrived at %d (x: %lf, y: %lf)\n", _this_id, dest_port, dest_coord.x, dest_coord.y);
-#endif
+		/* dprintf(1, "\t[Ship %d] arrived at %d (x: %lf, y: %lf)\n", _this_id, dest_port, dest_coord.x, dest_coord.y); */
 		exchange_cargo(dest_port);
 	}
 }
@@ -103,11 +101,12 @@ int new_destiation_port(int current_port)
 {
 	int port, cargo_type, sale, not_expired, request_port, min;
 	int best_port = -1, best_sale;
-	int worst_port = -1, worst_use, use, start_port, i;
+	int worst_port = -1, worst_use, use, start_port, i, noise, max_noise;
 	double best_travel_time, travel_time;
 
 	/* If empty */
 	if (get_ship_capacity(_this_id) >= SO_CAPACITY){
+		max_noise = ROUNDUP(SO_NAVI / 50);
 		start_port = RANDOM(0, SO_PORTI);
 		for (i = 0; i < SO_PORTI; i++){
 			port = (i + start_port) % SO_PORTI;
@@ -116,14 +115,14 @@ int new_destiation_port(int current_port)
 			if (port == current_port) continue;
 
 			/* Calculate use and choose worst */
-			use = get_port_use(port);
+			noise = RANDOM_INCLUDED(-max_noise, max_noise);
+			use = get_port_use(port) + noise;
 			if (worst_port == -1 /* still doesn't have a worst port*/
 					|| use < worst_use){ /* or is worst */
 				worst_port = port;
 				worst_use = use;
 			}
 		}
-
 		return (_next_port_destination = worst_port);
 	}
 
@@ -286,6 +285,7 @@ int pick_buy(int port_id, int dest_port_id, int type)
 
 	n_sell_this_port = get_shop_quantity(port_id, type);
 	n_buy_dest_port = -get_shop_quantity(dest_port_id, type);
+	if (n_buy_dest_port < 0) n_buy_dest_port = 0;
 	n_capacity = get_ship_capacity(_this_id) / get_cargo_weight_batch(type);
 
 	/* Calculate min value */

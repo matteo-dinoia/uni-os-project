@@ -53,6 +53,6 @@ void wait_event_duration(double sec);
 #define RANDOM_INCLUDED(min_included, max_included) RANDOM((min_included), ((max_included) + 1))
 #define RANDOM_DOUBLE(min, max)\
 	(rand() / (double)RAND_MAX * (max - min) + (min))
-#define ROUNDUP(value) ((value) > (int)(value) ? (value) + 1 : (value))
+#define ROUNDUP(value) ((value) > (int)(value) ? (int)(value) + 1 : (int)(value))
 
 #endif
