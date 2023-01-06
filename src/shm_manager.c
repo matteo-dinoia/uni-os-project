@@ -290,6 +290,28 @@ void print_dump_data()
 /* GETTER */
 /* Other */
 int get_day(){return _data->today;}
+bool_t check_ships_all_dead(){
+	int i;
+	for (i = 0; i < SO_NAVI; i++)
+		if(!_data_ship[i].is_dead) return FALSE;
+
+	return TRUE;
+}
+bool_t check_shop_termination_condition(){
+	int port, cargo, amount;
+	bool_t never_supply = TRUE, never_demand = TRUE;
+
+	for (port = 0; port < SO_PORTI; port++){
+		for (cargo = 0; cargo < SO_MERCI; cargo++){
+			amount = DATA_SHOP(port, cargo).quantity;
+
+			never_supply &= !(amount > 0);
+			never_demand &= !(amount < 0);
+		}
+	}
+
+	return never_supply || never_demand;
+}
 bool_t is_shm_initialized(){return is_initialized;}
 id_shared_t get_id_sem_docks(){return _id_sem_docks;}
 id_shared_t get_id_msg_in_ports(){return _id_msg_in_ports;}
@@ -332,7 +354,7 @@ void set_ship_at_dock(int ship_id, bool_t value, int port_id){
 void set_ship_moving(int ship_id, bool_t value){_data_ship[ship_id].is_moving = value;}
 int ship_sell(int ship_id, list_cargo *cargo_hold, int amount, int type){ /* return weight moved*/
 	int weight;
-	/* TODO what to do with cargo hold */
+
 	amount = abs(amount);
 	remove_cargo(&cargo_hold[type], amount);
 
@@ -405,7 +427,7 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type, int
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 	_data_port[port_id].dump_tot_tons_sent += amount * get_cargo_weight_batch(type);
 
-	/* Return (+expirty date) */
+	/* Return (+expiry date) */
 	return amount;
 }
 

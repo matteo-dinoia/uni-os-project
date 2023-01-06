@@ -24,19 +24,21 @@ void print_cargo(list_cargo *list){
 		return;
 	}
 	else if (list->first == NULL){
-		/*dprintf(1, "List has 0 elements");*/
+		dprintf(1, "List has 0 elements\n");
 		return;
 	}
 
+	dprintf(1, "LIST [Lenght: %d]: ", count_cargo(list));
 	for(el = list->first; el != NULL; el = el->next)
-		dprintf(1, "q%de%d ", el->amount, el->expiry_date);
+		dprintf(1, "%d [scad. %d] ", el->amount, el->expiry_date);
 	dprintf(1, "\n");
 }
 
 void remove_cargo(list_cargo *list, int amount)
 {
-	struct node_cargo *current = list->first, *tmp;
+	struct node_cargo *current, *tmp;
 
+	current = list->first;
 	while (amount > 0){
 		if (current == NULL) {
 			dprintf(1, "Should have controlled NULL in remove cargo.\n");
@@ -45,14 +47,14 @@ void remove_cargo(list_cargo *list, int amount)
 
 		if (amount >= current->amount){
 			amount -=  current->amount;
-			tmp = current;
 
+			tmp = current;
 			current = current->next;
 			free(tmp);
 		}
 		else{
-			amount = 0;
 			current->amount -= amount;
+			amount = 0;
 		}
 	}
 
@@ -68,22 +70,11 @@ void add_cargo(list_cargo *list, int amount, int expiry_date)
 		return;
 	}
 
-	/* Is to be added on the head */
-	if(list->first == NULL || list->first->expiry_date >= expiry_date){
-		/* Create new first */
-		tmp = list->first;
-		list->first = malloc(sizeof(*list->first));
-		list->first->expiry_date = expiry_date;
-		list->first->amount = amount;
-		list->first->next = tmp;
-		return;
-	}
-
 	/* Is in the middle */
-	prev = list->first;
-	do {
-		current = prev->next;
-		if(current == NULL || current->expiry_date >= expiry_date){
+	prev = NULL;
+	current = list->first;
+	for (current = list->first; 1; current = current->next){
+		if(current == NULL || current->expiry_date > expiry_date){
 			tmp = current;
 
 			/* Create new node */
@@ -93,11 +84,16 @@ void add_cargo(list_cargo *list, int amount, int expiry_date)
 			current->next = tmp;
 
 			/* Attach it and end cycle*/
-			prev->next = current;
-			current = NULL;
+			if(prev == NULL) list->first = current;
+			else prev->next = current;
+			break;
+		}else if (current->expiry_date == expiry_date){
+			current->amount += amount;
+			break;
 		}
-		prev = prev->next;
-	} while (current != NULL);
+
+		prev = current;
+	}
 }
 
 int count_cargo(list_cargo *list)
@@ -120,12 +116,10 @@ void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 	if(list == NULL){
 		dprintf(1, "Should have controlled NULL in pop cargo (list = %p).\n", (void *) list);
 		*amount = 0;
-		*expiry_date = -14;
 		return;
 	}else if(list->first == NULL){
 		dprintf(1, "Should have controlled NOT_EMPTY in pop cargo (list-> first = %p).\n", (void *) list->first);
 		*amount = 0;
-		*expiry_date = -3;
 		return;
 	}
 
@@ -149,7 +143,7 @@ int remove_expired_cargo(list_cargo *list, int today)
 
 	for(tmp = list->first; tmp != NULL; ){
 		if (tmp->expiry_date > today)
-			break; /* if not expired*/
+			break; /* if not expired */
 
 		amount_removed += tmp->amount;
 		list->first = tmp->next;

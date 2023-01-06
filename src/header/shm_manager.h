@@ -33,6 +33,8 @@ void remove_port_expired(int port_id, list_cargo *cargo_hold);
 /* GETTER */
 /* Other */
 int get_day();
+bool_t check_ships_all_dead();
+bool_t check_shop_termination_condition();
 id_shared_t get_id_sem_docks();
 id_shared_t get_id_msg_in_ports();
 id_shared_t get_id_msg_out_ports();

@@ -47,7 +47,6 @@ int main()
 	sigaction(SIGALRM, &sa, NULL);
 	sa.sa_mask = set_masked;
 	sigfillset(&set_masked);
-	sigaction(SIGALLDEAD, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
@@ -154,14 +153,13 @@ void custom_handler(int signal)
 	case SIGTERM:
 	case SIGINT:
 		close_all("[INFO] Interruped by user", EXIT_SUCCESS);
-	case SIGALLDEAD:
-		print_dump_data();
-		close_all("[INFO] All ship died to maelstroms", EXIT_SUCCESS);
 	case SIGALRM:
 		print_dump_data();
-		increase_day();
-		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated", EXIT_SUCCESS);
+		if(check_ships_all_dead()) close_all("[INFO] Simulation terminated because all ships died", EXIT_SUCCESS);
+		if(check_shop_termination_condition()) close_all("[INFO] Simulation terminated because the demand or the supply is zero in all ports", EXIT_SUCCESS);
+		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated because period passed", EXIT_SUCCESS);
 
+		increase_day();
 		send_to_all_childs(SIGDAY);
 		alarm(DAY_SEC);
 		break;

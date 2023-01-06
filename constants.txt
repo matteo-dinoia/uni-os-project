@@ -4,19 +4,19 @@
 
 1	# SO_LATO
 30	# SO_DAYS
-3000	# SO_NAVI		(not to much because of process number restrains)
+1	# SO_NAVI		(not to much because of process number restrains)
 5	# SO_PORTI		>= 4
-10	# SO_MERCI
+1	# SO_MERCI
 
 1	# SO_STORM_DURATION
 1	# SO_SWELL_DURATION
-24	# SO_MAELSTROM
+1000000	# SO_MAELSTROM
 
 1000000	# SO_FILL
 10	# SO_BANCHINE
 9999999	# SO_LOADSPEED
-100	# SO_SIZE
+1	# SO_SIZE
 9999999	# SO_SPEED
-9999999	# SO_CAPACITY
+10000	# SO_CAPACITY
 3	# SO_MIN_VITA
 10	# SO_MAX_VITA		>= SO_MIN_VITA
