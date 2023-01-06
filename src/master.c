@@ -18,6 +18,7 @@
 #define DAY_SEC 1
 
 /* Global variables */
+pid_t master_pid;
 pid_t *childs_pid = NULL;
 int childs_counter = 0;
 
@@ -37,6 +38,7 @@ int main()
 	struct general constants;
 
 	/* Initializing */
+	master_pid = getpid();
 	srand(time(NULL) * getpid());
 	constants = read_constants_from_file();
 	initialize_shm_manager(PORT_WRITE | SHIP_WRITE | CARGO_WRITE | SHOP_WRITE, &constants);
@@ -177,6 +179,13 @@ void send_to_all_childs(int signal){
 
 void close_all(const char *message, int exit_status)
 {
+	if(getpid() != master_pid){
+		/* If is child which has not yet done the execve */
+		close_shm_manager();
+		/* free(childs_pid); */
+		return;
+	}
+
 	/* Messanges and exit */
 	dprintf(1, "\n\n%s\n", message);
 

@@ -330,7 +330,7 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGSEGV:
-		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
+		dprintf(1, "[SEGMENTATION FAULT] In ship pid: %d (closing)\n", _this_id);
 	case SIGINT: /* Closing for every other reason */
 		close_all();
 		break;
