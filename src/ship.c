@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
 	sa.sa_mask = set_masked;
 	sigaction(SIGSTORM, &sa, NULL);
 	sigaction(SIGMAELSTROM, &sa, NULL);
+	sigaction(SIGDAY, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
@@ -164,7 +165,7 @@ void discard_expiring_cargo(int dest_id)
 	int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);
 
 	/* Remove cargo */
-	remove_ship_expired(_this_id, cargo_hold, days_needed);
+	/* if (days_needed > 0) remove_ship_expired(_this_id, cargo_hold, days_needed);*/
 }
 
 void move_to_port(struct coord dest_coord)
@@ -208,6 +209,7 @@ void exchange_cargo(int port_id)
 	/* New Dest */
 	dest_port_id = new_destiation_port(port_id);
 	discard_expiring_cargo(dest_port_id);
+
 
 	/* Buying */
 	start_type = RANDOM(0, SO_MERCI);
@@ -320,19 +322,17 @@ void signal_handler(int signal)
 	case SIGDAY:
 		remove_ship_expired(_this_id, cargo_hold, 0);
 		break;
-	case SIGSEGV:
-		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
-		close_all();
+	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
+		set_ship_storm(_this_id);
+		wait_event_duration(SO_STORM_DURATION/24.0);
 		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		set_ship_maelstrom(_this_id);
 		remove_ship_expired(_this_id, cargo_hold, 0);
+	case SIGSEGV:
+		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
 	case SIGINT: /* Closing for every other reason */
 		close_all();
-		break;
-	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
-		set_ship_storm(_this_id);
-		wait_event_duration(SO_STORM_DURATION/24.0);
 		break;
 	}
 }

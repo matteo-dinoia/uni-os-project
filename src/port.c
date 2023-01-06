@@ -174,11 +174,6 @@ void signal_handler(int signal)
 
 	switch (signal)
 	{
-	case SIGSEGV:
-		dprintf(1, "[SEGMENTATION FAULT] In port (closing)\n");
-	case SIGINT:
-		close_all();
-		break;
 	case SIGDAY: /* Change of day */
 		/* dprintf(1, "[DAY CHANGE START FOR PORT %d]\n", _this_id); */
 		remove_port_expired(_this_id, cargo_hold);
@@ -188,6 +183,11 @@ void signal_handler(int signal)
 	case SIGSWELL: /* Swell */
 		set_port_swell(_this_id);
 		wait_event_duration(SO_SWELL_DURATION/24.0);
+		break;
+	case SIGSEGV:
+		dprintf(1, "[SEGMENTATION FAULT] In port (closing)\n");
+	case SIGINT:
+		close_all();
 		break;
 	}
 }

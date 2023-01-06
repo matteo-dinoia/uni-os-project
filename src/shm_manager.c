@@ -344,7 +344,7 @@ int ship_buy(int ship_id, list_cargo *cargo_hold, int amount, int type, int expi
 	add_cargo(&cargo_hold[type], amount, expiry_date);
 
 	weight = amount * get_cargo_weight_batch(type);
-	_data_ship[ship_id].capacity += weight;
+	_data_ship[ship_id].capacity -= weight;
 	return weight;
 }
 void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
