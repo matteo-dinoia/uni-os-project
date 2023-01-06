@@ -70,7 +70,6 @@ void loop()
 		/* Check if day is changed */
 		n_update = get_day() - last_day_update;
 		if (n_update > 0){
-			dprintf(1, "SHOP UPDATE for port %d\n", _this_id);
 			remove_port_expired(_this_id, cargo_hold);
 			for (i = 0; i < n_update; i++) shop_update();
 			last_day_update += n_update;
