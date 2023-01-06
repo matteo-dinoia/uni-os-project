@@ -173,16 +173,9 @@ void close_shm_manager()
 	shmdt(_data_ship);
 	shmdt(_data_cargo);
 	shmdt(_data_shop);
-
-	/* Mark for removal shared memory */
-	shmctl(_id_data, IPC_RMID, NULL);
-	shmctl(_id_port, IPC_RMID, NULL);
-	shmctl(_id_ship, IPC_RMID, NULL);
-	shmctl(_id_cargo, IPC_RMID, NULL);
-	shmctl(_id_shop, IPC_RMID, NULL);
 }
 
-void close_sem_and_msg()
+void close_ipc()
 {
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
@@ -192,6 +185,13 @@ void close_sem_and_msg()
 	/* Closing message queues */
 	msgctl(_id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_id_msg_out_ports, IPC_RMID, NULL);
+
+	/* Mark for removal shared memory */
+	shmctl(_id_data, IPC_RMID, NULL);
+	shmctl(_id_port, IPC_RMID, NULL);
+	shmctl(_id_ship, IPC_RMID, NULL);
+	shmctl(_id_cargo, IPC_RMID, NULL);
+	shmctl(_id_shop, IPC_RMID, NULL);
 }
 
 double get_constants(int type_const)

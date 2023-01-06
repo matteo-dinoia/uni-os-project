@@ -185,7 +185,7 @@ void close_all(const char *message, int exit_status)
 
 	/* Closing IPC and local */
 	close_shm_manager();
-	close_sem_and_msg();
+	close_ipc();
 	free(childs_pid);
 
 	/* Waiting childs */
