@@ -1,7 +1,5 @@
 #define _GNU_SOURCE
 #include "header/semaphore.h"
-#include "errno.h"
-#include "string.h"
 
 struct sembuf create_sembuf(int index, int value)
 {
