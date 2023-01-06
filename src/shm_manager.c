@@ -381,14 +381,14 @@ void port_buy(int port_id, int amount, int type)
 	_data_port[port_id].dump_tot_tons_received += amount * get_cargo_weight_batch(type);
 }
 
-int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
+int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type, int *expiry_date)
 {
-	int amount, expiry_date;
-	pop_cargo(&cargo_hold[type], &amount, &expiry_date);
+	int amount;
+	pop_cargo(&cargo_hold[type], &amount, expiry_date);
 	if (amount == 0){
 		return 0;
 	} else if (amount > tot_amount){
-		add_cargo(&cargo_hold[type], amount - tot_amount, expiry_date);
+		add_cargo(&cargo_hold[type], amount - tot_amount, *expiry_date);
 		amount = tot_amount;
 	}
 
@@ -402,6 +402,7 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 	_data_port[port_id].dump_tot_tons_sent += amount * get_cargo_weight_batch(type);
 
+	/* Return (+expirty date) */
 	return amount;
 }
 

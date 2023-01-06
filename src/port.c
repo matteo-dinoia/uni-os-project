@@ -84,7 +84,7 @@ void respond_msg(int ship_id, int needed_type, int needed_amount)
 		tot_exchange = MIN(needed_amount, this_amount);
 
 		while (tot_exchange > 0){
-			amount = port_sell(_this_id, cargo_hold, tot_exchange, needed_type);
+			amount = port_sell(_this_id, cargo_hold, tot_exchange, needed_type, &expiry_date);
 			if (amount <= 0) {
 				send_to_ship(ship_id, needed_type, 0, -1, STATUS_REFUSED);
 				break;
