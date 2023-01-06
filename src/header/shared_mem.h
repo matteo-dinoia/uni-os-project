@@ -41,6 +41,7 @@ struct port{ /* Writers: port */
 	int dump_had_swell; /* DONE */
 	int dump_tot_tons_sent;
 	int dump_tot_tons_received;
+	int dump_ship_arrived;
 };
 
 struct ship{ /* Writers: ship */

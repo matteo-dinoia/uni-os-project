@@ -231,9 +231,9 @@ void print_dump_data()
 	dprintf(1, "[PORTS]\n");
 	for (port = 0; port < SO_PORTI; port++){
 		cargo_in_port = 0;
-		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d\n",
+		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d, ship_docked_until_now: %d\n",
 				port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_dock_tot, _data_port[port].dump_had_swell,
-				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received);
+				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received, _data_port[port].dump_ship_arrived);
 		tot_port_swell += _data_port[port].dump_had_swell;
 	}
 	dprintf(1, "|\n");
@@ -299,7 +299,7 @@ struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;
 int get_port_daily_restock_supply(int port_id){return _data_port[port_id].daily_restock_supply;}
 int get_port_daily_restock_demand(int port_id){return _data_port[port_id].daily_restock_demand;}
 int get_port_pid(int port_id){return _data_port[port_id].pid;}
-int get_port_use(int port_id){return _data_port[port_id].dump_tot_tons_sent + _data_port[port_id].dump_tot_tons_received;}
+int get_port_use(int port_id){return _data_port[port_id].dump_ship_arrived;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
@@ -325,7 +325,10 @@ void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
 void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
 void set_ship_storm(int ship_id){_data_ship[ship_id].dump_had_storm = TRUE;}
 void set_ship_pid(int ship_id, pid_t pid){_data_ship[ship_id].pid = pid;}
-void set_ship_at_dock(int ship_id, bool_t value){_data_ship[ship_id].dump_is_at_dock = value;}
+void set_ship_at_dock(int ship_id, bool_t value, int port_id){
+	_data_ship[ship_id].dump_is_at_dock = value;
+	if (value) _data_port[port_id].dump_ship_arrived += 1;
+}
 void set_ship_moving(int ship_id, bool_t value){_data_ship[ship_id].is_moving = value;}
 int ship_sell(int ship_id, list_cargo *cargo_hold, int amount, int type){ /* return weight moved*/
 	int weight;
@@ -344,7 +347,7 @@ int ship_buy(int ship_id, list_cargo *cargo_hold, int amount, int type, int expi
 	add_cargo(&cargo_hold[type], amount, expiry_date);
 
 	weight = amount * get_cargo_weight_batch(type);
-	_data_ship[ship_id].capacity += weight;
+	_data_ship[ship_id].capacity -= weight;
 	return weight;
 }
 void remove_ship_expired(int ship_id, list_cargo *cargo_hold, int increment_day)
@@ -381,14 +384,14 @@ void port_buy(int port_id, int amount, int type)
 	_data_port[port_id].dump_tot_tons_received += amount * get_cargo_weight_batch(type);
 }
 
-int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
+int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type, int *expiry_date)
 {
-	int amount, expiry_date;
-	pop_cargo(&cargo_hold[type], &amount, &expiry_date);
+	int amount;
+	pop_cargo(&cargo_hold[type], &amount, expiry_date);
 	if (amount == 0){
 		return 0;
 	} else if (amount > tot_amount){
-		add_cargo(&cargo_hold[type], amount - tot_amount, expiry_date);
+		add_cargo(&cargo_hold[type], amount - tot_amount, *expiry_date);
 		amount = tot_amount;
 	}
 
@@ -402,6 +405,7 @@ int port_sell(int port_id, list_cargo *cargo_hold, int tot_amount, int type)
 	execute_single_sem_oper(_id_sem_cargo, type, 1);
 	_data_port[port_id].dump_tot_tons_sent += amount * get_cargo_weight_batch(type);
 
+	/* Return (+expirty date) */
 	return amount;
 }
 

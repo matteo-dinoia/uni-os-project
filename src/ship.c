@@ -65,6 +65,7 @@ int main(int argc, char *argv[])
 	sa.sa_mask = set_masked;
 	sigaction(SIGSTORM, &sa, NULL);
 	sigaction(SIGMAELSTROM, &sa, NULL);
+	sigaction(SIGDAY, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
@@ -106,7 +107,7 @@ int new_destiation_port(int current_port)
 	double best_travel_time, travel_time;
 
 	/* If empty */
-	if (get_ship_capacity(_this_id) == SO_CAPACITY){
+	if (get_ship_capacity(_this_id) >= SO_CAPACITY){
 		start_port = RANDOM(0, SO_PORTI);
 		for (i = 0; i < SO_PORTI; i++){
 			port = (i + start_port) % SO_PORTI;
@@ -161,10 +162,29 @@ int new_destiation_port(int current_port)
 void discard_expiring_cargo(int dest_id)
 {
 	/* Time */
-	int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);
+	/*int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);*/
 
 	/* Remove cargo */
-	remove_ship_expired(_this_id, cargo_hold, days_needed);
+	/* if (days_needed > 0) remove_ship_expired(_this_id, cargo_hold, days_needed);*/
+
+	/* TEST*/
+	/*int i, c1 = 0, c2 = 0, a1;
+
+	a1 = get_ship_capacity(_this_id);
+	for(i = 0; i<SO_MERCI; i++){
+		c1 += count_cargo(&cargo_hold[i]);
+		print_cargo(&cargo_hold[i]);
+	}
+	remove_ship_expired(_this_id, cargo_hold, 0);
+	for(i = 0; i<SO_MERCI; i++){
+		c2 += count_cargo(&cargo_hold[i]);
+		/* print_cargo(&cargo_hold[i]);
+	}
+
+	if (c1 != c2)
+		dprintf(1, "LOL: (%d, %d) (%d, %d)\n", c1, c2, SO_CAPACITY - a1, SO_CAPACITY - get_ship_capacity(_this_id));*/
+	remove_ship_expired(_this_id, cargo_hold, 0);
+
 }
 
 void move_to_port(struct coord dest_coord)
@@ -188,12 +208,13 @@ void exchange_cargo(int port_id)
 
 	/* Get dock */
 	execute_single_sem_oper(get_id_sem_docks(), port_id, -1);
-	set_ship_at_dock(_this_id, TRUE);
+	set_ship_at_dock(_this_id, TRUE, port_id);
 
-	/* Initialize signal ignored TODO move inside*/
+	/* Initialize signal ignored TODO move inside */
 	sigemptyset(&set_masked);
 	sigaddset(&set_masked, SIGMAELSTROM);
 
+	discard_expiring_cargo(0); /* TEST */
 	/* Selling */
 	for (type = 0; type < SO_MERCI; type++){
 		/* Actual sell (unsinkable) */
@@ -208,6 +229,7 @@ void exchange_cargo(int port_id)
 	/* New Dest */
 	dest_port_id = new_destiation_port(port_id);
 	discard_expiring_cargo(dest_port_id);
+
 
 	/* Buying */
 	start_type = RANDOM(0, SO_MERCI);
@@ -228,7 +250,7 @@ void exchange_cargo(int port_id)
 
 	/* Free dock */
 	execute_single_sem_oper(get_id_sem_docks(), port_id, 1);
-	set_ship_at_dock(_this_id, FALSE);
+	set_ship_at_dock(_this_id, FALSE, port_id);
 }
 
 int sell(int port_id, int type_to_sell)
@@ -307,7 +329,8 @@ void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_d
 	receive_commerce_msg(get_id_msg_out_ports(), _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
 #ifdef DEBUG
-	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d\n", _this_id, *status, *amount);
+	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d expiriy_date (-3 = NULL) %d\n",
+			_this_id, *status, *amount, expiry_date != NULL ? *expiry_date : -3);
 #endif
 }
 
@@ -318,21 +341,19 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		remove_ship_expired(_this_id, cargo_hold, 0);
-		break;
-	case SIGSEGV:
-		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
-		close_all();
-		break;
-	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
-		set_ship_maelstrom(_this_id);
-		remove_ship_expired(_this_id, cargo_hold, 0);
-	case SIGINT: /* Closing for every other reason */
-		close_all();
+		/*remove_ship_expired(_this_id, cargo_hold, 0);*/ /* REMOVED FOR TEST*/
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		set_ship_storm(_this_id);
 		wait_event_duration(SO_STORM_DURATION/24.0);
+		break;
+	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
+		set_ship_maelstrom(_this_id);
+		remove_ship_expired(_this_id, cargo_hold, 0);
+	case SIGSEGV:
+		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
+	case SIGINT: /* Closing for every other reason */
+		close_all();
 		break;
 	}
 }

@@ -16,12 +16,15 @@ struct node_cargo{
 	struct node_cargo *next;
 };
 
-void _print_cargo(list_cargo *list){
+void print_cargo(list_cargo *list){
 	struct node_cargo *el;
 
-	dprintf(1, "[CARGO_LIST %p] ", (void *) list);
 	if(list == NULL){
 		dprintf(1, "List is null\n");
+		return;
+	}
+	else if (list->first == NULL){
+		/*dprintf(1, "List has 0 elements");*/
 		return;
 	}
 
