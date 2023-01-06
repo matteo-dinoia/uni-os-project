@@ -162,29 +162,10 @@ int new_destiation_port(int current_port)
 void discard_expiring_cargo(int dest_id)
 {
 	/* Time */
-	/*int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);*/
+	int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);
 
 	/* Remove cargo */
-	/* if (days_needed > 0) remove_ship_expired(_this_id, cargo_hold, days_needed);*/
-
-	/* TEST*/
-	/*int i, c1 = 0, c2 = 0, a1;
-
-	a1 = get_ship_capacity(_this_id);
-	for(i = 0; i<SO_MERCI; i++){
-		c1 += count_cargo(&cargo_hold[i]);
-		print_cargo(&cargo_hold[i]);
-	}
-	remove_ship_expired(_this_id, cargo_hold, 0);
-	for(i = 0; i<SO_MERCI; i++){
-		c2 += count_cargo(&cargo_hold[i]);
-		/* print_cargo(&cargo_hold[i]);
-	}
-
-	if (c1 != c2)
-		dprintf(1, "LOL: (%d, %d) (%d, %d)\n", c1, c2, SO_CAPACITY - a1, SO_CAPACITY - get_ship_capacity(_this_id));*/
-	remove_ship_expired(_this_id, cargo_hold, 0);
-
+	if (days_needed > 0) remove_ship_expired(_this_id, cargo_hold, days_needed);
 }
 
 void move_to_port(struct coord dest_coord)
@@ -317,21 +298,17 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, port_id,
 			cargo_type, amount, expiry_date, status);
 
-#ifdef DEBUG
-	dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type);
-#endif
+	/* dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type);*/
 	send_commerce_msg(get_id_msg_in_ports(), &msg);
 }
 
 void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
-	/* dprintf(1, "SHIP %d LISTEN TO PORTS\n", _this_id); */
 	receive_commerce_msg(get_id_msg_out_ports(), _this_id,
 			port_id, cargo_type, amount, expiry_date, status);
-#ifdef DEBUG
-	dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d expiriy_date (-3 = NULL) %d\n",
-			_this_id, *status, *amount, expiry_date != NULL ? *expiry_date : -3);
-#endif
+
+	/* dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d expiriy_date (-3 = NULL) %d\n",
+			_this_id, *status, *amount, expiry_date != NULL ? *expiry_date : -3); */
 }
 
 void signal_handler(int signal)
@@ -341,7 +318,7 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		/*remove_ship_expired(_this_id, cargo_hold, 0);*/ /* REMOVED FOR TEST*/
+		remove_ship_expired(_this_id, cargo_hold, 0); /* REMOVED FOR TEST*/
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		set_ship_storm(_this_id);
@@ -350,6 +327,8 @@ void signal_handler(int signal)
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		set_ship_maelstrom(_this_id);
 		remove_ship_expired(_this_id, cargo_hold, 0);
+		close_all();
+		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
 	case SIGINT: /* Closing for every other reason */

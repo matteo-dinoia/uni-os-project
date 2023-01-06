@@ -84,7 +84,7 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 
 void _initialize_data()
 {
-	int i, to_add, daily, n_docks, daily_temp;
+	int i, to_add, daily_tot, n_docks, daily_port;
 	double x, y;
 	struct port *current_port;
 	struct ship *current_ship;
@@ -97,25 +97,27 @@ void _initialize_data()
 	bzero(_data_shop, sizeof(*_data_shop) * SO_MERCI * SO_PORTI);
 
 	/* Initialize ports data */
-	daily = SO_FILL / (SO_DAYS * SO_PORTI);
+	daily_tot = SO_FILL / SO_DAYS;
+	if (daily_tot <= 0) daily_tot = 1;
 	for (i = 0; i < SO_PORTI; i++){
 		current_port = &_data_port[i];
 
 		if (SO_MERCI == 1 && i % 2 == 0){ /* Port even request if only one type */
-			daily_temp = SO_FILL / (SO_DAYS * ((SO_PORTI + 1) / 2));
-			to_add = (((int)(i / 2)) < (SO_FILL % (SO_DAYS * (SO_PORTI + 1) / 2))) ? 1 : 0;
-			current_port->daily_restock_demand = daily_temp + to_add;
+			daily_port = daily_tot / ((SO_PORTI + 1) / 2);
+			to_add = ((int)(i / 2) < daily_tot % ((SO_PORTI + 1) / 2)) ? 1 : 0;
+			current_port->daily_restock_demand = daily_port + to_add;
 			current_port->daily_restock_supply = 0;
 
 		}else if (SO_MERCI == 1 && i % 2 != 0){ /* Port odd sell if only one type */
-			daily_temp = SO_FILL / (SO_DAYS * (SO_PORTI / 2));
-			to_add = ((int)(i / 2) < SO_FILL % (SO_DAYS * (SO_PORTI / 2))) ? 1 : 0;
-			current_port->daily_restock_supply = daily_temp + to_add;
+			daily_port = daily_tot / (SO_PORTI / 2);
+			to_add = ((int)(i / 2) < daily_tot % (SO_PORTI / 2)) ? 1 : 0;
+			current_port->daily_restock_supply = daily_port + to_add;
 			current_port->daily_restock_demand = 0;
 		}else {
-			to_add = (i < (SO_FILL % (SO_DAYS * SO_PORTI))) ? 1 : 0;
-			current_port->daily_restock_supply = daily + to_add;
-			current_port->daily_restock_demand = daily + to_add;
+			daily_port = daily_tot / SO_PORTI;
+			to_add = (i < daily_tot % SO_PORTI) ? 1 : 0;
+			current_port->daily_restock_supply = daily_port + to_add;
+			current_port->daily_restock_demand = daily_port + to_add;
 		}
 
 		if (i<4){
@@ -171,16 +173,9 @@ void close_shm_manager()
 	shmdt(_data_ship);
 	shmdt(_data_cargo);
 	shmdt(_data_shop);
-
-	/* Mark for removal shared memory */
-	shmctl(_id_data, IPC_RMID, NULL);
-	shmctl(_id_port, IPC_RMID, NULL);
-	shmctl(_id_ship, IPC_RMID, NULL);
-	shmctl(_id_cargo, IPC_RMID, NULL);
-	shmctl(_id_shop, IPC_RMID, NULL);
 }
 
-void close_sem_and_msg()
+void close_ipc()
 {
 	/* Closing semaphors */
 	semctl(_id_sem, 0, IPC_RMID);
@@ -190,6 +185,13 @@ void close_sem_and_msg()
 	/* Closing message queues */
 	msgctl(_id_msg_in_ports, IPC_RMID, NULL);
 	msgctl(_id_msg_out_ports, IPC_RMID, NULL);
+
+	/* Mark for removal shared memory */
+	shmctl(_id_data, IPC_RMID, NULL);
+	shmctl(_id_port, IPC_RMID, NULL);
+	shmctl(_id_ship, IPC_RMID, NULL);
+	shmctl(_id_cargo, IPC_RMID, NULL);
+	shmctl(_id_shop, IPC_RMID, NULL);
 }
 
 double get_constants(int type_const)
@@ -231,9 +233,9 @@ void print_dump_data()
 	dprintf(1, "[PORTS]\n");
 	for (port = 0; port < SO_PORTI; port++){
 		cargo_in_port = 0;
-		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d, ship_docked_until_now: %d\n",
+		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d, ship_docked_until_now: %d, daily_restock: %d (d) %d(s)\n",
 				port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_dock_tot, _data_port[port].dump_had_swell,
-				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received, _data_port[port].dump_ship_arrived);
+				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received, _data_port[port].dump_ship_arrived, _data_port[port].daily_restock_demand, _data_port[port].daily_restock_supply);
 		tot_port_swell += _data_port[port].dump_had_swell;
 	}
 	dprintf(1, "|\n");
@@ -283,7 +285,7 @@ void print_dump_data()
 	}
 	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
 
-	if(get_day() > SO_DAYS)
+	if(get_day() >= SO_DAYS)
 		dprintf(1, "================================[END SIMULATION]================================\n");
 }
 

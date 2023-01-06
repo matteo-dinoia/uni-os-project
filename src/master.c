@@ -120,6 +120,9 @@ struct general read_constants_from_file()
 			}else if (counter <= 0){
 				res.so_lato = value;
 				dprintf(1, " %lf", value);
+			}else if (value != (int) value){
+				fclose(file);
+				close_all("[FATAL] Invalid number integer instead of double [double is only valid for SO_LATO] (reading file constant.txt)", EXIT_FAILURE);
 			}else {
 				(&res.so_days)[counter - 1] = (int) value;
 				dprintf(1, " %d", (int) value);
@@ -157,7 +160,7 @@ void custom_handler(int signal)
 		print_dump_data();
 		if(check_ships_all_dead()) close_all("[INFO] Simulation terminated because all ships died", EXIT_SUCCESS);
 		if(check_shop_termination_condition()) close_all("[INFO] Simulation terminated because the demand or the supply is zero in all ports", EXIT_SUCCESS);
-		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated because period passed", EXIT_SUCCESS);
+		if(get_day() >= SO_DAYS) close_all("[INFO] Simulation terminated because period passed", EXIT_SUCCESS);
 
 		increase_day();
 		send_to_all_childs(SIGDAY);
@@ -182,7 +185,7 @@ void close_all(const char *message, int exit_status)
 
 	/* Closing IPC and local */
 	close_shm_manager();
-	close_sem_and_msg();
+	close_ipc();
 	free(childs_pid);
 
 	/* Waiting childs */

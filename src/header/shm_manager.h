@@ -7,7 +7,7 @@
 void initialize_constants();
 void start_simulation();
 void close_shm_manager();
-void close_sem_and_msg();
+void close_ipc();
 void print_dump_data();
 double get_constants(int index);
 /* Setter TODO check permission*/
