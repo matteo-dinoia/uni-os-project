@@ -132,7 +132,7 @@ void _initialize_data()
 		current_port->coordinates.x = x;
 		current_port->coordinates.y = y;
 
-		n_docks = RANDOM(1, SO_BANCHINE);
+		n_docks = RANDOM_INCLUDED(1, SO_BANCHINE);
 		current_port->dump_dock_tot = n_docks;
 		semctl(_id_sem_docks, i, SETVAL, n_docks);
 	}
@@ -153,8 +153,8 @@ void _initialize_data()
 	for (i = 0; i < SO_MERCI; i++){
 		current_cargo = &_data_cargo[i];
 
-		current_cargo->weight_batch = RANDOM(1, SO_SIZE);
-		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
+		current_cargo->weight_batch = RANDOM_INCLUDED(1, SO_SIZE);
+		current_cargo->shelf_life = RANDOM_INCLUDED(SO_MIN_VITA, SO_MAX_VITA);
 
 		/* Semaphore */
 		semctl(_id_sem_cargo, i, SETVAL, 1);

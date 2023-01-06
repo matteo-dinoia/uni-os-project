@@ -151,18 +151,18 @@ void shop_update()
 				is_demand = TRUE;
 			}else if (sum_normalized_first_two < 0){
 				is_demand = FALSE;
-			}else is_demand = RANDOM(0, 2);
+			}else is_demand = RANDOM_INCLUDED(0, 1);
 		}
 
 		/* Apply the demand or supply if enought tons remains */
 		is_last_index_used = TRUE;
 		if (is_demand && rem_demand_tons > 0){
-			amount = RANDOM(1, rem_demand_tons / get_cargo_weight_batch(rand_type));
+			amount = RANDOM_INCLUDED(1, rem_demand_tons / get_cargo_weight_batch(rand_type));
 			add_port_demand(_this_id, amount, rand_type);
 			rem_demand_tons -= amount * get_cargo_weight_batch(rand_type);
 		}
 		else if (!is_demand && rem_supply_tons > 0){
-			amount = RANDOM(1, rem_supply_tons / get_cargo_weight_batch(rand_type));
+			amount = RANDOM_INCLUDED(1, rem_supply_tons / get_cargo_weight_batch(rand_type));
 			add_port_supply(_this_id, cargo_hold, amount, rand_type);
 			rem_supply_tons -= amount * get_cargo_weight_batch(rand_type);
 		}else is_last_index_used = FALSE;
