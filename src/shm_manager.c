@@ -225,8 +225,9 @@ void print_dump_data()
 	dprintf(1, "[PORTS]\n");
 	for (port = 0; port < SO_PORTI; port++){
 		cargo_in_port = 0;
-		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d. Cargo:\n", port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL),
-				_data_port[port].dump_dock_tot, _data_port[port].dump_had_swell);
+		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d\n",
+				port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_dock_tot, _data_port[port].dump_had_swell,
+				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received);
 		tot_port_swell += _data_port[port].dump_had_swell;
 	}
 	dprintf(1, "|\n");
@@ -241,7 +242,6 @@ void print_dump_data()
 		tot_ship_storm += _data_ship[ship].dump_had_storm;
 		tot_ship_maelstrom += _data_ship[ship].dump_had_maelstrom;
 	}
-	dprintf(1, "|\n");
 	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_at_sea_with_cargo: %d, tot_at_sea_empty: %d, tot_storm: %d, tot_maeltrom: %d, tot_dead: %d\n\n",
 			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom, tot_ship_dead);
 
