@@ -52,7 +52,7 @@ void storm()
 		ship_i = (ship_i + 1) % SO_NAVI;
 	}
 
-	/* TODO: no ship is moving or all are dead */
+	/* TODO: no ship is moving*/
 }
 
 /* Sink a ship every SO_MAELSTROM */
@@ -68,9 +68,6 @@ void maelstrom()
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
 	}
-
-	/* Comunicate all ship are dead to parent */
-	SEND_SIGNAL(getppid(), SIGALLDEAD);
 }
 
 /* Stop a port every day for SO_SWELL_DURATION hours */
