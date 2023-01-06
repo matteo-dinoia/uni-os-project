@@ -285,7 +285,7 @@ void print_dump_data()
 	}
 	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
 
-	if(get_day() > SO_DAYS)
+	if(get_day() >= SO_DAYS)
 		dprintf(1, "================================[END SIMULATION]================================\n");
 }
 

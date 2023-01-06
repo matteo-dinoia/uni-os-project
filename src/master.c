@@ -160,7 +160,7 @@ void custom_handler(int signal)
 		print_dump_data();
 		if(check_ships_all_dead()) close_all("[INFO] Simulation terminated because all ships died", EXIT_SUCCESS);
 		if(check_shop_termination_condition()) close_all("[INFO] Simulation terminated because the demand or the supply is zero in all ports", EXIT_SUCCESS);
-		if(get_day() > SO_DAYS) close_all("[INFO] Simulation terminated because period passed", EXIT_SUCCESS);
+		if(get_day() >= SO_DAYS) close_all("[INFO] Simulation terminated because period passed", EXIT_SUCCESS);
 
 		increase_day();
 		send_to_all_childs(SIGDAY);
