@@ -107,7 +107,7 @@ int new_destiation_port(int current_port)
 	double best_travel_time, travel_time;
 
 	/* If empty */
-	if (get_ship_capacity(_this_id) == SO_CAPACITY){
+	if (get_ship_capacity(_this_id) >= SO_CAPACITY){
 		start_port = RANDOM(0, SO_PORTI);
 		for (i = 0; i < SO_PORTI; i++){
 			port = (i + start_port) % SO_PORTI;
