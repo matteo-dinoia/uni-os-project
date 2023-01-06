@@ -350,6 +350,8 @@ void signal_handler(int signal)
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		set_ship_maelstrom(_this_id);
 		remove_ship_expired(_this_id, cargo_hold, 0);
+		close_all();
+		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In ship (closing)\n");
 	case SIGINT: /* Closing for every other reason */
