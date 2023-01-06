@@ -120,6 +120,9 @@ struct general read_constants_from_file()
 			}else if (counter <= 0){
 				res.so_lato = value;
 				dprintf(1, " %lf", value);
+			}else if (value != (int) value){
+				fclose(file);
+				close_all("[FATAL] Invalid number integer instead of double [double is only valid for SO_LATO] (reading file constant.txt)", EXIT_FAILURE);
 			}else {
 				(&res.so_days)[counter - 1] = (int) value;
 				dprintf(1, " %d", (int) value);
