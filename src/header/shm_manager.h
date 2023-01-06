@@ -16,7 +16,7 @@ void set_ship_dead(int ship_id);
 void set_ship_maelstrom(int ship_id);
 void set_ship_storm(int ship_id);
 void set_ship_pid(int ship_id, pid_t pid);
-void set_ship_at_dock(int ship_id, bool_t value);
+void set_ship_at_dock(int ship_id, bool_t value, int port_id);
 void set_ship_moving(int ship_id, bool_t value);
 void set_ship_coord(int ship_id, double x, double y);
 int ship_sell(int ship_id, list_cargo *cargo_hold, int amount, int type);

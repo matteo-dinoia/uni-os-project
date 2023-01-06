@@ -299,7 +299,7 @@ struct coord get_port_coord(int port_id){return _data_port[port_id].coordinates;
 int get_port_daily_restock_supply(int port_id){return _data_port[port_id].daily_restock_supply;}
 int get_port_daily_restock_demand(int port_id){return _data_port[port_id].daily_restock_demand;}
 int get_port_pid(int port_id){return _data_port[port_id].pid;}
-int get_port_use(int port_id){return _data_port[port_id].dump_tot_tons_sent + _data_port[port_id].dump_tot_tons_received;}
+int get_port_use(int port_id){return _data_port[port_id].dump_ship_arrived;}
 /* Ship */
 bool_t is_ship_dead(int ship_id){return _data_ship[ship_id].is_dead;}
 struct coord get_ship_coord(int ship_id){return _data_ship[ship_id].coordinates;}
@@ -325,7 +325,10 @@ void set_ship_dead(int ship_id){_data_ship[ship_id].is_dead = TRUE;}
 void set_ship_maelstrom(int ship_id){_data_ship[ship_id].dump_had_maelstrom = TRUE;}
 void set_ship_storm(int ship_id){_data_ship[ship_id].dump_had_storm = TRUE;}
 void set_ship_pid(int ship_id, pid_t pid){_data_ship[ship_id].pid = pid;}
-void set_ship_at_dock(int ship_id, bool_t value){_data_ship[ship_id].dump_is_at_dock = value;}
+void set_ship_at_dock(int ship_id, bool_t value, int port_id){
+	_data_ship[ship_id].dump_is_at_dock = value;
+	if (value) _data_port[port_id].dump_ship_arrived += 1;
+}
 void set_ship_moving(int ship_id, bool_t value){_data_ship[ship_id].is_moving = value;}
 int ship_sell(int ship_id, list_cargo *cargo_hold, int amount, int type){ /* return weight moved*/
 	int weight;
