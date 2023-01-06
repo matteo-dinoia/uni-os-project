@@ -85,9 +85,9 @@ pid_t create_proc(char *name, int index)
 		close_all("[FATAL] Failed to fork child", EXIT_FAILURE);
 	} else if (proc_pid == 0){
 		/* Free TODO not perfect*/
-		/* to_free = childs_pid;
+		to_free = childs_pid;
 		childs_pid = NULL;
-		free(to_free);*/
+		free(to_free);
 
 		sprintf(buf, "%d", index);
 		arg[0] = name;
