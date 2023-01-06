@@ -31,11 +31,12 @@ void add_port_supply(int port_id, list_cargo *cargo_hold, int amount, int type);
 void remove_port_expired(int port_id, list_cargo *cargo_hold);
 
 /* GETTER */
-/* Day */
+/* Other */
 int get_day();
 id_shared_t get_id_sem_docks();
 id_shared_t get_id_msg_in_ports();
 id_shared_t get_id_msg_out_ports();
+bool_t is_shm_initialized();
 /* Port */
 struct coord get_port_coord(int id);
 int get_port_daily_restock_supply(int port_id);

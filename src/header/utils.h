@@ -48,7 +48,7 @@ void wait_event_duration(double sec);
 #define SEND_SIGNAL(pid, signal)\
 	if((pid) > 1 && (pid) != getpid()) kill((pid), (signal))
 #define RANDOM(min_included, max_excluded)\
-	((min_included) == (max_excluded) ? (min_included)\
+	((min_included) >= (max_excluded) ? (min_included)\
 	: rand() % ((max_excluded) - (min_included)) + (min_included))
 #define RANDOM_DOUBLE(min_included, max_excluded)\
 	(rand() / (double)INT_MAX * (max_excluded - min_included) + (min_included))

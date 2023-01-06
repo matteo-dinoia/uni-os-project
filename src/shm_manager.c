@@ -15,6 +15,8 @@
 #define NULL_ID -1
 
 /* Global variables */
+bool_t is_initialized = FALSE;
+/* SHM */
 struct general *_data = NULL_SHM;
 struct port *_data_port = NULL_SHM;
 struct ship *_data_ship = NULL_SHM;
@@ -41,8 +43,10 @@ void _initialize_data();
 void initialize_shm_manager(int permissions, const struct general *base_data)
 {
 	/* Wait master if needed */
-	if(base_data == NULL)
+	if(base_data == NULL){
+		_id_sem = semget(KEY_SEM_START, 1, 0600 | IPC_CREAT);
 		execute_single_sem_oper(_id_sem, 0, 0);
+	}
 
 	/* Initialize and attach data */
 	_id_data = shmget(KEY_SHM_GENERAL, sizeof(*_data), 0600 | IPC_CREAT);
@@ -74,6 +78,8 @@ void initialize_shm_manager(int permissions, const struct general *base_data)
 	/* Initialize shm data if needed */
 	if (base_data != NULL)
 		_initialize_data();
+
+	is_initialized = TRUE;
 }
 
 void _initialize_data()
@@ -214,7 +220,7 @@ void print_dump_data()
 {
 	int port, type, ship, cargo_type, cargo_in_port, quantity;
 	int tot_port_swell = 0;
-	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0, tot_ship_dead = 0;
+	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0, tot_ship_dead = 0, tot_ship_loaded = 0;
 	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0, tot_cargo_del_unwanted = 0;
 
 	dprintf(1, "\n\n================================[DAY %3d]=================================\n", get_day());
@@ -237,17 +243,19 @@ void print_dump_data()
 	for (ship = 0; ship < SO_NAVI; ship++){
 		if (_data_ship[ship].is_dead) tot_ship_dead++;
 		else if (_data_ship[ship].dump_is_at_dock) tot_ship_dock++;
-		else if (_data_ship[ship].capacity == SO_CAPACITY) tot_ship_empty++;
+		else if (_data_ship[ship].capacity >= SO_CAPACITY) tot_ship_empty++;
 		else tot_ship_cargo++;
 		tot_ship_storm += _data_ship[ship].dump_had_storm;
 		tot_ship_maelstrom += _data_ship[ship].dump_had_maelstrom;
+		tot_ship_loaded += SO_CAPACITY - _data_ship[ship].capacity;
 	}
-	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_at_sea_with_cargo: %d, tot_at_sea_empty: %d, tot_storm: %d, tot_maeltrom: %d, tot_dead: %d\n\n",
-			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom, tot_ship_dead);
+
+	dprintf(1, "|--SHIPS TOTALS: tot_at_dock: %d, tot_at_sea_with_cargo: %d, tot_at_sea_empty: %d, tot_storm: %d, tot_maeltrom: %d, tot_dead: %d tot_used_capacity %d\n\n",
+			tot_ship_dock, tot_ship_cargo, tot_ship_empty, tot_ship_storm, tot_ship_maelstrom, tot_ship_dead, tot_ship_loaded);
 
 	dprintf(1, "[CARGO]\n");
 	for (cargo_type = 0; cargo_type < SO_MERCI; cargo_type++){
-		dprintf(1, "|----(Cargo type: %d) tot_in_ports: %d tons, tot_in_ships: %d tons, tot_delivered: %d tons, tot_expired_port: %d tons, tot_expired_ship: %d tons, tot_delivered_unwanted: %d tons\n",
+		dprintf(1, "|----(Cargo type: %d) in_ports: %d tons, in_ships: %d tons, delivered: %d tons, expired_port: %d tons, expired_ship: %d tons, delivered_unwanted: %d tons\n",
 				cargo_type, _data_cargo[cargo_type].dump_at_port, _data_cargo[cargo_type].dump_in_ship, _data_cargo[cargo_type].dump_tot_delivered,
 				_data_cargo[cargo_type].dump_exipered_port, _data_cargo[cargo_type].dump_exipered_ship, _data_cargo[cargo_type].dump_delivered_unwanted);
 
@@ -282,6 +290,7 @@ void print_dump_data()
 /* GETTER */
 /* Other */
 int get_day(){return _data->today;}
+bool_t is_shm_initialized(){return is_initialized;}
 id_shared_t get_id_sem_docks(){return _id_sem_docks;}
 id_shared_t get_id_msg_in_ports(){return _id_msg_in_ports;}
 id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}

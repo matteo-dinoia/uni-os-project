@@ -45,22 +45,26 @@ int main(int argc, char *argv[])
 	struct sigaction sa;
 	sigset_t set_masked;
 
-	/* Get id */
-	_this_id = atoi(argv[1]);
-
-	/* Get data structures */
-	initialize_shm_manager(SHIP_WRITE | CARGO_WRITE, NULL);
-	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
-
-	/* LAST: Setting signal handler */
+	/* Initialize sigaction */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
-	sigaction(SIGSTORM, &sa, NULL);
-	sigaction(SIGMAELSTROM, &sa, NULL);
+
+	/* Important signal handler */
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
+
+	/* Get id and data structures */
+	_this_id = atoi(argv[1]);
+	initialize_shm_manager(SHIP_WRITE | CARGO_WRITE, NULL);
+	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
+
+	/* Less important signal handler */
+	sigemptyset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGSTORM, &sa, NULL);
+	sigaction(SIGMAELSTROM, &sa, NULL);
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
@@ -338,7 +342,7 @@ void close_all()
 	int i, amount;
 
 	/* Signaling data of death */
-	set_ship_dead(_this_id);
+	if (is_shm_initialized())set_ship_dead(_this_id);
 
 	/* Local memory deallocation */
 	for (i = 0; i < SO_MERCI; i++)

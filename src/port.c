@@ -33,22 +33,28 @@ int main(int argc, char *argv[])
 	sigset_t set_masked;
 	int id;
 
-	/* Get id */
-	_this_id = atoi(argv[1]);
-
-	/* Initialize structures */
-	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
-	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
-
-	/* LAST: Setting singal handler */
+	/* Initialize sigaction */
 	bzero(&sa, sizeof(sa));
 	sa.sa_handler = &signal_handler;
-	sigaction(SIGDAY, &sa, NULL);
-	sigaction(SIGSWELL, &sa, NULL);
+
+	/* Important signal handler */
 	sigfillset(&set_masked);
 	sa.sa_mask = set_masked;
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGSEGV, &sa, NULL);
+
+	/* Get id and data structures */
+	_this_id = atoi(argv[1]);
+	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
+	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
+
+	/* Less important signal handler */
+	sigemptyset(&set_masked);
+	sa.sa_mask = set_masked;
+	sigaction(SIGDAY, &sa, NULL);
+	sigaction(SIGSWELL, &sa, NULL);
+
+
 
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
@@ -120,12 +126,14 @@ void shop_update()
 {
 	int rem_supply_tons = get_port_daily_restock_supply(_this_id);
 	int rem_demand_tons = get_port_daily_restock_demand(_this_id);
-	int rand_type, sum_normalized_first_two;
+	int rand_type, sum_normalized_first_two, amount;
 	bool_t is_demand;
+	bool_t is_last_index_used = TRUE;
 
 	/* TODO avoid going over the limits */
 	while (rem_supply_tons > 0 || rem_demand_tons > 0) {
-		rand_type = RANDOM(0, SO_MERCI);
+		rand_type = is_last_index_used ? RANDOM(0, SO_MERCI) : (rand_type + 1) % SO_MERCI;
+
 		if (get_shop_quantity(_this_id, rand_type) > 0){
 			is_demand = FALSE;
 		}else if (get_shop_quantity(_this_id, rand_type) < 0) {
@@ -145,14 +153,17 @@ void shop_update()
 		}
 
 		/* Apply the demand or supply if enought tons remains */
+		is_last_index_used = TRUE;
 		if (is_demand && rem_demand_tons > 0){
-			add_port_demand(_this_id, 1, rand_type);
-			rem_demand_tons -= get_cargo_weight_batch(rand_type);
+			amount = RANDOM(1, rem_demand_tons / get_cargo_weight_batch(rand_type));
+			add_port_demand(_this_id, amount, rand_type);
+			rem_demand_tons -= amount * get_cargo_weight_batch(rand_type);
 		}
 		else if (!is_demand && rem_supply_tons > 0){
-			add_port_supply(_this_id, cargo_hold, 1, rand_type);
-			rem_supply_tons -= get_cargo_weight_batch(rand_type);
-		}
+			amount = RANDOM(1, rem_supply_tons / get_cargo_weight_batch(rand_type));
+			add_port_supply(_this_id, cargo_hold, amount, rand_type);
+			rem_supply_tons -= amount * get_cargo_weight_batch(rand_type);
+		}else is_last_index_used = FALSE;
 	}
 }
 
@@ -169,8 +180,10 @@ void signal_handler(int signal)
 		close_all();
 		break;
 	case SIGDAY: /* Change of day */
+		/* dprintf(1, "[DAY CHANGE START FOR PORT %d]\n", _this_id); */
 		remove_port_expired(_this_id, cargo_hold);
 		shop_update();
+		/* dprintf(1, "[DAY CHANGE FINISHED FOR PORT %d]\n", _this_id); */
 		break;
 	case SIGSWELL: /* Swell */
 		set_port_swell(_this_id);
