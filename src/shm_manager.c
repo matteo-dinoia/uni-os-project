@@ -231,9 +231,9 @@ void print_dump_data()
 	dprintf(1, "[PORTS]\n");
 	for (port = 0; port < SO_PORTI; port++){
 		cargo_in_port = 0;
-		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d\n",
+		dprintf(1, "|----(Port: %d) used_docks: %d/%d, swell: %d, tot_cargo_sent: %d, tot_cargo_received: %d, ship_docked_until_now: %d\n",
 				port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_dock_tot, _data_port[port].dump_had_swell,
-				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received);
+				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received, _data_port[port].dump_ship_arrived);
 		tot_port_swell += _data_port[port].dump_had_swell;
 	}
 	dprintf(1, "|\n");
