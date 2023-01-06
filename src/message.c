@@ -31,13 +31,15 @@ void send_commerce_msg(id_shared_t id, const struct commerce_msgbuf *msg)
 	}while (return_value < 0);
 }
 
-void receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_type, int *amount, int *expiry_date, int *status)
+bool_t receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_type, int *amount, int *expiry_date, int *status, bool_t restarting)
 {
 	struct commerce_msgbuf msg;
 	int return_value;
 
 	do {
 		return_value = msgrcv(id, &msg, MSG_SIZE(msg), MSG_TYPE(type), 0);
+		if (!restarting && return_value < 0)
+			return FALSE;
 	}while (return_value < 0);
 
 	if(sender_id != NULL) *sender_id = MSG_DEC_TYPE(msg.sender);
@@ -45,4 +47,6 @@ void receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_t
 	if(amount != NULL) *amount = msg.n_cargo_batch;
 	if(expiry_date != NULL) *expiry_date = msg.expiry_date;
 	if(status != NULL) *status = msg.status;
+
+	return TRUE;
 }

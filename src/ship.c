@@ -281,7 +281,7 @@ int buy(int port_id, int type_to_buy, int amount_to_buy)
 
 int pick_buy(int port_id, int dest_port_id, int type)
 {
-	int n_sell_this_port, n_capacity, n_buy_dest_port;
+	int n_sell_this_port, n_capacity, n_buy_dest_port, res;
 
 	n_sell_this_port = get_shop_quantity(port_id, type);
 	n_buy_dest_port = -get_shop_quantity(dest_port_id, type);
@@ -298,14 +298,15 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, port_id,
 			cargo_type, amount, expiry_date, status);
 
-	/* dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type);*/
+	/* dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type); */
 	send_commerce_msg(get_id_msg_in_ports(), &msg);
 }
 
 void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
+	/* dprintf(1, "SHIP %d LISTEN\n", _this_id); */
 	receive_commerce_msg(get_id_msg_out_ports(), _this_id,
-			port_id, cargo_type, amount, expiry_date, status);
+			port_id, cargo_type, amount, expiry_date, status, TRUE);
 
 	/* dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d expiriy_date (-3 = NULL) %d\n",
 			_this_id, *status, *amount, expiry_date != NULL ? *expiry_date : -3); */
@@ -318,7 +319,7 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		remove_ship_expired(_this_id, cargo_hold, 0); /* REMOVED FOR TEST*/
+		/* remove_ship_expired(_this_id, cargo_hold, 0); */ /* REMOVED FOR TEST*/
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		set_ship_storm(_this_id);
@@ -326,7 +327,7 @@ void signal_handler(int signal)
 		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		set_ship_maelstrom(_this_id);
-		remove_ship_expired(_this_id, cargo_hold, 0);
+		/* remove_ship_expired(_this_id, cargo_hold, 0);*/
 		close_all();
 		break;
 	case SIGSEGV:

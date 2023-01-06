@@ -24,7 +24,7 @@ void signal_handler(int);
 void loop();
 void respond_msg(int, int, int);
 void send_to_ship(int, int, int, int, int);
-void receive_from_ship(int *, int *, int *, int *, int *);
+bool_t receive_from_ship(int *, int *, int *, int *, int *);
 void close_all();
 
 
@@ -56,8 +56,6 @@ int main(int argc, char *argv[])
 	sigaction(SIGDAY, &sa, NULL);
 	sigaction(SIGSWELL, &sa, NULL);
 
-
-
 	/* LAST: Start running*/
 	srand(time(NULL) * getpid());
 	loop();
@@ -65,12 +63,23 @@ int main(int argc, char *argv[])
 
 void loop()
 {
-	int ship_id, needed_type, needed_amount;
-	shop_update();
+	int ship_id, needed_type, needed_amount, n_update, i;
 
+	int last_day_update = 0;
 	while (1){
-		receive_from_ship(&ship_id, &needed_type, &needed_amount, NULL, NULL);
-		respond_msg(ship_id, needed_type, needed_amount);
+		/* Check if day is changed */
+		n_update = get_day() - last_day_update;
+		if (n_update > 0){
+			dprintf(1, "SHOP UPDATE for port %d\n", _this_id);
+			remove_port_expired(_this_id, cargo_hold);
+			for (i = 0; i < n_update; i++) shop_update();
+			last_day_update += n_update;
+		}
+
+		/* Respond to ship*/
+		if (receive_from_ship(&ship_id, &needed_type, &needed_amount, NULL, NULL) == TRUE){
+			respond_msg(ship_id, needed_type, needed_amount);
+		}
 	}
 }
 
@@ -112,16 +121,19 @@ void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, ship_id,
 			cargo_type, amount, expiry_date, status);
 
-	/* dprintf(1, "PORT %d SEND TO SHIP %d\n", _this_id, ship_id); */
+	/* dprintf(1, "PORT %d SEND TO SHIP %d (amount %d, expiriry_date %d, status %d\n", _this_id, ship_id, amount, expiry_date, status); */
 	send_commerce_msg(get_id_msg_out_ports(), &msg);
+	/* dprintf(1, "PORT %d SENT TO SHIP %d\n", _this_id, ship_id); */
 }
 
-void receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
+bool_t receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
+	bool_t result;
 	/* dprintf(1, "PORT %d LISTEN TO SHIPS\n", _this_id); */
-	receive_commerce_msg(get_id_msg_in_ports(), _this_id,
-			ship_id, cargo_type, amount, expiry_date, status);
+	result = receive_commerce_msg(get_id_msg_in_ports(), _this_id,
+			ship_id, cargo_type, amount, expiry_date, status, FALSE);
 	/* dprintf(1, "PORT %d RECEIVED FROM SHIPS\n", _this_id); */
+	return result;
 }
 
 void shop_update()
@@ -182,8 +194,8 @@ void signal_handler(int signal)
 	{
 	case SIGDAY: /* Change of day */
 		/* dprintf(1, "[DAY CHANGE START FOR PORT %d]\n", _this_id); */
-		remove_port_expired(_this_id, cargo_hold);
-		shop_update();
+		/*remove_port_expired(_this_id, cargo_hold);
+		shop_update();*/ /* REMOVED FOR MOVING OUT OF HERE */
 		/* dprintf(1, "[DAY CHANGE FINISHED FOR PORT %d]\n", _this_id); */
 		break;
 	case SIGSWELL: /* Swell */
