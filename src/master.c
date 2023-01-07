@@ -1,17 +1,8 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
-#include <sys/shm.h>
-#include <sys/sem.h>
-#include <sys/wait.h>
 #include <errno.h>
-#include <string.h>
-#include <signal.h>
-#include <limits.h>
 #include "header/shared_mem.h"
-#include "header/semaphore.h"
-#include "header/message.h"
-#include "header/utils.h"
 #include "header/shm_manager.h"
 
 /* Macros */

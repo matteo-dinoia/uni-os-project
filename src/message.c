@@ -1,11 +1,9 @@
 #define _GNU_SOURCE
-#include <strings.h>
-#include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/msg.h>
 #include <errno.h>
 #include "header/message.h"
-#include "header/shared_mem.h"
 
 #define MSG_TYPE(type) ((type) + 1)
 #define MSG_DEC_TYPE(type) ((type) - 1)

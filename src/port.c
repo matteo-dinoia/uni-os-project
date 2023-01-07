@@ -1,15 +1,10 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <stdio.h>
 #include <signal.h>
-#include <string.h>
-#include <sys/sem.h>
-#include <errno.h>
 #include <sys/param.h>
-#include <time.h>
-#include "header/shared_mem.h"
-#include "header/message.h"
-#include "header/semaphore.h"
 #include "header/utils.h"
+#include "header/message.h"
 #include "header/shm_manager.h"
 
 /* Global variables */
@@ -70,7 +65,6 @@ void loop()
 		/* Check if day is changed */
 		n_update = get_day() - last_day_update;
 		if (n_update > 0){
-			dprintf(1, "SHOP UPDATE for port %d\n", _this_id);
 			remove_port_expired(_this_id, cargo_hold);
 			for (i = 0; i < n_update; i++) shop_update();
 			last_day_update += n_update;
