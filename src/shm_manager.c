@@ -132,7 +132,7 @@ void _initialize_data()
 		current_port->coordinates.x = x;
 		current_port->coordinates.y = y;
 
-		n_docks = RANDOM(1, SO_BANCHINE);
+		n_docks = RANDOM_INCLUDED(1, SO_BANCHINE);
 		current_port->dump_dock_tot = n_docks;
 		semctl(_id_sem_docks, i, SETVAL, n_docks);
 	}
@@ -153,8 +153,8 @@ void _initialize_data()
 	for (i = 0; i < SO_MERCI; i++){
 		current_cargo = &_data_cargo[i];
 
-		current_cargo->weight_batch = RANDOM(1, SO_SIZE);
-		current_cargo->shelf_life = RANDOM(SO_MIN_VITA, SO_MAX_VITA);
+		current_cargo->weight_batch = RANDOM_INCLUDED(1, SO_SIZE);
+		current_cargo->shelf_life = RANDOM_INCLUDED(SO_MIN_VITA, SO_MAX_VITA);
 
 		/* Semaphore */
 		semctl(_id_sem_cargo, i, SETVAL, 1);
@@ -221,7 +221,7 @@ double get_constants(int type_const)
 void print_dump_data()
 {
 	int port, type, ship, cargo_type, cargo_in_port, quantity;
-	int tot_port_swell = 0;
+	int tot_port_swell = 0, tot_port_docked_ship = 0;
 	int tot_ship_storm = 0, tot_ship_maelstrom = 0, tot_ship_dock = 0, tot_ship_empty = 0, tot_ship_cargo = 0, tot_ship_dead = 0, tot_ship_loaded = 0;
 	int tot_cargo_port = 0, tot_cargo_ship = 0, tot_cargo_del = 0, tot_cargo_exp_ship = 0, tot_cargo_exp_port = 0, tot_cargo_del_unwanted = 0;
 
@@ -237,9 +237,10 @@ void print_dump_data()
 				port, _data_port[port].dump_dock_tot - semctl(_id_sem_docks, port, GETVAL), _data_port[port].dump_dock_tot, _data_port[port].dump_had_swell,
 				_data_port[port].dump_tot_tons_sent, _data_port[port].dump_tot_tons_received, _data_port[port].dump_ship_arrived, _data_port[port].daily_restock_demand, _data_port[port].daily_restock_supply);
 		tot_port_swell += _data_port[port].dump_had_swell;
+		tot_port_docked_ship += _data_port[port].dump_ship_arrived;
 	}
 	dprintf(1, "|\n");
-	dprintf(1, "|--PORTS TOTALS: tot_swell: %d\n\n", tot_port_swell);
+	dprintf(1, "|--PORTS TOTALS: tot_swell: %d tot_ship_docked_until_now: %d\n\n", tot_port_swell, tot_port_docked_ship);
 
 	dprintf(1, "[SHIPS]\n");
 	for (ship = 0; ship < SO_NAVI; ship++){
