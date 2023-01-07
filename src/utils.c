@@ -5,6 +5,13 @@
 #include <errno.h>
 #include "header/utils.h"
 
+#define REM_ELEM(prev_next_dest, current)\
+		do {\
+			(prev_next_dest) = (current)->next;\
+			free((current));\
+			(current) = (prev_next_dest);\
+		}while (0)
+
 /* Sorted by expiry date */
 struct node_cargo{
 	int amount;
@@ -13,53 +20,46 @@ struct node_cargo{
 };
 
 void print_cargo(list_cargo *list){
-	struct node_cargo *el;
+	struct node_cargo *node;
 
 	if(list == NULL){
 		dprintf(1, "List is null\n");
 		return;
-	}
-	else if (list->first == NULL){
+	}else if (list->first == NULL){
 		dprintf(1, "List has 0 elements\n");
 		return;
 	}
 
 	dprintf(1, "LIST [Lenght: %d]: ", count_cargo(list));
-	for(el = list->first; el != NULL; el = el->next)
-		dprintf(1, "%d [scad. %d] ", el->amount, el->expiry_date);
+	for(node = list->first; node != NULL; node = node->next)
+		dprintf(1, "%d [scad. %d] ", node->amount, node->expiry_date);
 	dprintf(1, "\n");
 }
 
 void remove_cargo(list_cargo *list, int amount)
 {
-	struct node_cargo *current, *tmp;
+	struct node_cargo *node;
 
-	current = list->first;
+	node = list->first;
 	while (amount > 0){
-		if (current == NULL) {
+		if (node == NULL) {
 			dprintf(1, "Should have controlled NULL in remove cargo.\n");
 			return;
 		}
 
-		if (amount >= current->amount){
-			amount -=  current->amount;
-
-			tmp = current;
-			current = current->next;
-			free(tmp);
-		}
-		else{
-			current->amount -= amount;
+		if (amount >= node->amount){
+			amount -= node->amount;
+			REM_ELEM(list->first, node);
+		}else{
+			node->amount -= amount;
 			amount = 0;
 		}
 	}
-
-	list->first = current;
 }
 
 void add_cargo(list_cargo *list, int amount, int expiry_date)
 {
-	struct node_cargo *prev, *tmp, *current;
+	struct node_cargo *prev, *tmp, *node;
 
 	if(list == NULL){
 		dprintf(1, "Should have controlled NULL in add cargo.\n");
@@ -68,46 +68,42 @@ void add_cargo(list_cargo *list, int amount, int expiry_date)
 
 	/* Is in the middle */
 	prev = NULL;
-	current = list->first;
-	for (current = list->first; 1; current = current->next){
-		if(current == NULL || current->expiry_date > expiry_date){
-			tmp = current;
-
-			/* Create new node */
-			current = malloc(sizeof(*prev));
-			current->expiry_date = expiry_date;
-			current->amount = amount;
-			current->next = tmp;
+	node = list->first;
+	for (node = list->first; 1; node = node->next){
+		if(node == NULL || node->expiry_date > expiry_date){
+			/* Create new tmp */
+			tmp = malloc(sizeof(*prev));
+			tmp->expiry_date = expiry_date;
+			tmp->amount = amount;
+			tmp->next = node;
 
 			/* Attach it and end cycle*/
-			if(prev == NULL) list->first = current;
-			else prev->next = current;
+			if(prev == NULL) list->first = tmp;
+			else prev->next = tmp;
 			break;
-		}else if (current->expiry_date == expiry_date){
-			current->amount += amount;
+		}else if (node->expiry_date == expiry_date){
+			node->amount += amount;
 			break;
 		}
 
-		prev = current;
+		prev = node;
 	}
 }
 
 int count_cargo(list_cargo *list)
 {
-	struct node_cargo *current = list->first;
+	struct node_cargo *node;
 	int res = 0;
 
-	while (current != NULL){
-		res +=  current->amount;
-		current = current->next;
-	}
+	for (node = list->first; node != NULL; node = node->next)
+		res +=  node->amount;
 
 	return res;
 }
 
 void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 {
-	struct node_cargo *tmp;
+	struct node_cargo *node;
 
 	if(list == NULL){
 		dprintf(1, "Should have controlled NULL in pop cargo (list = %p).\n", (void *) list);
@@ -122,14 +118,13 @@ void pop_cargo(list_cargo *list, int *amount, int *expiry_date)
 	*amount = list->first->amount;
 	*expiry_date = list->first->expiry_date;
 
-	tmp = list->first;
-	list->first = list->first->next;
-	free(tmp);
+	node = list->first;
+	REM_ELEM(list->first, node);
 }
 
 int remove_expired_cargo(list_cargo *list, int today)
 {
-	struct node_cargo *tmp;
+	struct node_cargo *node;
 	int amount_removed = 0;
 
 	if(list == NULL){
@@ -137,14 +132,12 @@ int remove_expired_cargo(list_cargo *list, int today)
 		return 0;
 	}
 
-	for(tmp = list->first; tmp != NULL; ){
-		if (tmp->expiry_date > today)
+	for(node = list->first; node != NULL; ){
+		if (node->expiry_date > today)
 			break; /* if not expired */
 
-		amount_removed += tmp->amount;
-		list->first = tmp->next;
-		free(tmp);
-		tmp = list->first;
+		amount_removed += node->amount;
+		REM_ELEM(list->first, node);
 	}
 
 	return amount_removed;
@@ -152,7 +145,7 @@ int remove_expired_cargo(list_cargo *list, int today)
 
 int get_not_expired_by_day(list_cargo *list, int day)
 {
-	struct node_cargo *tmp;
+	struct node_cargo *node;
 	int res = 0;
 
 	if(list == NULL){
@@ -160,9 +153,9 @@ int get_not_expired_by_day(list_cargo *list, int day)
 		return 0;
 	}
 
-	for(tmp = list->first; tmp != NULL; tmp = tmp->next){
-		if (tmp->expiry_date > day) /* if not expired*/
-			res += tmp->amount;
+	for(node = list->first; node != NULL; node = node->next){
+		if (node->expiry_date > day) /* if not expired*/
+			res += node->amount;
 	}
 
 	return res;
@@ -170,13 +163,11 @@ int get_not_expired_by_day(list_cargo *list, int day)
 
 void free_cargo(list_cargo *list)
 {
-	struct node_cargo *tmp;
+	struct node_cargo *node;
 	if (list == NULL) return;
 
-	for(tmp = list->first; tmp != NULL; ){
-		list->first = tmp->next;
-		free(tmp);
-		tmp = list->first;
+	for(node = list->first; node != NULL; ){
+		REM_ELEM(list->first, node);
 	}
 }
 
