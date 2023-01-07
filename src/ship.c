@@ -1,16 +1,9 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
-#include <time.h>
-#include <errno.h>
-#include <signal.h>
-#include <math.h>
-#include <string.h>
-#include <sys/sem.h>
+#include <stdio.h>
 #include <sys/param.h>
-#include "header/shared_mem.h"
+#include <math.h>
 #include "header/message.h"
-#include "header/semaphore.h"
-#include "header/utils.h"
 #include "header/shm_manager.h"
 
 /* Macro*/
@@ -182,7 +175,6 @@ void move_to_port(struct coord dest_coord)
 
 void exchange_cargo(int port_id)
 {
-	struct sembuf sem_buf;
 	sigset_t set_masked;
 	int tons_moved, i, type, amount, dest_port_id, start_type;
 

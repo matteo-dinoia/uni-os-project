@@ -1,15 +1,10 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <stdio.h>
 #include <signal.h>
-#include <string.h>
-#include <sys/sem.h>
-#include <errno.h>
 #include <sys/param.h>
-#include <time.h>
-#include "header/shared_mem.h"
-#include "header/message.h"
-#include "header/semaphore.h"
 #include "header/utils.h"
+#include "header/message.h"
 #include "header/shm_manager.h"
 
 /* Global variables */

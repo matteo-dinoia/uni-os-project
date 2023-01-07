@@ -1,9 +1,6 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
-#include <signal.h>
-#include <sys/time.h>
-#include "header/utils.h"
 #include "header/shm_manager.h"
 
 /* Prototypes */
