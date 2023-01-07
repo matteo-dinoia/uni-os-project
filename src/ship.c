@@ -18,7 +18,6 @@ list_cargo *cargo_hold;
 /* Prototypes */
 void get_next_destination_port(int *, struct coord *);
 int new_destiation_port(int);
-void discard_expiring_cargo(int);
 void move_to_port(struct coord);
 void exchange_cargo(int);
 void signal_handler(int);
@@ -151,15 +150,6 @@ int new_destiation_port(int current_port)
 	return (_next_port_destination = best_port);
 }
 
-void discard_expiring_cargo(int dest_id)
-{
-	/* Time */
-	int days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_id), SO_SPEED);
-
-	/* Remove cargo */
-	if (days_needed > 0) remove_ship_expired(_this_id, cargo_hold, days_needed);
-}
-
 void move_to_port(struct coord dest_coord)
 {
 	double time = GET_TRAVEL_TIME(get_ship_coord(_this_id), dest_coord, SO_SPEED);
@@ -176,7 +166,7 @@ void move_to_port(struct coord dest_coord)
 void exchange_cargo(int port_id)
 {
 	sigset_t set_masked;
-	int tons_moved, i, type, amount, dest_port_id, start_type;
+	int tons_moved, i, type, amount, dest_port_id, start_type, days_needed;
 
 	/* Get dock */
 	execute_single_sem_oper(get_id_sem_docks(), port_id, -1);
@@ -186,7 +176,6 @@ void exchange_cargo(int port_id)
 	sigemptyset(&set_masked);
 	sigaddset(&set_masked, SIGMAELSTROM);
 
-	discard_expiring_cargo(0); /* TEST */
 	/* Selling */
 	for (type = 0; type < SO_MERCI; type++){
 		/* Actual sell (unsinkable) */
@@ -198,10 +187,10 @@ void exchange_cargo(int port_id)
 		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
 	}
 
-	/* New Dest */
+	/* New Dest and discard cargo that cannot make the travel */
 	dest_port_id = new_destiation_port(port_id);
-	discard_expiring_cargo(dest_port_id);
-
+	days_needed = GET_TRAVEL_TIME(get_ship_coord(_this_id), get_port_coord(dest_port_id), SO_SPEED);
+	if (days_needed > 0) remove_ship_expired(_this_id, cargo_hold, days_needed);
 
 	/* Buying */
 	start_type = RANDOM(0, SO_MERCI);
@@ -311,7 +300,7 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		/* remove_ship_expired(_this_id, cargo_hold, 0); */ /* REMOVED FOR TEST*/
+		remove_ship_expired(_this_id, cargo_hold, 0); /* REMOVED FOR TEST*/
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		set_ship_storm(_this_id);
