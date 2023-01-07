@@ -24,6 +24,7 @@ struct commerce_msgbuf{
 /* Prototype */
 void create_commerce_msgbuf(struct commerce_msgbuf *msg, long sender, long receiver, int type, int amount, int expiry_date, int status);
 void send_commerce_msg(id_shared_t id, const struct commerce_msgbuf *msg);
-void receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_type, int *amount, int *expiry_date, int *status);
+bool_t receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo_type, int *amount, int *expiry_date, int *status, bool_t restarting);
+
 
 #endif
