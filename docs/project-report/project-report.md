@@ -1,5 +1,4 @@
-# Title
-TL;DR: random is king and utils are queens yaaas
+# Project report
 ## Master
 The master process's only role is to create other processes and read the simulation constats from file to then call shm_manager and pass them to it, so that it can take care of initialization of the respective data structures. It also makes sure that all processes and IPCs are correctly closed when the program is interrupted for any reason.
 
