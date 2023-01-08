@@ -97,8 +97,6 @@ int new_destiation_port(int current_port)
 	double best_travel_time, travel_time;
 
 	/* If empty */
-	if(SO_CAPACITY>get_ship_capacity(_this_id))dprintf(1, "NEW CAP %d\n", SO_CAPACITY-get_ship_capacity(_this_id));
-
 	if (get_ship_capacity(_this_id) >= SO_CAPACITY){
 		max_noise = ROUNDUP(SO_NAVI / 50);
 		start_port = RANDOM(0, SO_PORTI);
