@@ -272,11 +272,12 @@ void print_dump_data()
 		tot_cargo_del_unwanted += _data_cargo[cargo_type].dump_delivered_unwanted;
 	}
 	dprintf(1, "|\n");
-	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d, tot_cargo_delivered_unwanted: %d\n\n",
+	dprintf(1, "|--CARGO TOTALS: tot_cargo_port: %d, tot_cargo_ship: %d, tot_cargo_delivered: %d, tot_cargo_expired_port: %d, tot_cargo_expired_ship: %d, tot_cargo_delivered_unwanted: %d\n",
 			tot_cargo_port, tot_cargo_ship, tot_cargo_del, tot_cargo_exp_port, tot_cargo_exp_ship, tot_cargo_del_unwanted);
 
+#ifdef DEBUG
 	/* Shop things */
-	dprintf(1, "================================[SHOP]====================================\n");
+	dprintf(1, "\n================================[SHOP]====================================\n");
 	for (port = 0; port < SO_PORTI; port++){
 		dprintf(1, "PORT %d:   ", port);
 		for (type = 0; type < SO_MERCI; type++){
@@ -285,8 +286,8 @@ void print_dump_data()
 		}
 		dprintf(1, "\n");
 	}
-	dprintf(1, "\n================================[END SHOP]================================\n\n\n");
-
+#endif
+	dprintf(1, "================================[END  DAY]================================\n\n\n");
 	if(get_day() >= SO_DAYS)
 		dprintf(1, "================================[END SIMULATION]================================\n");
 }
