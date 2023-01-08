@@ -300,7 +300,7 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		remove_ship_expired(_this_id, cargo_hold, 0); /* REMOVED FOR TEST*/
+		remove_ship_expired(_this_id, cargo_hold, 0);
 		break;
 	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
 		set_ship_storm(_this_id);
@@ -308,7 +308,7 @@ void signal_handler(int signal)
 		break;
 	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
 		set_ship_maelstrom(_this_id);
-		/* remove_ship_expired(_this_id, cargo_hold, 0);*/
+		remove_ship_expired(_this_id, cargo_hold, 0);
 		close_all();
 		break;
 	case SIGSEGV:
