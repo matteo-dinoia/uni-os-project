@@ -7,7 +7,7 @@
 #include "header/semaphore.h"
 #include "header/message.h"
 #include "header/utils.h"
-#include "header/shm_manager.h"
+#include "header/ipc_manager.h"
 
 /* Macros */
 #define DATA_SHOP(port_id, cargo_type) (_data_shop[(port_id) * SO_MERCI + (cargo_type)])
@@ -41,7 +41,7 @@ id_shared_t _id_sem_cargo = NULL_ID;
 void _initialize_data();
 
 /* Must be initialized by master before anyone accessing it */
-void initialize_shm_manager(int permissions, const struct general *base_data)
+void initialize_ipc_manager(const struct general *base_data) /* Put null if not initalizing */
 {
 	/* Wait master if needed */
 	if(base_data == NULL){
@@ -166,7 +166,7 @@ void _initialize_data()
 	_data->today = 1;
 }
 
-void close_shm_manager()
+void close_ipc_manager()
 {
 	/* Detach */
 	shmdt(_data);
@@ -197,7 +197,6 @@ void close_ipc()
 
 double get_constants(int type_const)
 {
-	/*Every get and set start with if (struct = Void * -1) initialize shared */
 	/* obtain */
 	switch (type_const % 16){
 		case 0: return _data->so_lato;
@@ -317,7 +316,7 @@ bool_t check_shop_termination_condition(){
 
 	return never_supply || never_demand;
 }
-bool_t is_shm_initialized(){return is_initialized;}
+bool_t is_ipc_initialized(){return is_initialized;}
 id_shared_t get_id_sem_docks(){return _id_sem_docks;}
 id_shared_t get_id_msg_in_ports(){return _id_msg_in_ports;}
 id_shared_t get_id_msg_out_ports(){return _id_msg_out_ports;}

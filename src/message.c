@@ -40,6 +40,7 @@ bool_t receive_commerce_msg(id_shared_t id, int type, int *sender_id, int *cargo
 			return FALSE;
 	}while (return_value < 0);
 
+	/* Only if different from null save data */
 	if(sender_id != NULL) *sender_id = MSG_DEC_TYPE(msg.sender);
 	if(cargo_type != NULL) *cargo_type = msg.cargo_type;
 	if(amount != NULL) *amount = msg.n_cargo_batch;

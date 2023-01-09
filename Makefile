@@ -14,12 +14,12 @@ all: $(PROCESSES_OUT)
 #COMPILING SPECIFIC FILES
 bin:
 	mkdir -p $@
-bin/%.o: src/%.c src/header/%.h| bin
+bin/%.o: src/%.c src/header/%.h Makefile| bin
 	$(CCOMPILE) -c $< -o $@
-bin/shm_manager.o: src/shm_manager.c src/header/shm_manager.h| bin
+bin/ipc_manager.o: src/ipc_manager.c src/header/ipc_manager.h Makefile| bin
 	$(CCOMPILE) -c $< -o $@
-bin/%: src/%.c $(REQUIRED_O) bin/shm_manager.o
-	$(CCOMPILE) $(REQUIRED_O) bin/shm_manager.o $< -o $@ -lm
+bin/%: src/%.c $(REQUIRED_O) bin/ipc_manager.o Makefile
+	$(CCOMPILE) $(REQUIRED_O) bin/ipc_manager.o $< -o $@ -lm
 
 
 #GENERAL USE
@@ -31,12 +31,8 @@ debug: all
 run: all
 	cd bin && ./$(TARGET)
 #truncate output when ^c is pressed (bug)
-runf: all
-	cd bin && ./$(TARGET) | tee ../output.log
-crun: _clear-screen recompile _wait-input
-	cd bin && ./$(TARGET); $(RM) -r bin
-crunf: _clear-screen recompile _wait-input
-	cd bin && ./$(TARGET) > ../output.log; $(RM) -r bin
+run-and-log: all
+	cd bin && ./$(TARGET) | tee ../output.log; echo -e "\n\nPossible cut output because of make limations (use run instead)"
 
 #TOOLS
 alives:
@@ -47,9 +43,3 @@ killall-kill:
 	killall -s KILL $(_PROCESSES) | cat
 count:
 	printf "\nNumber of lines in project: "; wc -l src/*.c src/header/*.h Makefile
-
-#DEPENDENCIES
-_clear-screen:
-	clear
-_wait-input:
-	echo -e "\nPress any key to launch"; read -n 1

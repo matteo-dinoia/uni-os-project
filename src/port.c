@@ -5,7 +5,7 @@
 #include <sys/param.h>
 #include "header/utils.h"
 #include "header/message.h"
-#include "header/shm_manager.h"
+#include "header/ipc_manager.h"
 
 /* Global variables */
 int _this_id;
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
 	/* Get id and data structures */
 	_this_id = atoi(argv[1]);
-	initialize_shm_manager(PORT_WRITE | CARGO_WRITE | SHOP_WRITE, NULL);
+	initialize_ipc_manager(NULL);
 	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* Less important signal handler */
@@ -115,19 +115,13 @@ void send_to_ship(int ship_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, ship_id,
 			cargo_type, amount, expiry_date, status);
 
-	/* dprintf(1, "PORT %d SEND TO SHIP %d (amount %d, expiriry_date %d, status %d\n", _this_id, ship_id, amount, expiry_date, status); */
 	send_commerce_msg(get_id_msg_out_ports(), &msg);
-	/* dprintf(1, "PORT %d SENT TO SHIP %d\n", _this_id, ship_id); */
 }
 
 bool_t receive_from_ship(int *ship_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
-	bool_t result;
-	/* dprintf(1, "PORT %d LISTEN TO SHIPS\n", _this_id); */
-	result = receive_commerce_msg(get_id_msg_in_ports(), _this_id,
+	return receive_commerce_msg(get_id_msg_in_ports(), _this_id,
 			ship_id, cargo_type, amount, expiry_date, status, FALSE);
-	/* dprintf(1, "PORT %d RECEIVED FROM SHIPS\n", _this_id); */
-	return result;
 }
 
 void shop_update()
@@ -138,7 +132,7 @@ void shop_update()
 	bool_t is_demand;
 	bool_t is_last_index_used = TRUE;
 
-	/* TODO avoid going over the limits */
+	/* Do up until there is tons to be generated */
 	while (rem_supply_tons > 0 || rem_demand_tons > 0) {
 		rand_type = is_last_index_used ? RANDOM(0, SO_MERCI) : (rand_type + 1) % SO_MERCI;
 
@@ -187,10 +181,7 @@ void signal_handler(int signal)
 	switch (signal)
 	{
 	case SIGDAY: /* Change of day */
-		/* dprintf(1, "[DAY CHANGE START FOR PORT %d]\n", _this_id); */
-		/*remove_port_expired(_this_id, cargo_hold);
-		shop_update();*/ /* REMOVED FOR MOVING OUT OF HERE */
-		/* dprintf(1, "[DAY CHANGE FINISHED FOR PORT %d]\n", _this_id); */
+		/* Do nothing in the handler for avoiding deadlock on same process only here to stop wait */
 		break;
 	case SIGSWELL: /* Swell */
 		set_port_swell(_this_id);
@@ -198,7 +189,7 @@ void signal_handler(int signal)
 		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In port %d (closing)\n", _this_id);
-	case SIGINT:
+	case SIGINT: /* Normal closing */
 		close_all();
 		break;
 	}
@@ -214,7 +205,7 @@ void close_all()
 	free(cargo_hold);
 
 	/* Detach shared memory */
-	close_shm_manager();
+	close_ipc_manager();
 
 	exit(0);
 }
