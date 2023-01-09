@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include "header/shared_mem.h"
-#include "header/shm_manager.h"
+#include "header/ipc_manager.h"
 
 /* Macros */
 #define DAY_SEC 1
@@ -32,7 +32,7 @@ int main()
 	master_pid = getpid();
 	srand(time(NULL) * getpid());
 	constants = read_constants_from_file();
-	initialize_shm_manager(PORT_WRITE | SHIP_WRITE | CARGO_WRITE | SHOP_WRITE, &constants);
+	initialize_ipc_manager(&constants);
 
 	/* Setting signal handler */
 	bzero(&sa, sizeof(sa));
@@ -75,7 +75,7 @@ pid_t create_proc(char *name, int index)
 	if ((proc_pid = fork()) == -1){
 		close_all("[FATAL] Failed to fork child", EXIT_FAILURE);
 	} else if (proc_pid == 0){
-		/* Free TODO not perfect*/
+		/* Free struct */
 		to_free = childs_pid;
 		childs_pid = NULL;
 		free(to_free);
@@ -180,7 +180,7 @@ void close_all(const char *message, int exit_status)
 {
 	if(getpid() != master_pid){
 		/* If is child which has not yet done the execve */
-		close_shm_manager();
+		close_ipc_manager();
 		free(childs_pid);
 		return;
 	}
@@ -192,7 +192,7 @@ void close_all(const char *message, int exit_status)
 	send_to_all_childs(SIGINT);
 
 	/* Closing IPC and local */
-	close_shm_manager();
+	close_ipc_manager();
 	close_ipc();
 	free(childs_pid);
 

@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdio.h>
-#include "header/shm_manager.h"
+#include "header/ipc_manager.h"
 
 /* Prototypes */
 void storm();
@@ -17,7 +17,7 @@ int main()
 	int id;
 
 	/* FIRST: Gain data struct */
-	initialize_shm_manager(0, NULL);
+	initialize_ipc_manager(NULL);
 
 	/* LAST: Set signal handler */
 	bzero(&sa, sizeof(sa));
@@ -41,6 +41,7 @@ void storm()
 {
 	int i;
 	int ship_i = RANDOM(0, SO_NAVI);
+
 	for (i = 0; i < SO_NAVI; i++){
 		if (!is_ship_dead(ship_i) && is_ship_moving(ship_i)){
 			SEND_SIGNAL(get_ship_pid(ship_i), SIGSTORM);
@@ -48,8 +49,6 @@ void storm()
 		}
 		ship_i = (ship_i + 1) % SO_NAVI;
 	}
-
-	/* TODO: no ship is moving*/
 }
 
 /* Sink a ship every SO_MAELSTROM */
@@ -77,14 +76,14 @@ void signal_handler(int signal)
 {
 	switch (signal)
 	{
-	case SIGINT:
-		close_shm_manager();
+	case SIGINT: /* Normal closing */
+		close_ipc_manager();
 		exit(0);
 	case SIGDAY: /* Change of day */
 		storm();
 		swell();
 		break;
-	case SIGALRM:
+	case SIGALRM: /* Send maelstrom every day */
 		maelstrom();
 		break;
 	}

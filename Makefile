@@ -16,10 +16,10 @@ bin:
 	mkdir -p $@
 bin/%.o: src/%.c src/header/%.h Makefile| bin
 	$(CCOMPILE) -c $< -o $@
-bin/shm_manager.o: src/shm_manager.c src/header/shm_manager.h Makefile| bin
+bin/ipc_manager.o: src/ipc_manager.c src/header/ipc_manager.h Makefile| bin
 	$(CCOMPILE) -c $< -o $@
-bin/%: src/%.c $(REQUIRED_O) bin/shm_manager.o Makefile
-	$(CCOMPILE) $(REQUIRED_O) bin/shm_manager.o $< -o $@ -lm
+bin/%: src/%.c $(REQUIRED_O) bin/ipc_manager.o Makefile
+	$(CCOMPILE) $(REQUIRED_O) bin/ipc_manager.o $< -o $@ -lm
 
 
 #GENERAL USE

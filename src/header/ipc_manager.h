@@ -1,16 +1,18 @@
-#ifndef SHM_MANAGER_H
-#define SHM_MANAGER_H
+#ifndef IPC_MANAGER_H
+#define IPC_MANAGER_H
 
 #include "utils.h"
+#include "shared_mem.h"
 
-/* Prototype*/
-void initialize_constants();
+/* Prototype */
+void initialize_ipc_manager(const struct general *base_data);
 void start_simulation();
-void close_shm_manager();
+void close_ipc_manager();
 void close_ipc();
 void print_dump_data();
 double get_constants(int index);
-/* Setter TODO check permission*/
+
+/* Setter */
 void increase_day();
 void set_ship_dead(int ship_id);
 void set_ship_maelstrom(int ship_id);
@@ -38,7 +40,7 @@ bool_t check_shop_termination_condition();
 id_shared_t get_id_sem_docks();
 id_shared_t get_id_msg_in_ports();
 id_shared_t get_id_msg_out_ports();
-bool_t is_shm_initialized();
+bool_t is_ipc_initialized();
 /* Port */
 struct coord get_port_coord(int id);
 int get_port_daily_restock_supply(int port_id);
@@ -74,11 +76,5 @@ int get_shop_quantity(int port_id, int cargo_id);
 #define SO_CAPACITY ((int)get_constants(13))
 #define SO_MIN_VITA ((int)get_constants(14))
 #define SO_MAX_VITA ((int)get_constants(15))
-
-/* Permissions in binary */
-#define PORT_WRITE 1 /* 0001 */
-#define SHIP_WRITE 2 /* 0010 */
-#define CARGO_WRITE 4 /* 0100 */
-#define SHOP_WRITE 8 /* 1000 */
 
 #endif

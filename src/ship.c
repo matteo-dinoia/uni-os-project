@@ -4,7 +4,7 @@
 #include <sys/param.h>
 #include <math.h>
 #include "header/message.h"
-#include "header/shm_manager.h"
+#include "header/ipc_manager.h"
 
 /* Macro*/
 #define GET_TRAVEL_TIME(this_coord, dest_coord, speed)\
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
 	/* Get id and data structures */
 	_this_id = atoi(argv[1]);
-	initialize_shm_manager(SHIP_WRITE | CARGO_WRITE, NULL);
+	initialize_ipc_manager(NULL);
 	cargo_hold = calloc(SO_MERCI, sizeof(*cargo_hold));
 
 	/* Less important signal handler */
@@ -72,7 +72,6 @@ void loop()
 	while (1){
 		get_next_destination_port(&dest_port, &dest_coord);
 		move_to_port(dest_coord);
-		/* dprintf(1, "\t[Ship %d] arrived at %d (x: %lf, y: %lf)\n", _this_id, dest_port, dest_coord.x, dest_coord.y); */
 		exchange_cargo(dest_port);
 	}
 }
@@ -172,7 +171,7 @@ void exchange_cargo(int port_id)
 	execute_single_sem_oper(get_id_sem_docks(), port_id, -1);
 	set_ship_at_dock(_this_id, TRUE, port_id);
 
-	/* Initialize signal ignored TODO move inside */
+	/* Initialize signal ignored */
 	sigemptyset(&set_masked);
 	sigaddset(&set_masked, SIGMAELSTROM);
 
@@ -279,18 +278,13 @@ void send_to_port(int port_id, int cargo_type, int amount, int expiry_date, int 
 	create_commerce_msgbuf(&msg, _this_id, port_id,
 			cargo_type, amount, expiry_date, status);
 
-	/* dprintf(1, "SHIP %d SEND TO PORT %d REQUEST amount %d cargo_type %d\n", _this_id, port_id, amount, cargo_type); */
 	send_commerce_msg(get_id_msg_in_ports(), &msg);
 }
 
 void receive_from_port(int *port_id, int *cargo_type, int *amount, int *expiry_date, int *status)
 {
-	/* dprintf(1, "SHIP %d LISTEN\n", _this_id); */
 	receive_commerce_msg(get_id_msg_out_ports(), _this_id,
 			port_id, cargo_type, amount, expiry_date, status, TRUE);
-
-	/* dprintf(1, "SHIP %d RECEIVED FROM PORTS status %d amount %d expiriy_date (-3 = NULL) %d\n",
-			_this_id, *status, *amount, expiry_date != NULL ? *expiry_date : -3); */
 }
 
 void signal_handler(int signal)
@@ -300,20 +294,20 @@ void signal_handler(int signal)
 
 	switch (signal){
 	case SIGDAY:
-		remove_ship_expired(_this_id, cargo_hold, 0);
+		/* Do nothing in the handler for avoiding data incoherence only here to stop wait */
 		break;
-	case SIGSTORM: /* Storm -> stops the ship for STORM_DURATION time */
+	case SIGSTORM: /* Storm */
 		set_ship_storm(_this_id);
 		wait_event_duration(SO_STORM_DURATION/24.0);
 		break;
-	case SIGMAELSTROM: /* Maeltrom -> sinks the ship */
+	case SIGMAELSTROM: /* Maeltrom */
 		set_ship_maelstrom(_this_id);
 		remove_ship_expired(_this_id, cargo_hold, 0);
 		close_all();
 		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In ship pid: %d (closing)\n", _this_id);
-	case SIGINT: /* Closing for every other reason */
+	case SIGINT: /* Normal closing */
 		close_all();
 		break;
 	}
@@ -324,7 +318,7 @@ void close_all()
 	int i, amount;
 
 	/* Signaling data of death */
-	if (is_shm_initialized())set_ship_dead(_this_id);
+	if (is_ipc_initialized())set_ship_dead(_this_id);
 
 	/* Local memory deallocation */
 	for (i = 0; i < SO_MERCI; i++)
@@ -332,7 +326,7 @@ void close_all()
 	free(cargo_hold);
 
 	/* Detach shared memory */
-	close_shm_manager();
+	close_ipc_manager();
 
 	exit(0);
 }
