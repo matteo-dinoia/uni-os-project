@@ -157,7 +157,7 @@ void move_to_port(struct coord dest_coord)
 
 	/* Wait */
 	set_ship_moving(_this_id, TRUE);
-	wait_event_duration(time, &check_if_cargo_expired); /* TODO signal control expired cargo */
+	wait_event_duration(time, &check_if_cargo_expired);
 	set_ship_moving(_this_id, FALSE);
 
 	/* Actual move*/
