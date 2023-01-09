@@ -194,14 +194,18 @@ void timer(double duration_sec){
 	ret = setitimer(ITIMER_REAL, &it_val, NULL);
 }
 
-void wait_event_duration(double sec)
+void wait_event_duration(double sec, void (*function_for_signal)())
 {
 	struct timespec rem_time, event_time;
 
 	if (sec <= 0) return;
 
 	event_time = _get_timespec(sec);
+	errno = EXIT_SUCCESS;
 	do {
+		if (errno == EINTR && function_for_signal !=NULL)
+			(*function_for_signal)();
+
 		errno = EXIT_SUCCESS;
 		nanosleep(&event_time, &rem_time);
 		event_time = rem_time;

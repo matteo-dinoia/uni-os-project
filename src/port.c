@@ -185,7 +185,7 @@ void signal_handler(int signal)
 		break;
 	case SIGSWELL: /* Swell */
 		set_port_swell(_this_id);
-		wait_event_duration(SO_SWELL_DURATION/24.0);
+		wait_event_duration(SO_SWELL_DURATION/24.0, NULL);
 		break;
 	case SIGSEGV:
 		dprintf(1, "[SEGMENTATION FAULT] In port %d (closing)\n", _this_id);

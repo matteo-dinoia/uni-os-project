@@ -39,7 +39,7 @@ void free_cargo(list_cargo *list);
 void print_cargo(list_cargo *list);
 
 void timer(double interval_sec);
-void wait_event_duration(double sec);
+void wait_event_duration(double sec, void (*function_for_signal)(void));
 
 /* MACRO FUNCTION */
 #define TEST() dprintf(1, "TEST ALIVE (pid: %d): is still alive at %d in %s\n", getpid(), __LINE__, __FILE__)

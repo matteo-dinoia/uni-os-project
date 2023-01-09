@@ -14,6 +14,7 @@
 int _this_id;
 int _next_port_destination = -1;
 list_cargo *cargo_hold;
+int last_day_update = 0; /* For expired cargo */
 
 /* Prototypes */
 void get_next_destination_port(int *, struct coord *);
@@ -27,6 +28,7 @@ int buy(int, int, int);
 int pick_buy(int, int, int);
 void send_to_port(int, int, int, int, int);
 void receive_from_port(int *, int *, int *, int *, int *);
+void check_if_cargo_expired();
 void close_all();
 
 
@@ -155,11 +157,21 @@ void move_to_port(struct coord dest_coord)
 
 	/* Wait */
 	set_ship_moving(_this_id, TRUE);
-	wait_event_duration(time);
+	wait_event_duration(time, &check_if_cargo_expired); /* TODO signal control expired cargo */
 	set_ship_moving(_this_id, FALSE);
 
 	/* Actual move*/
 	set_ship_coord(_this_id, dest_coord.x, dest_coord.y);
+}
+
+void check_if_cargo_expired()
+{
+	const int today = get_day();
+	if(last_day_update >= today) return;
+
+	remove_ship_expired(_this_id, cargo_hold, 0);
+	last_day_update = today;
+
 }
 
 void exchange_cargo(int port_id)
@@ -177,13 +189,15 @@ void exchange_cargo(int port_id)
 
 	/* Selling */
 	for (type = 0; type < SO_MERCI; type++){
+		check_if_cargo_expired();
+
 		/* Actual sell (unsinkable) */
 		sigprocmask(SIG_BLOCK, &set_masked, NULL);
 		tons_moved = sell(port_id, type);
 		sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 		/* Wait */
-		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
+		wait_event_duration(tons_moved / (double)SO_LOADSPEED, NULL);
 	}
 
 	/* New Dest and discard cargo that cannot make the travel */
@@ -194,6 +208,8 @@ void exchange_cargo(int port_id)
 	/* Buying */
 	start_type = RANDOM(0, SO_MERCI);
 	for (i = 0; i < SO_MERCI; i++){
+		check_if_cargo_expired();
+
 		/* Pick how much to buy */
 		type = (type + i) % SO_MERCI;
 		amount = pick_buy(port_id, dest_port_id, type);
@@ -205,7 +221,7 @@ void exchange_cargo(int port_id)
 		sigprocmask(SIG_UNBLOCK, &set_masked, NULL);
 
 		/* Wait */
-		wait_event_duration(tons_moved / (double)SO_LOADSPEED);
+		wait_event_duration(tons_moved / (double)SO_LOADSPEED, NULL);
 	}
 
 	/* Free dock */
@@ -298,7 +314,7 @@ void signal_handler(int signal)
 		break;
 	case SIGSTORM: /* Storm */
 		set_ship_storm(_this_id);
-		wait_event_duration(SO_STORM_DURATION/24.0);
+		wait_event_duration(SO_STORM_DURATION/24.0, NULL);
 		break;
 	case SIGMAELSTROM: /* Maeltrom */
 		set_ship_maelstrom(_this_id);
